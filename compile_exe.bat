@@ -18,7 +18,7 @@ pip install -r requirements.txt
 pip install pyinstaller
 
 echo EXE Derleniyor...
-pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_v2.0" --add-data "vendor_data;vendor_data" "desktop/app.py"
+pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_v2.0" --add-data "vendor_data;vendor_data" "main.py"
 
 echo Islemler tamamlandi. Sonuclari 'dist' klasorunde bulabilirsiniz.
 pause
