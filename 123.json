@@ -1,0 +1,14 @@
+{
+    "frac_type_combo": "Mole %",
+    "flow_input": "9633",
+    "flow_unit": "kg/h",
+    "p1_input": "15.4",
+    "p1_unit": "barg",
+    "p2_input": "1.2",
+    "p2_unit": "barg",
+    "t_input": "35",
+    "t_unit": "\u00b0C",
+    "z_input": "0.9664",
+    "mw_input": "18.15",
+    "k_input": "1.3193"
+}

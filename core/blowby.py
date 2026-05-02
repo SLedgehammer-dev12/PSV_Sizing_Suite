@@ -1,0 +1,18 @@
+def calculate_blowby_flowrate(assumed_flow_kg_h, nominal_cv, calculated_cv_at_blowby):
+    """
+    Calculate blow-by flowrate based on linear control valve characteristics.
+    The blow-by flowrate is proportional to the ratio of the nominal (100% open) Cv 
+    to the calculated Cv at blow-by conditions for an assumed flowrate.
+    
+    assumed_flow_kg_h: Estimated flowrate at blow-by conditions (kg/h)
+    nominal_cv: Selected nominal Cv of the control valve (e.g. at 100% opening)
+    calculated_cv_at_blowby: Calculated Cv for the assumed flowrate
+    
+    Returns:
+    blowby_flowrate in kg/h
+    """
+    if calculated_cv_at_blowby <= 0:
+        raise ValueError("Calculated Cv at blow-by must be greater than zero.")
+        
+    blowby_flowrate = assumed_flow_kg_h * (nominal_cv / calculated_cv_at_blowby)
+    return blowby_flowrate

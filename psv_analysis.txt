@@ -1,0 +1,338 @@
+File: D:\İş\Çalışan programlar\@Güncelleme\psv sizing .xls
+Sheet Names: ['BLOCKED OUTLET + GAS BLOW-BY', 'FULL FLOW- 2-PHASE (old method)', 'FULL FLOW - LIQUID RELIEF', 'FULL FLOW - GAS RELIEF', 'FULL FLOW - TWO PHASE', 'GAS SUBCRITICAL FLOW', 'FIRE UNWETTED', 'FIRE WETTED (hysys)', 'FIRE WETTED (heat of vap)', 'TSV - HYDRAULIC EXPANSION']
+
+==================== Sheet: BLOCKED OUTLET + GAS BLOW-BY ====================
+Shape: (86, 8)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+
+First 15 Rows:
+                                        Unnamed: 0                            Unnamed: 1  Unnamed: 2            Unnamed: 3  Unnamed: 4 Unnamed: 5 Unnamed: 6 Unnamed: 7
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                                   NaN         NaN                   NaN         NaN        NaN        NaN        NaN
+1                                              NaN                                   NaN         NaN                   NaN         NaN        NaN        NaN        NaN
+2                                              NaN                                   NaN         NaN                   NaN         NaN        NaN        NaN        NaN
+3                                              NaN          BLOW-BY FLOWRATE CALCULATION         NaN                   NaN         NaN        NaN        NaN        NaN
+4                                              NaN                                   NaN         NaN                   NaN         NaN        NaN        NaN        NaN
+5                                              NaN  CONTROL VALVE NOMINAL Cv CALCULATION         NaN                   NaN         NaN        NaN        NaN        NaN
+6                                              NaN                                   NaN         NaN                   NaN         NaN        NaN        NaN        NaN
+7                                              NaN                                   NaN         NaN     Upstream pressure         NaN       barg         41        NaN
+8                                              NaN                                   NaN         NaN   Downstream pressure         NaN       barg         18        NaN
+9                                              NaN                                   NaN         NaN  Upstream temperature         NaN         °C      85.67        NaN
+10                                             NaN                                   NaN         NaN              Flowrate         NaN       kg/h       1825        NaN
+11                                             NaN                                   NaN         NaN                   NaN         NaN       kg/s   0.506944        NaN
+12                                             NaN                                   NaN         NaN                MW (1)         NaN        NaN  21.537231        NaN
+13                                             NaN                                   NaN         NaN         k (Cp/Cv) (1)         NaN        NaN   1.199719        NaN
+14                                             NaN                                   NaN         NaN                 Z (1)         NaN        NaN   0.942439        NaN
+
+
+==================== Sheet: FULL FLOW- 2-PHASE (old method) ====================
+Shape: (86, 11)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+  - Unnamed: 8
+  - Unnamed: 9
+  - Unnamed: 10
+
+First 15 Rows:
+                                        Unnamed: 0                     Unnamed: 1  Unnamed: 2               Unnamed: 3  Unnamed: 4 Unnamed: 5  Unnamed: 6                 Unnamed: 7  Unnamed: 8  Unnamed: 9 Unnamed: 10
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+1                                              NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+2                                              NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+3                                              NaN              GAS FLOW BEHAVIOR         NaN       Operating Pressure         NaN       barg          30                        NaN         NaN         NaN         NaN
+4                                              NaN                            NaN         NaN             Set Pressure         NaN       barg          48                        NaN         NaN         NaN         NaN
+5                                              NaN                            NaN         NaN  Relieving Pressure (P1)         NaN       barg        52.8   (PSV set pressure + 10%)         NaN         NaN         NaN
+6                                              NaN                            NaN         NaN                      NaN         NaN       psia  780.302826                        NaN         NaN         NaN         NaN
+7                                              NaN                            NaN         NaN                    k (1)         NaN        NaN     1.19362                        NaN         NaN         NaN         NaN
+8                                              NaN                            NaN         NaN            Back Pressure         NaN       barg           1                        NaN         NaN         NaN         NaN
+9                                              NaN                            NaN         NaN   Critical Flow Pressure         NaN       barg   29.435614                        NaN         NaN         NaN         NaN
+10                                             NaN                            NaN         NaN                      NaN         NaN       psia   441.43114                        NaN         NaN         NaN         NaN
+11                                             NaN                            NaN         NaN                     Flow         NaN        NaN    CRITICAL                        NaN         NaN         NaN         NaN
+12                                             NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+13                                             NaN  PSV REQUIRED AREA CALCULATION         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+14                                             NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+
+
+==================== Sheet: FULL FLOW - LIQUID RELIEF ====================
+Shape: (69, 11)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+  - Unnamed: 8
+  - Unnamed: 9
+  - Unnamed: 10
+
+First 15 Rows:
+                                        Unnamed: 0                     Unnamed: 1  Unnamed: 2               Unnamed: 3  Unnamed: 4 Unnamed: 5  Unnamed: 6                 Unnamed: 7  Unnamed: 8  Unnamed: 9 Unnamed: 10
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+1                                              NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+2                                              NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+3                                              NaN                            NaN         NaN       Operating Pressure         NaN       barg          30                        NaN         NaN         NaN         NaN
+4                                              NaN                            NaN         NaN             Set Pressure         NaN       barg          48                        NaN         NaN         NaN         NaN
+5                                              NaN                            NaN         NaN  Relieving Pressure (P1)         NaN       barg        52.8   (PSV set pressure + 10%)         NaN         NaN         NaN
+6                                              NaN                            NaN         NaN                      NaN         NaN       psia  780.302826                        NaN         NaN         NaN         NaN
+7                                              NaN                            NaN         NaN                    k (1)         NaN        NaN     1.19362                        NaN         NaN         NaN         NaN
+8                                              NaN                            NaN         NaN            Back Pressure         NaN       barg           1                        NaN         NaN         NaN         NaN
+9                                              NaN                            NaN         NaN   Critical Flow Pressure         NaN       barg   29.435614                        NaN         NaN         NaN         NaN
+10                                             NaN                            NaN         NaN                      NaN         NaN       psia   441.43114                        NaN         NaN         NaN         NaN
+11                                             NaN                            NaN         NaN                     Flow         NaN        NaN    CRITICAL                        NaN         NaN         NaN         NaN
+12                                             NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+13                                             NaN  PSV REQUIRED AREA CALCULATION         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+14                                             NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                        NaN         NaN         NaN         NaN
+
+
+==================== Sheet: FULL FLOW - GAS RELIEF ====================
+Shape: (86, 8)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+
+First 15 Rows:
+                                        Unnamed: 0                     Unnamed: 1  Unnamed: 2               Unnamed: 3  Unnamed: 4 Unnamed: 5  Unnamed: 6             Unnamed: 7
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                            NaN         NaN                      NaN         NaN        NaN         NaN                    NaN
+1                                              NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                    NaN
+2                                              NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                    NaN
+3                                              NaN              GAS FLOW BEHAVIOR         NaN       Operating Pressure         NaN       barg          11                    NaN
+4                                              NaN                            NaN         NaN             Set Pressure         NaN       barg          14                    NaN
+5                                              NaN                            NaN         NaN  Relieving Pressure (P1)         NaN       barg        15.4   (Set pressure + 10%)
+6                                              NaN                            NaN         NaN                      NaN         NaN       psia  237.861828                    NaN
+7                                              NaN                            NaN         NaN                    k (1)         NaN        NaN         1.3                    NaN
+8                                              NaN                            NaN         NaN            Back Pressure         NaN       barg         1.2                    NaN
+9                                              NaN                            NaN         NaN   Critical Flow Pressure         NaN       barg    7.949935                    NaN
+10                                             NaN                            NaN         NaN                      NaN         NaN       psia  129.807796                    NaN
+11                                             NaN                            NaN         NaN                     Flow         NaN        NaN    CRITICAL                    NaN
+12                                             NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                    NaN
+13                                             NaN  PSV REQUIRED AREA CALCULATION         NaN                      NaN         NaN        NaN         NaN                    NaN
+14                                             NaN                            NaN         NaN                      NaN         NaN        NaN         NaN                    NaN
+
+
+==================== Sheet: FULL FLOW - TWO PHASE ====================
+Shape: (112, 10)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+  - Unnamed: 8
+  - Unnamed: 9
+
+First 15 Rows:
+    Unnamed: 0                                      Unnamed: 1                                    Unnamed: 2  Unnamed: 3 Unnamed: 4 Unnamed: 5   Unnamed: 6            Unnamed: 7  Unnamed: 8                                                        Unnamed: 9
+0          NaN  PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                                           NaN         NaN        NaN        NaN          NaN                   NaN         NaN                                                               NaN
+1          NaN                                             NaN                                           NaN         NaN        NaN        NaN          NaN                   NaN         NaN                                                               NaN
+2          NaN                                             NaN                                           NaN         NaN        NaN        NaN          NaN                   NaN         NaN                                                               NaN
+3          NaN                                             NaN                      FLOW BEHAVIOR (2) or (3)         NaN        NaN        NaN          NaN                   NaN         NaN                                                               NaN
+4          NaN                                             NaN                                           NaN         NaN        NaN        NaN          NaN                   NaN         NaN                                                               NaN
+5          NaN                                             NaN                            Operating Pressure         NaN        NaN       barg           77                   NaN         NaN                                                               NaN
+6          NaN                                             NaN                                  Set Pressure         NaN        NaN       barg        116.5                   NaN         NaN                                                               NaN
+7          NaN                                             NaN                       Relieving Pressure (P0)         NaN        NaN       bara       136.14  ( Set pressure +16%)         NaN  ( Set pressure +10% for single valve / +16% for multiple valves)
+8          NaN                                             NaN                                           NaN         NaN        NaN       psia  1974.543248                   NaN         NaN                                                               NaN
+9          NaN                                             NaN                       Specific volume of the          NaN        NaN      m3/kg     0.008412                   NaN         NaN                                                               NaN
+10         NaN                                             NaN                     two-phase system (1) (v0)         NaN        NaN     ft3/lb     0.134746                   NaN         NaN                                                               NaN
+11         NaN                                             NaN             Specific volume evaluated at 90%          NaN        NaN      m3/kg     0.009011                   NaN         NaN                                                               NaN
+12         NaN                                             NaN  of the PRV inlet pressure (@ 90% P0)     (2)         NaN        NaN     ft3/lb     0.144346                   NaN         NaN                                                               NaN
+13         NaN                                             NaN             Vapor/gas mass fraction (1)  (x0)         NaN        NaN        NaN     0.995165                   NaN         NaN                                                               NaN
+14         NaN                                             NaN    Specific volume of the vapor/gas (1) (vv0)         NaN        NaN      m3/kg     0.008448                   NaN         NaN                                                               NaN
+
+
+==================== Sheet: GAS SUBCRITICAL FLOW ====================
+Shape: (86, 11)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+  - Unnamed: 8
+  - Unnamed: 9
+  - Unnamed: 10
+
+First 15 Rows:
+                                        Unnamed: 0                     Unnamed: 1  Unnamed: 2               Unnamed: 3  Unnamed: 4 Unnamed: 5   Unnamed: 6                 Unnamed: 7  Unnamed: 8  Unnamed: 9 Unnamed: 10
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                            NaN         NaN                      NaN         NaN        NaN          NaN                        NaN         NaN         NaN         NaN
+1                                              NaN                            NaN         NaN                      NaN         NaN        NaN          NaN                        NaN         NaN         NaN         NaN
+2                                              NaN                            NaN         NaN                      NaN         NaN        NaN          NaN                        NaN         NaN         NaN         NaN
+3                                              NaN              GAS FLOW BEHAVIOR         NaN       Operating Pressure         NaN       barg           78                        NaN         NaN         NaN         NaN
+4                                              NaN                            NaN         NaN             Set Pressure         NaN       barg    79.090909                        NaN         NaN         NaN         NaN
+5                                              NaN                            NaN         NaN  Relieving Pressure (P1)         NaN       barg           87   (PSV set pressure + 10%)         NaN         NaN         NaN
+6                                              NaN                            NaN         NaN                      NaN         NaN       psia   1276.33176                        NaN         NaN         NaN         NaN
+7                                              NaN                            NaN         NaN                    k (1)         NaN        NaN          1.7                        NaN         NaN         NaN         NaN
+8                                              NaN                            NaN         NaN         Back Pressure P2         NaN       barg           80                        NaN         NaN         NaN         NaN
+9                                              NaN                            NaN         NaN   Critical Flow Pressure         NaN       barg    41.457831                        NaN         NaN         NaN         NaN
+10                                             NaN                            NaN         NaN                      NaN         NaN       psia   615.798618                        NaN         NaN         NaN         NaN
+11                                             NaN                            NaN         NaN                     Flow         NaN        NaN  SUBCRITICAL                        NaN         NaN         NaN         NaN
+12                                             NaN                            NaN         NaN                      NaN         NaN        NaN          NaN                        NaN         NaN         NaN         NaN
+13                                             NaN  PSV REQUIRED AREA CALCULATION         NaN                      NaN         NaN        NaN          NaN                        NaN         NaN         NaN         NaN
+14                                             NaN                            NaN         NaN                      NaN         NaN        NaN          NaN                        NaN         NaN         NaN         NaN
+
+
+==================== Sheet: FIRE UNWETTED ====================
+Shape: (86, 8)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+
+First 15 Rows:
+                                        Unnamed: 0                     Unnamed: 1  Unnamed: 2             Unnamed: 3  Unnamed: 4 Unnamed: 5 Unnamed: 6 Unnamed: 7
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                            NaN         NaN                    NaN         NaN        NaN        NaN        NaN
+1                                              NaN                            NaN         NaN                    NaN         NaN        NaN        NaN        NaN
+2                                              NaN                            NaN         NaN                    NaN         NaN        NaN        NaN        NaN
+3                                              NaN                PIPING GEOMETRY         NaN                    NaN         NaN        NaN        NaN        NaN
+4                                              NaN                            NaN         NaN                    NaN         NaN        NaN        NaN        NaN
+5                                              NaN                            NaN         NaN              Piping ID         NaN          m      0.568       (OD)
+6                                              NaN                            NaN         NaN         Length (TL/TL)         NaN          m        2.3        NaN
+7                                              NaN                            NaN         NaN          Type of heads         NaN        NaN          -        NaN
+8                                              NaN                            NaN         NaN  Exposed area of shell         NaN         m2   4.104177        NaN
+9                                              NaN                            NaN         NaN  Exposed area of heads         NaN         m2          -        NaN
+10                                             NaN                            NaN         NaN        Exposed area A'         NaN         m2   4.104177        NaN
+11                                             NaN                            NaN         NaN                    NaN         NaN     sq. ft  44.176988        NaN
+12                                             NaN                            NaN         NaN                    NaN         NaN        NaN        NaN        NaN
+13                                             NaN                            NaN         NaN                    NaN         NaN        NaN        NaN        NaN
+14                                             NaN  PSV REQUIRED AREA CALCULATION         NaN                    NaN         NaN        NaN        NaN        NaN
+
+
+==================== Sheet: FIRE WETTED (hysys) ====================
+Shape: (75, 8)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+
+First 15 Rows:
+                                        Unnamed: 0                     Unnamed: 1  Unnamed: 2           Unnamed: 3  Unnamed: 4 Unnamed: 5  Unnamed: 6 Unnamed: 7
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+1                                              NaN                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+2                                              NaN                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+3                                              NaN                VESSEL GEOMETRY         NaN                  NaN         NaN        NaN         NaN        NaN
+4                                              NaN                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+5                                              NaN                            NaN         NaN             Diameter         NaN          m         0.7        NaN
+6                                              NaN                            NaN         NaN       Length (TL/TL)         NaN          m         2.3        NaN
+7                                              NaN                            NaN         NaN  Normal Liquid Level         NaN          m        0.45        NaN
+8                                              NaN                            NaN         NaN             Position         NaN        NaN    Vertical        NaN
+9                                              NaN                            NaN         NaN    Type of Heads (4)         NaN        NaN  Elliptical        NaN
+10                                             NaN                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+11                                             NaN                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+12                                             NaN  PSV REQUIRED AREA CALCULATION         NaN                  NaN         NaN        NaN         NaN        NaN
+13                                             NaN                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+14                                             NaN                            NaN         NaN                  NaN         NaN        NaN         NaN        NaN
+
+
+==================== Sheet: FIRE WETTED (heat of vap) ====================
+Shape: (91, 12)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+  - Unnamed: 8
+  - Unnamed: 9
+  - Unnamed: 10
+  - Unnamed: 11
+
+First 15 Rows:
+                                        Unnamed: 0                     Unnamed: 1  Unnamed: 2      Unnamed: 3  Unnamed: 4 Unnamed: 5 Unnamed: 6 Unnamed: 7  Unnamed: 8  Unnamed: 9  Unnamed: 10 Unnamed: 11
+0   PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE                            NaN         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+1                                              NaN                            NaN         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+2                                              NaN                            NaN         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+3                                              NaN                PIPING GEOMETRY         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+4                                              NaN                            NaN         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+5                                              NaN                            NaN         NaN       Piping ID         NaN          m      0.568       (OD)         NaN         NaN          NaN         NaN
+6                                              NaN                            NaN         NaN  Length (TL/TL)         NaN          m        2.3        NaN         NaN         NaN          NaN         NaN
+7                                              NaN                            NaN         NaN   Type of heads         NaN        NaN          -        NaN         NaN         NaN          NaN         NaN
+8                                              NaN                            NaN         NaN   wetted heigth         NaN          m        0.5        NaN         NaN         NaN          NaN         NaN
+9                                              NaN                            NaN         NaN     wetted area         NaN         m2   1.192575        NaN         NaN         NaN          NaN         NaN
+10                                             NaN                            NaN         NaN             NaN         NaN   sq. feet  12.836773        NaN         NaN         NaN          NaN         NaN
+11                                             NaN                            NaN         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+12                                             NaN                            NaN         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+13                                             NaN  PSV REQUIRED AREA CALCULATION         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+14                                             NaN                            NaN         NaN             NaN         NaN        NaN        NaN        NaN         NaN         NaN          NaN         NaN
+
+
+==================== Sheet: TSV - HYDRAULIC EXPANSION ====================
+Shape: (56, 18)
+Columns:
+  - Unnamed: 0
+  - Unnamed: 1
+  - Unnamed: 2
+  - Unnamed: 3
+  - Unnamed: 4
+  - Unnamed: 5
+  - Unnamed: 6
+  - Unnamed: 7
+  - Unnamed: 8
+  - Unnamed: 9
+  - Unnamed: 10
+  - Unnamed: 11
+  -   Safety Valve Calculation Sheet
+  - Unnamed: 13
+  - Unnamed: 14
+  - Unnamed: 15
+  - Unnamed: 16
+  - Unnamed: 17
+
+First 15 Rows:
+    Unnamed: 0                                                                    Unnamed: 1 Unnamed: 2  Unnamed: 3  Unnamed: 4  Unnamed: 5 Unnamed: 6 Unnamed: 7 Unnamed: 8  Unnamed: 9  Unnamed: 10 Unnamed: 11    Safety Valve Calculation Sheet Unnamed: 13            Unnamed: 14    Unnamed: 15        Unnamed: 16            Unnamed: 17
+0          NaN                                                                           NaN        NaN         NaN         NaN         NaN        NaN        NaN        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN            NaN                NaN                    NaN
+1          NaN                                                                           NaN        NaN         NaN         NaN         NaN        NaN        NaN        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN            NaN                NaN                    NaN
+2          NaN                                                                        Client        NaN         NaN         NaN         NaN        NaN        NaN        NaN     Made by          NaN        Date                               NaN         NaN          Length/height    9869.424000                  m  1619 tubes de 6096 mm
+3          NaN                                                                       Project        NaN         NaN         NaN         NaN        NaN        NaN        NaN  Checked by          NaN         Rev                               NaN         NaN               Diameter       0.014830                  m     diam. Tube : 30 mm
+4          NaN                                                                       Subject        NaN         NaN         NaN         NaN        NaN        NaN        NaN        Item          NaN         NaN                               NaN         NaN                Surface       1.704763                 m2                    NaN
+5          NaN                                                                           NaN        NaN         NaN         NaN         NaN        NaN        NaN        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN      18.349915              sq.ft                    NaN
+6          NaN  RELIEF  VALVE  CALCULATION - API  RP 521  METHOD - Section 3.14 (MARCH 1997)        NaN         NaN         NaN         NaN        NaN        NaN        NaN         NaN          NaN         NaN                               NaN         NaN         Drainage Coef.   34500.000000  (21000 or 345000)                    NaN
+7          NaN                                                                           NaN        NaN         NaN         NaN         NaN        NaN        NaN        NaN         NaN          NaN         NaN                               NaN         NaN     Environment Factor       1.000000                NaN                    NaN
+8          NaN                                                  DETERMINATION OF RELIEF LOAD        NaN         NaN         NaN         NaN        NaN        NaN        NaN         NaN          NaN         NaN                               NaN         NaN  Total heat absorption  374972.151556              BTU/h                    NaN
+9          NaN                                                                           NaN        NaN         NaN         NaN         NaN        NaN        NaN        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN     109.795746                 kW                    NaN
+10         NaN                                                   Toal Heat Transfer Rate  H         NaN         NaN         NaN         NaN       2100         kW        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN            NaN                NaN                    NaN
+11         NaN                                                                           NaN        NaN         NaN         NaN         NaN  7171875.9      Btu/h        NaN         NaN          NaN         NaN                               NaN         NaN    Duty heat exchanger    2100.000000                 kW                    NaN
+12         NaN                                                          Specific  Gravity  G        NaN         NaN         NaN         NaN       0.85        NaN        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN            NaN                NaN                    NaN
+13         NaN                                                             Specific Heat  C         NaN         NaN         NaN         NaN      2.508   kJ/kg.°K        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN            NaN                NaN                    NaN
+14         NaN                                                                           NaN        NaN         NaN         NaN         NaN   0.599026  Btu/lb/°F        NaN         NaN          NaN         NaN                               NaN         NaN                    NaN            NaN                NaN                    NaN
+
+

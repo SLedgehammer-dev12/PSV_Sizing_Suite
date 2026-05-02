@@ -1,0 +1,544 @@
+
+==============================
+SHEET: BLOCKED OUTLET + GAS BLOW-BY
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: BLOW-BY FLOWRATE CALCULATION
+Row 005: CONTROL VALVE NOMINAL Cv CALCULATION
+Row 007: Upstream pressure | barg | 41
+Row 008: Downstream pressure | barg | 18
+Row 009: Upstream temperature | °C | 85.67
+Row 010: Flowrate | kg/h | 1825
+Row 011: kg/s | 0.5069444444444444
+Row 012: MW (1) | 21.5372314801489
+Row 013: k (Cp/Cv) (1) | 1.19971862244552
+Row 014: Z (1) | 0.942439292502993
+Row 015: Viscosity (1) | Cp | 0.0142485389317271
+Row 016: Density (1) | kg/m3 | 32.1723218162931
+Row 018: Calculated Normal CV (2) (6) | 5.3
+Row 019: Selected nominal CV (3) | 13
+Row 021: Cv AT BLOW-BY CONDITION CALCULATION
+Row 023: Upstream pressure | barg | 79
+Row 024: Downstream pressure | barg | 5.5 | (Set Pressure + 10 %)
+Row 025: Upstream temperature | °C | 25
+Row 026: Flowrate | kg/h | 3000 | (Assumption)
+Row 027: MMSCFD | 2.9243933571229084
+Row 028: MW (1) | 20.6
+Row 029: k (Cp/Cv) (1) | 1.19477268541983
+Row 030: Z (1) | 0.946196006538712
+Row 031: Viscosity (1) | Cp | 0.014826305960865
+Row 032: Density (1) | kg/m3 | 78
+Row 034: Calculated CV | 8.66
+Row 036: BLOW-BY FLOWRATE CALCULATION
+Row 038: Blowby flowrate (4) | kg/h | 4503.464203233256
+Row 039: MMSCFD | 4.389966933325382
+Row 042: PSV REQUIRED AREA CALCULATION
+Row 044: At relieving conditions
+Row 045: Operating pressure | barg | 18
+Row 046: Set pressure | barg | 21
+Row 047: Relief pressure | barg | 23.1 | (Set Pressure + 10 %)
+Row 048: psia | 349.45000000000005
+Row 049: Relief Load W | kg/h | 4503.464203233256
+Row 050: lb/h | 9928.337182448036
+Row 051: Relief Temperature | °C | 90.88
+Row 052: °R | 655.5840000000001
+Row 053: Z | 0.972034912064185
+Row 054: MW | 21.5372314801489
+Row 055: k (5) | 1.2516125034733
+Row 056: C | 342.35060054555987
+Row 057: Kd | 0.975
+Row 058: Kb | 1
+Row 059: PSV required area | sq. inch | 0.46299460478389937
+Row 062: Number of PSV | 1 + 1 spare
+Row 063: PSV selected area | sq. inch | 1.287
+Row 064: Inlet flange rating | # | 300
+Row 065: Outlet flange rating | # | 150
+Row 066: PSV orifice | 2" x J x 3"
+Row 068: NOTES
+Row 070: 1 - At Control Valve Upstream Conditions
+Row 071: 2 - Nominal Cv corresponds to 100% valve opening
+Row 072: 3 - Required Nominal Cv of 1 inch control valve
+Row 073: 4 - Cv is proportional to flowrate (i.e. linear type control valve) - therefore blowby flowrate is the flowrate for a given Cv at 
+Row 074:     blowby conditions times the ratio of the nominal Cv by the calculated Cv at blowby conditions
+Row 075: 5 - At standard conditions
+Row 076: 6 - To be confirmed
+Row 084: max rate | lb/h | 27598.096871505855
+Row 085: kg/h | 12518.286995378832
+
+==============================
+SHEET: FULL FLOW- 2-PHASE (old method)
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: GAS FLOW BEHAVIOR | Operating Pressure | barg | 30
+Row 004: Set Pressure | barg | 48
+Row 005: Relieving Pressure (P1) | barg | 52.800000000000004 |  (PSV set pressure + 10%)
+Row 006: psia | 780.302826
+Row 007: k (1) | 1.19361951397856
+Row 008: Back Pressure | barg | 1
+Row 009: Critical Flow Pressure | barg | 29.435613660525412
+Row 010: psia | 441.43114034111863
+Row 011: Flow | CRITICAL
+Row 013: PSV REQUIRED AREA CALCULATION
+Row 015: GAS - CRITICAL FLOW | Operating pressure | barg | 30
+Row 016: Set pressure | barg | 48
+Row 017: Relief Load W | kg/h | 0
+Row 018: lb/h | 0
+Row 019: Relief Temperature | °C | 40
+Row 020: °R | 564
+Row 021: Relief pressure P1 | psia | 780.302826
+Row 022: Z (1) | 0.95
+Row 023: MW | 21
+Row 024: k (2) | 1.24556127942517
+Row 025: C (2) | 341.7608310798408
+Row 026: Kd | 0.975
+Row 027: Kb | 1
+Row 028: Gas A calculated | sq. inch | 0
+Row 030: LIQUID | Relieving Pressure | psia | 780.302826
+Row 031: Total Back pressure | psia | 29.00754
+Row 032: Relief Load Q | kg/h | 66000
+Row 033: m3/h | 60
+Row 034: US Gal/min | 264.1721
+Row 035: Kd | 0.65
+Row 036: Kw | 1
+Row 037: Density (1) | kg/m3 | 1100
+Row 038: G Specific Gravity | 1.1
+Row 039: Viscosity (1) | cP | 1
+Row 040: A without viscosity correction | sq. inch | 0.4092427609411916
+Row 041: A selected | sq. inch | 0.503
+Row 042: Re | 1147238.3931548137
+Row 043: Kv | 1 | Kv : réf. Fig.36 API 520 Part I, 7th Ed. (p.54)
+Row 044: Liquid A calculated | sq. inch | 0.4092427609411916
+Row 047: PSV Required Area | sq. inch | 0.4092427609411916
+Row 049: Number of PSV | 1
+Row 050: PSV selected area | sq. inch | 0.503
+Row 051: Inlet flange rating | # | 300
+Row 052: Outlet flange rating | # | 150
+Row 053: PSV orifice | 1 1/2" x G x 3"
+Row 069: NOTES
+Row 071: 1 - At relieving conditions
+Row 072: 2 - At standard conditions
+Row 084: max rate | lb/h
+Row 085: kg/h | 81120.5552509958
+
+==============================
+SHEET: FULL FLOW - LIQUID RELIEF
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: Operating Pressure | barg | 30
+Row 004: Set Pressure | barg | 48
+Row 005: Relieving Pressure (P1) | barg | 52.800000000000004 |  (PSV set pressure + 10%)
+Row 006: psia | 780.302826
+Row 007: k (1) | 1.19361951397856
+Row 008: Back Pressure | barg | 1
+Row 009: Critical Flow Pressure | barg | 29.435613660525412
+Row 010: psia | 441.43114034111863
+Row 011: Flow | CRITICAL
+Row 013: PSV REQUIRED AREA CALCULATION
+Row 015: LIQUID | Relieving Pressure | psia | 780.302826
+Row 016: Total Back pressure | psia | 29.00754
+Row 017: Relief Load Q | kg/h | 66000
+Row 018: m3/h | 60
+Row 019: US Gal/min | 264.1721
+Row 020: Kd | 0.65
+Row 021: Kw | 1
+Row 022: Density (1) | kg/m3 | 1100
+Row 023: G Specific Gravity | 1.1
+Row 024: Viscosity (1) | cP | 1
+Row 025: A without viscosity correction | sq. inch | 0.4092427609411916
+Row 026: A selected | sq. inch | 0.503
+Row 027: Re | 1147238.3931548137
+Row 028: Kv | 1 | Kv : réf. Fig.36 API 520 Part I, 7th Ed. (p.54)
+Row 029: PSV Required Area | sq. inch | 0.4092427609411916
+Row 032: Number of PSV | 1
+Row 033: PSV selected area | sq. inch | 0.503
+Row 034: Inlet flange rating | # | 300
+Row 035: Outlet flange rating | # | 150
+Row 036: PSV orifice | 1 1/2" x G x 3"
+Row 052: NOTES
+Row 054: 1 - At relieving conditions
+Row 055: 2 - At standard conditions
+Row 067: max rate | lb/h
+Row 068: kg/h | 81120.5552509958
+
+==============================
+SHEET: FULL FLOW - GAS RELIEF
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: GAS FLOW BEHAVIOR | Operating Pressure | barg | 11
+Row 004: Set Pressure | barg | 14
+Row 005: Relieving Pressure (P1) | barg | 15.400000000000002 |  (Set pressure + 10%)
+Row 006: psia | 237.86182800000003
+Row 007: k (1) | 1.3
+Row 008: Back Pressure | barg | 1.2
+Row 009: Critical Flow Pressure | barg | 7.9499348345506675
+Row 010: psia | 129.80779635531093
+Row 011: Flow | CRITICAL
+Row 013: PSV REQUIRED AREA CALCULATION
+Row 015: GAS - CRITICAL FLOW | Operating pressure | barg | 11
+Row 016: Set pressure | barg | 14
+Row 017: Relief Load W | kg/h | 9633.011151882445
+Row 018: lb/h | 21237.129045663074
+Row 019: Relief Temperature | °C | 35
+Row 020: °R | 555
+Row 021: Relief pressure | psia | 237.86182800000003
+Row 022: Z (1) | 0.85
+Row 023: MW | 21
+Row 024: k (2) | 1.2
+Row 025: C | 337.2362087672706
+Row 026: Kd | 0.975
+Row 027: Kb | 1
+Row 028: PSV Required Area | sq. inch | 1.287
+Row 031: Number of PSV | 1
+Row 032: PSV selected area | sq. inch | 1.287
+Row 033: Inlet flange rating | # | 300
+Row 034: Outlet flange rating | # | 150
+Row 035: PSV orifice | 2" x J x 3"
+Row 069: NOTES
+Row 071: 1 - At relieving conditions
+Row 072: 2 - At standard conditions
+Row 084: max rate | lb/h | 21237.129045663078
+Row 085: kg/h | 9633.000332932024
+
+==============================
+SHEET: FULL FLOW - TWO PHASE
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: FLOW BEHAVIOR (2) or (3)
+Row 005: Operating Pressure | barg | 77
+Row 006: Set Pressure | barg | 116.5
+Row 007: Relieving Pressure (P0) | bara | 136.14 | ( Set pressure +16%) | ( Set pressure +10% for single valve / +16% for multiple valves)
+Row 008: psia | 1974.5432477999998
+Row 009: Specific volume of the  | m3/kg | 0.00841174855218796
+Row 010: two-phase system (1) (v0) | ft3/lb | 0.13474555264746269
+Row 011: Specific volume evaluated at 90%  | m3/kg | 0.009011100101477978
+Row 012: of the PRV inlet pressure (@ 90% P0)     (2) | ft3/lb | 0.14434640498370974
+Row 013: Vapor/gas mass fraction (1)  (x0) | 0.9951649076746187
+Row 014: Specific volume of the vapor/gas (1) (vv0) | m3/kg | 0.008447738958556144
+Row 015: ft3/lb | 0.135322073351333
+Row 016: k of vapor/gas (1) | 1.63555881728163
+Row 017: Flashing system (Y or N) | Y
+Row 018: w | 0.641265476511077
+Row 019: Critical pressure ratio (hc) | 0.548252475750633
+Row 020: Downstream back pressure (Pa) | barg | 14
+Row 021: Critical Flow Pressure (Pc) | barg | 73.63909204869117
+Row 022: psia | 1082.5482240830454
+Row 023: Flow | CRITICAL
+Row 026: PSV REQUIRED AREA CALCULATION
+Row 028: Back pressure ratio (ha) | 0.10937727869330612
+Row 029: Mass flux (G) | lb/s/ft² | 5643.143720204903
+Row 030: Kd | 0.85
+Row 031: Kb | 1
+Row 032: Kc | 1
+Row 033: Mass flow (W) | kg/h | 466259.506315688
+Row 034: lb/h | 1027908.9645407584
+Row 036: PSV Required Area | sq. inch | 8.571850898184733
+Row 037: PSV Required Area | mm² | 5530.215325472862
+Row 039: Number of PSV | 2
+Row 040: PSV selected area | sq. inch | 6.38
+Row 041: Total PSV selected area | sq. inch | 12.76
+Row 042: Inlet flange rating | # | 900
+Row 043: Outlet flange rating | # | 300
+Row 044: PSV orifice | 4" x P x 6"
+Row 046: Rated Flow (kg/h) | 694070.7871911424
+Row 049: NOTES
+Row 051: 1 - At relieving conditions
+Row 052: 2 - For flashing multi-component systems with nominal boiling range greater than 150°F (83°C), single-component
+Row 053:  systems near the thermodynamic critical point, or supercritical fluids in the condensing two phase flow.
+Row 054: The nominal boiling range is the difference in the atmospheric boiling points of the ligthest and the heaviest
+Row 055:  components in the system.
+Row 056: 3 - For nonflashing systems.
+Row 060: ITERATIONS ON THE CRITICAL PRESSURE RATIO
+Row 061: w = | 0.641265476511077
+Row 062: hc1 | 0.6 | E1 | 0.12944273449394228
+Row 063: hc2 | 0.5 | E2 | -0.12667989779634808
+Row 064: hc3 | 0.55 | E3 | 0.004472337609038701
+Row 065: hc4 | 0.525 | E4 | -0.06025067794573752
+Row 066: hc5 | 0.5375000000000001 | E5 | -0.027686815828286804
+Row 067: hc6 | 0.5500000000000002 | E6 | 0.004472337609039034
+Row 068: hc7 | 0.5437500000000002 | E7 | -0.011557932802993665
+Row 069: hc8 | 0.5468750000000002 | E8 | -0.0035306264825807343
+Row 070: hc9 | 0.5500000000000003 | E9 | 0.004472337609039312
+Row 071: hc10 | 0.5484375000000002 | E10 | 0.000473879200124816
+Row 072: hc11 | 0.5468750000000002 | E11 | -0.0035306264825807343
+Row 073: hc12 | 0.5476562500000002 | E12 | -0.001527615352092948
+Row 074: hc13 | 0.5484375000000001 | E13 | 0.00047387920012453844
+Row 075: hc14 | 0.5480468750000002 | E14 | -0.0005266788019843704
+Row 076: hc15 | 0.5482421875000001 | E15 | -2.6352519645833627e-05
+Row 077: hc16 | 0.5484375 | E16 | 0.0004738792001243164
+Row 078: hc17 | 0.54833984375 | E17 | 0.00022377515591248676
+Row 079: hc18 | 0.5482421875 | E18 | -2.6352519646166694e-05
+Row 080: hc19 | 0.548291015625 | E19 | 9.871427263241639e-05
+Row 081: hc20 | 0.5482666015625 | E20 | 3.618161519042262e-05
+Row 082: hc21 | 0.5482421874999999 | E21 | -2.635251964644425e-05
+Row 083: hc22 | 0.5482543945312499 | E22 | 4.914732455396642e-06
+Row 084: hc23 | 0.5482482910156249 | E23 | -1.0718847423429878e-05
+Row 085: hc24 | 0.5482513427734375 | E24 | -2.9020459410555866e-06
+Row 086: hc25 | 0.54825439453125 | E25 | 4.914732455729709e-06
+Row 087: hc26 | 0.5482528686523438 | E26 | 1.0063461431397691e-06
+Row 088: hc27 | 0.5482513427734376 | E27 | -2.902045940833542e-06
+Row 089: hc28 | 0.5482521057128906 | E28 | -9.478491774794762e-07
+Row 090: hc29 | 0.5482528686523437 | E29 | 1.0063461428622134e-06
+Row 091: hc30 | 0.5482524871826171 | E30 | 2.924866293607664e-08
+Row 092: hc31 | 0.5482521057128905 | E31 | -9.478491778680542e-07
+Row 093: hc32 | 0.5482522964477539 | E32 | -4.593002122521561e-07
+Row 094: hc33 | 0.5482524871826172 | E33 | 2.9248663158121246e-08
+Row 095: hc34 | 0.5482523918151856 | E34 | -2.1502576313947586e-07
+Row 096: hc35 | 0.5482524394989015 | E35 | -9.288854702083071e-08
+Row 097: hc36 | 0.5482524871826173 | E36 | 2.9248663435677003e-08
+Row 098: hc37 | 0.5482524633407594 | E37 | -3.181994112644304e-08
+Row 099: hc38 | 0.5482524752616884 | E38 | -1.2856385400716874e-09
+Row 100: hc39 | 0.5482524871826174 | E39 | 2.924866376874391e-08
+Row 101: hc40 | 0.548252481222153 | E40 | 1.3981512836380716e-08
+Row 102: hc41 | 0.5482524752616885 | E41 | -1.2856382625159313e-09
+Row 103: hc42 | 0.5482524782419207 | E42 | 6.347937120398939e-09
+Row 104: hc43 | 0.5482524767518047 | E43 | 2.5311496787416843e-09
+Row 105: hc44 | 0.5482524752616886 | E44 | -1.2856379294490239e-09
+Row 106: hc45 | 0.5482524760067466 | E45 | 6.227559024019058e-10
+Row 107: hc46 | 0.5482524756342176 | E46 | -3.3144104127913465e-10
+Row 108: hc47 | 0.5482524758204821 | E47 | 1.456572640279319e-10
+Row 109: hc48 | 0.5482524757273499 | E48 | -9.289169433657207e-11
+Row 110: hc49 | 0.548252475773916 | E49 | 2.6382729334528676e-11
+Row 111: hc50 | 0.548252475750633 | E50 | -3.325445474544608e-11
+
+==============================
+SHEET: GAS SUBCRITICAL FLOW
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: GAS FLOW BEHAVIOR | Operating Pressure | barg | 78
+Row 004: Set Pressure | barg | 79.09090909090908
+Row 005: Relieving Pressure (P1) | barg | 87 |  (PSV set pressure + 10%)
+Row 006: psia | 1276.33176
+Row 007: k (1) | 1.7
+Row 008: Back Pressure P2 | barg | 80
+Row 009: Critical Flow Pressure | barg | 41.45783117291029
+Row 010: psia | 615.7986180307211
+Row 011: Flow | SUBCRITICAL
+Row 013: PSV REQUIRED AREA CALCULATION
+Row 015: GAS - SUBCRITICAL FLOW | Operating pressure | barg | 78
+Row 016: Set pressure | barg | 79.09090909090908
+Row 017: Relief Load W | kg/h | 12181.665916345253
+Row 018: lb/h | 26855.94431249307
+Row 019: Relief Temperature | °C | 50
+Row 020: °R | 582
+Row 021: Relief pressure P1 | psia | 1276.33176
+Row 022: Back Pressure P2 | psia | 1174.80537
+Row 023: r (P2/P1) | 0.7
+Row 024: Z (1) | 0.8
+Row 025: MW | 21
+Row 026: k (1) | 1.7
+Row 027: F2 | 0.8525232001031494
+Row 028: Kd | 0.975
+Row 029: Kc | 1
+Row 030: Gas A calculated | sq. inch | 0.575
+Row 032: LIQUID | Relieving Pressure | psia | 1276.33176
+Row 033: Total Back pressure | psia | 1174.80537
+Row 034: Relief Load Q | kg/h | 0
+Row 035: m3/h | 0
+Row 036: US Gal/min | 0
+Row 037: Kd | 0.65
+Row 038: Kw | 1
+Row 039: Density (1) | kg/m3 | 850
+Row 040: G Specific Gravity | 0.85
+Row 041: Viscosity (1) | cP | 0.651287650944949
+Row 042: A without viscosity correction | sq. inch | 0
+Row 043: A selected | sq. inch | 2.853 | Kv : réf. Fig.36 API 520 Part I, 7th Ed. (p.54)
+Row 044: Re | 0
+Row 045: Kv | 1
+Row 046: Liquid A calculated | sq. inch | 0
+Row 049: PSV Required Area | sq. inch | 0.575
+Row 051: Number of PSV | 1 + 1 spare
+Row 052: PSV selected area | sq. inch | 11.05
+Row 053: Inlet flange rating | # | 150
+Row 054: Outlet flange rating | # | 150
+Row 055: PSV orifice | 6" x Q x 8"
+Row 069: NOTES
+Row 071: 1 - At relieving conditions
+Row 084: max rate | lb/h
+Row 085: kg/h
+
+==============================
+SHEET: FIRE UNWETTED
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: PIPING GEOMETRY
+Row 005: Piping ID | m | 0.568 | (OD)
+Row 006: Length (TL/TL) | m | 2.3
+Row 007: Type of heads | -
+Row 008: Exposed area of shell | m2 | 4.104176642649705
+Row 009: Exposed area of heads | m2 | -
+Row 010: Exposed area A' | m2 | 4.104176642649705
+Row 011: sq. ft | 44.17698800558358
+Row 014: PSV REQUIRED AREA CALCULATION
+Row 017: Operating Pressure | barg | 6
+Row 018: Set Pressure | barg | 14
+Row 019: Relieving Pressure | barg | 16.939999999999998 |  (Set pressure + 21%)
+Row 020: psia | 260.19763379999995
+Row 021: MW | 21
+Row 022: k (1) | 1.2
+Row 023: C | 337.2362087672706
+Row 024: Kd | 0.975
+Row 025: Tw (vessel wall temp.) | °R | 1560
+Row 026: T1 (upstream gas temp.) | °C | 40
+Row 027: T1 (upstream gas temp.) | °R | 564.6700000000001
+Row 028: F' | sq. psia | 0.03874250813609178
+Row 029: Relief Load | lb/h | 1750.5987356346466
+Row 030: kg/h | 794.0582819334849
+Row 031: PSV Required Area | sq. inch | 0.10610409947353075
+Row 035: PSV selected area | sq. inch | 0.11
+Row 036: Inlet flange rating | # | 600
+Row 037: Outlet flange rating | # | 150
+Row 038: PSV orifice | 1" x D x 2"
+Row 069: NOTES
+Row 071: 1 - At standard conditions
+Row 084: max rate | lb/h | 1814.876728376075
+Row 085: kg/h | 823.214290928252
+
+==============================
+SHEET: FIRE WETTED (hysys)
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: VESSEL GEOMETRY
+Row 005: Diameter | m | 0.7
+Row 006: Length (TL/TL) | m | 2.3
+Row 007: Normal Liquid Level | m | 0.45
+Row 008: Position | Vertical
+Row 009: Type of Heads (4) | Elliptical
+Row 012: PSV REQUIRED AREA CALCULATION
+Row 015: Vliq | m3 | 0.218003347853563
+Row 016: Vgas | m3 | 0.711016835394409
+Row 017: Liquid Density (1) | kg/m3 | 653.639042480506
+Row 018: Vapour Density (1) | kg/m3 | 37.8218395346099
+Row 019: Mliq | kg | 142.4935
+Row 020: Mvap | kg | 26.891442
+Row 021: L1 | kg/h | 142.4935
+Row 022: V1 | kg/h | 26.891442
+Row 024: Set Pressure | barg | 47
+Row 025: Relief Pressure | barg | 56.87 |  (Set Pressure + 21 %)
+Row 026: psia | 839.115
+Row 028: Relief Temperature (1) | °C | 114.1
+Row 029: L2 (1) | m3/h | 0.226534702821061
+Row 030: Liquid L2 Volume | m3 | 0.226534702821061
+Row 031: New NLL | m | 0.472
+Row 032: Wetted  surface A' | m2 | 1.56906
+Row 033: sq. ft | 16.889220624599997
+Row 034: Heat Absorption Q | kcal/h | 88260
+Row 035: Btu/h | 350244.01146
+Row 037: M2 mass flow (1) | kg/h | 10163.09652
+Row 038: M2 density (1) | kg/m3 | 182.319234627404
+Row 039: M3 density (1) | kg/m3 | 171.599957674513
+Row 040: Vfl3 | m3 | 3.38448183442443
+Row 042: V3 density (1) | kg/m3 | 53.8398270574449
+Row 043: Mfl3 | kg | 182.219916644475
+Row 044: Fl3 mass flow | kg/h | 182.219916644475
+Row 045: lb/h | 401.72567263274243
+Row 048: Relief Temperature | °C | 114.1
+Row 049: °R | 697.38
+Row 050: Relief pressure | psia | 839.115
+Row 051: Z (2) | 0.905473265911684
+Row 052: MW | 27.9414450415247
+Row 053: k (3) | 1.19191601087834
+Row 054: C | 336.41747312967993
+Row 055: Kd | 0.975
+Row 056: Kb | 1
+Row 057: PSV required area | sq. inch | 0.006938619475056424
+Row 060: Time delay to reach the relieving conditions
+Row 062: Q2 | kJ/h | 368936.8
+Row 063: Molar Enthalpy Mix 1 | kJ/kgmol | -147100
+Row 064: Molar Enthalpy Mix 2 | kJ/kgmol | -138700
+Row 065: Molar Flow | kgmol/h | 185.34
+Row 066: Time delay | h | 4.2198446996884025
+Row 069: NOTES
+Row 071: 1 - Calculated by HYSYS Simulation Software
+Row 072: 2 - At relief conditions
+Row 073: 3 - At standard conditions
+Row 074: 4 - Blind Flange at Top
+
+==============================
+SHEET: FIRE WETTED (heat of vap)
+==============================
+Row 000: PRESSURE SAFETY VALVE PROCESS CALCULATION NOTE
+Row 003: PIPING GEOMETRY
+Row 005: Piping ID | m | 0.568 | (OD)
+Row 006: Length (TL/TL) | m | 2.3
+Row 007: Type of heads | -
+Row 008: wetted heigth | m | 0.5
+Row 009: wetted area | m2 | 1.192575257619501
+Row 010: sq. feet | 12.836772741243122
+Row 013: PSV REQUIRED AREA CALCULATION
+Row 016: Operating Pressure | barg | 6
+Row 017: Set Pressure | barg | 14
+Row 018: Relieving Pressure | barg | 16.939999999999998 |  (Set pressure + 21%)
+Row 019: psia | 260.19763379999995
+Row 020: Draining factor | 21000 |  (21000 ou 34500)
+Row 021: F environment factor | 1
+Row 022: Heat absorption | BTU/h | 170275.86450034755
+Row 023: kcal/h | 42908.79452221519
+Row 024: Heat of vaporisation | kcal/kg | 50
+Row 025: MW | 21
+Row 026: Z | 0.92
+Row 027: k (1) | 1.3
+Row 028: C | 346.9764226452482
+Row 029: Kd | 0.975
+Row 030: Kc | 1
+Row 031: Kb | 1
+Row 032: T1 (upstream gas temp.) | °C | 40
+Row 033: °R | 564.6700000000001
+Row 034: Relief Load | lb/h | 1891.951731591321
+Row 035: kg/h | 858.1758904443038
+Row 036: PSV Required Area | sq. inch | 0.10690148851478534 | 0.6896856433019891 | cm2
+Row 040: PSV selected area | sq. inch | 0.11
+Row 041: Inlet flange rating | # | 600
+Row 042: Outlet flange rating | # | 150
+Row 043: PSV orifice | 1" x D x 2"
+Row 074: NOTES
+Row 076: 1 - At standard conditions
+Row 089: max rate | lb/h | 1867.2948467067386
+Row 090: kg/h | 846.9907510253416
+
+==============================
+SHEET: TSV - HYDRAULIC EXPANSION
+==============================
+Row 002: Client | Made by | Date | Length/height | 9869.424 | m | 1619 tubes de 6096 mm
+Row 003: Project | Checked by | Rev | Diameter | 0.014830000000000001 | m | diam. Tube : 30 mm
+Row 004: Subject | Item | Surface | 1.704762919851885 | m2
+Row 005: 18.349914640622902 | sq.ft
+Row 006: RELIEF  VALVE  CALCULATION - API  RP 521  METHOD - Section 3.14 (MARCH 1997) | Drainage Coef. | 34500.0 | (21000 or 345000)
+Row 007: Environment Factor | 1.0
+Row 008: DETERMINATION OF RELIEF LOAD | Total heat absorption | 374972.1515556087 | BTU/h
+Row 009: 109.7957456858584 | kW
+Row 010: Toal Heat Transfer Rate  H  | 2100 | kW
+Row 011: 7171875.9 | Btu/h | Duty heat exchanger | 2100.0 | kW
+Row 012: Specific  Gravity  G | 0.85
+Row 013: Specific Heat  C  | 2.508 | kJ/kg.°K
+Row 014: 0.599025768 | Btu/lb/°F
+Row 015: Cubical Expansion Coeff.  B  | 0.0005 | deg API | 34.970588235294116
+Row 017: Relief Load | 14.08537246568587 | US gpm
+Row 018: 3.1991388127316567 | m³/h
+Row 019: 2719.2679908219084 | kg/h
+Row 022: PSV REQUIRED AREA CALCULATION
+Row 024: Operating Pressure | 5 | barg
+Row 025: Set Pressure | 14 | barg
+Row 026: Relieving Pressure (P1) | 16.939999999999998 | barg |  (PSV set pressure + 21%)
+Row 027: 245.69386379999995 | psig
+Row 028: Back pressure | 0.5 | barg
+Row 029: 7.251885 | psig
+Row 030: Relief Load Q | 2719.2679908219084 | kg/h
+Row 031: 3.1991388127316567 | m3/h
+Row 032: 14.085386972513808 | US gpm
+Row 033: Kd | 0.65
+Row 034: Kw | 1
+Row 035: Density (1) | 850 | kg/m3
+Row 036: G Specific Gravity | 0.85
+Row 037: Viscosity (1) | 51 | cP
+Row 038: A without viscosity correction | 0.03583986199073855 | sq. inch
+Row 039: A selected | 0.1 | sq. inch
+Row 040: Re | 2078.6222127069996
+Row 041: Kv | 0.95 | API 520 - Part 1 - page 54
+Row 042: PSV required Area | 0.0377261705165669 | sq. inch
+Row 045: Number of PSV | 1
+Row 046: PSV selected area | sq. inch
+Row 047: Inlet flange rating | 150 | #
+Row 048: Outlet flange rating | 150 | #
+Row 049: PSV orifice | 3/4" x 1"
+Row 054: Note
+Row 055: 1 -  | At relieving conditions

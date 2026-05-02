@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+build/
+dist/
+*.pyc
+*.spec
+releases/
+auth.json
