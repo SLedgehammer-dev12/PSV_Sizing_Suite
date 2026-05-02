@@ -1,6 +1,7 @@
 import sys
 import os
 import unittest
+import json
 
 # Add root project path to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,6 +14,7 @@ from core.fire_scenarios import calculate_fire_wetted_load, calculate_fire_unwet
 from core.thermal_expansion import calculate_thermal_expansion_load
 from core.blowby import calculate_blowby_flowrate
 from core.unit_converter import m3_h_to_gpm, barg_to_psia
+from core.vendor_catalog import get_vendor_valves
 
 class TestPSVSizingCore(unittest.TestCase):
     
@@ -115,6 +117,27 @@ class TestPSVSizingCore(unittest.TestCase):
         """Test Control Valve Blow-by flow rate."""
         flow = calculate_blowby_flowrate(assumed_flow_kg_h=1000, nominal_cv=10, calculated_cv_at_blowby=5)
         self.assertEqual(flow, 2000)
+
+    def test_vendor_catalog_regional_coverage(self):
+        """Vendor DB should cover API D-T selections across major regions."""
+        catalog_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "vendor_data",
+            "psv_vendor_catalog_official.json",
+        )
+        with open(catalog_path, "r", encoding="utf-8") as f:
+            catalog = json.load(f)
+
+        directory = catalog.get("manufacturer_directory", [])
+        self.assertGreaterEqual(len(directory), 30)
+
+        regions = {region for item in directory for region in item.get("regions", [])}
+        self.assertTrue({"Americas", "Europe", "Asia"}.issubset(regions))
+
+        for letter in ["D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "T"]:
+            valves = get_vendor_valves(letter)
+            self.assertGreaterEqual(len(valves), 20)
+            self.assertTrue(any(v.get("website") for v in valves))
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

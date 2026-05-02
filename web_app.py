@@ -1,15 +1,89 @@
 import streamlit as st
-import pandas as pd
+import html
 
 from core.liquid_relief import calculate_liquid_relief_area
 from core.gas_relief import calculate_gas_relief_area
 from core.two_phase import calculate_two_phase_area, calculate_omega_flashing
 from core.vendor_catalog import get_vendor_valves
 
-st.set_page_config(page_title="PSV Sizing Suite v2.0", layout="wide")
+
+def render_vendor_table(valves):
+    """Render vendor rows with browser-side confirmation before opening links."""
+    columns = [
+        ("manufacturer", "Üretici"),
+        ("series", "Seri"),
+        ("model_code", "Model Kodu"),
+        ("design_type", "Dizayn"),
+        ("inlet_outlet_size_in", "Giriş/Çıkış Çapı"),
+        ("actual_area_mm2", "Gerçek Alan (mm²)"),
+    ]
+
+    rows = []
+    for valve in valves:
+        cells = []
+        for key, _ in columns:
+            value = valve.get(key, "")
+            cells.append(f"<td>{html.escape(str(value))}</td>")
+
+        website = str(valve.get("website", "")).strip()
+        manufacturer = str(valve.get("manufacturer", "üretici")).strip() or "üretici"
+        if website:
+            confirm_message = html.escape(
+                f"{manufacturer} üreticisinin sayfasını açmak istiyor musunuz?",
+                quote=True,
+            )
+            link = (
+                f'<a href="{html.escape(website, quote=True)}" target="_blank" '
+                f'rel="noopener noreferrer" '
+                f'onclick="return confirm(&quot;{confirm_message}&quot;);">Sayfayı aç</a>'
+            )
+        else:
+            link = '<span class="muted">Web sitesi yok</span>'
+
+        cells.append(f"<td>{link}</td>")
+        rows.append(f"<tr>{''.join(cells)}</tr>")
+
+    headers = "".join(f"<th>{label}</th>" for _, label in columns) + "<th>Üretici Sayfası</th>"
+    table_html = f"""
+    <style>
+      .vendor-table {{
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.92rem;
+      }}
+      .vendor-table th, .vendor-table td {{
+        border: 1px solid #d9dee7;
+        padding: 0.45rem 0.55rem;
+        text-align: left;
+        vertical-align: top;
+      }}
+      .vendor-table th {{
+        background: #f4f6fa;
+        font-weight: 600;
+      }}
+      .vendor-table a {{
+        color: #0b66c3;
+        font-weight: 600;
+        text-decoration: none;
+      }}
+      .vendor-table a:hover {{
+        text-decoration: underline;
+      }}
+      .vendor-table .muted {{
+        color: #667085;
+      }}
+    </style>
+    <table class="vendor-table">
+      <thead><tr>{headers}</tr></thead>
+      <tbody>{''.join(rows)}</tbody>
+    </table>
+    """
+    st.markdown(table_html, unsafe_allow_html=True)
+
+st.set_page_config(page_title="PSV Sizing Suite v2.1", layout="wide")
 
 st.sidebar.title("PSV Sizing Suite")
-st.sidebar.markdown("Mühendislik Hesaplama Platformu (v2.0)")
+st.sidebar.markdown("Mühendislik Hesaplama Platformu (v2.1)")
 
 page = st.sidebar.radio("Modül Seçimi", [
     "1. Liquid Relief (Sıvı Tahliye)", 
@@ -46,15 +120,7 @@ if page == "1. Liquid Relief (Sıvı Tahliye)":
         st.markdown("### Uygun Ticari Vanalar (Vendor DB)")
         valves = get_vendor_valves(res['Selected_Orifice_Letter'])
         if valves:
-            df = pd.DataFrame(valves)
-            st.data_editor(
-                df,
-                column_config={
-                    "website": st.column_config.LinkColumn("Website", display_text="Open Website")
-                },
-                hide_index=True,
-                use_container_width=True
-            )
+            render_vendor_table(valves)
         else:
             st.info("Bu orifis için veritabanında ticari vana bulunamadı veya Paralel Vana sayısı yetersiz.")
 
@@ -86,15 +152,7 @@ elif page == "2. Gas/Vapor Relief (Gaz Tahliye)":
         st.markdown("### Uygun Ticari Vanalar (Vendor DB)")
         valves = get_vendor_valves(res['Selected_Orifice_Letter'])
         if valves:
-            df = pd.DataFrame(valves)
-            st.data_editor(
-                df,
-                column_config={
-                    "website": st.column_config.LinkColumn("Website", display_text="Open Website")
-                },
-                hide_index=True,
-                use_container_width=True
-            )
+            render_vendor_table(valves)
         else:
             st.info("Bu orifis için veritabanında ticari vana bulunamadı veya Paralel Vana sayısı yetersiz.")
 
@@ -126,15 +184,7 @@ elif page == "3. Two-Phase Flashing (İki Fazlı)":
         st.markdown("### Uygun Ticari Vanalar (Vendor DB)")
         valves = get_vendor_valves(res['Selected_Orifice_Letter'])
         if valves:
-            df = pd.DataFrame(valves)
-            st.data_editor(
-                df,
-                column_config={
-                    "website": st.column_config.LinkColumn("Website", display_text="Open Website")
-                },
-                hide_index=True,
-                use_container_width=True
-            )
+            render_vendor_table(valves)
         else:
             st.info("Bu orifis için veritabanında ticari vana bulunamadı veya Paralel Vana sayısı yetersiz.")
 

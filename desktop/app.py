@@ -19,7 +19,7 @@ class PSVSizingApp(QMainWindow):
     def __init__(self, role="user"):
         super().__init__()
         self.role = role
-        self.setWindowTitle(f"PSV Sizing Suite - Advanced Engineering v2.0 ({self.role.upper()})")
+        self.setWindowTitle(f"PSV Sizing Suite - Advanced Engineering v2.1 ({self.role.upper()})")
         self.setMinimumSize(950, 700)
         self.init_ui()
         self.create_menus()
@@ -203,7 +203,7 @@ class PSVSizingApp(QMainWindow):
         self.plot_win.exec_()
 
     def check_update(self):
-        QMessageBox.information(self, "Güncelleme", "PSV Sizing Suite (v2.0)\n\nProgramınız güncel. Yeni sürüm (v2.1) yayınlandığında buradan otomatik indirebilirsiniz.")
+        QMessageBox.information(self, "Güncelleme", "PSV Sizing Suite (v2.1)\n\nProgramınız güncel.")
 
     def change_user_pw(self):
         new_pw, ok = QInputDialog.getText(self, "Şifre Değiştir", "Yeni Kullanıcı Şifresini Girin:", QLineEdit.Password)
