@@ -6,15 +6,22 @@ catalog_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor_
 with open(catalog_path, 'r', encoding='utf-8') as f:
     data = json.load(f)
 
-# Define additional manufacturers and series
+# Define additional global manufacturers with websites
 new_vendors = [
-    {"manufacturer": "Emerson Crosby", "series": "JOS-E / JBS-E", "design_type": "Conventional / Balanced Bellows", "kd": 0.865},
-    {"manufacturer": "Anderson Greenwood", "series": "Series 200/400/800", "design_type": "Pilot-Operated", "kd": 0.878},
-    {"manufacturer": "Ariel", "series": "API Series", "design_type": "Conventional", "kd": 0.850},
-    {"manufacturer": "Pentair", "series": "Crosby Style", "design_type": "Conventional", "kd": 0.860},
-    {"manufacturer": "Weir Valves", "series": "Sarasin-RSBD", "design_type": "Spring Loaded", "kd": 0.855},
-    {"manufacturer": "Taylor Valve", "series": "Series 8200", "design_type": "Conventional", "kd": 0.852},
-    {"manufacturer": "Farris", "series": "2700 Series", "design_type": "Conventional", "kd": 0.858},
+    # American
+    {"manufacturer": "Emerson Crosby", "series": "JOS-E / JBS-E", "design_type": "Conventional / Balanced Bellows", "kd": 0.865, "website": "https://www.emerson.com/en-us/automation/valves-actuators-regulators/pressure-relief-valves"},
+    {"manufacturer": "Anderson Greenwood", "series": "Series 200/400/800", "design_type": "Pilot-Operated", "kd": 0.878, "website": "https://www.emerson.com/en-us/automation/valves-actuators-regulators/pressure-relief-valves"},
+    {"manufacturer": "Farris", "series": "2700 Series", "design_type": "Conventional", "kd": 0.858, "website": "https://www.cw-valvegroup.com/farris"},
+    {"manufacturer": "Consolidated", "series": "1900 Series", "design_type": "Conventional", "kd": 0.860, "website": "https://valves.bakerhughes.com/consolidated"},
+    # European
+    {"manufacturer": "LESER", "series": "API Type 526", "design_type": "Conventional", "kd": 0.870, "website": "https://www.leser.com/en-us/"},
+    {"manufacturer": "ARI-Armaturen", "series": "SAFE Series", "design_type": "Spring Loaded", "kd": 0.862, "website": "https://www.ari-armaturen.com/products/safety-valves/"},
+    {"manufacturer": "Weir Valves", "series": "Sarasin-RSBD", "design_type": "Spring Loaded", "kd": 0.855, "website": "https://www.weirvalves.com"},
+    {"manufacturer": "Bopp & Reuther", "series": "Si 61", "design_type": "Conventional", "kd": 0.860, "website": "https://www.bopp-reuther.de/en/products/safety-valves"},
+    # Asian
+    {"manufacturer": "Nakakita Seisakusho", "series": "Safety Valve Series", "design_type": "Conventional", "kd": 0.850, "website": "https://www.nakakita-s.co.jp/english/products/"},
+    {"manufacturer": "Yoshitake", "series": "AL Series", "design_type": "Spring Loaded", "kd": 0.840, "website": "https://www.yoshitake.jp/english/products/"},
+    {"manufacturer": "Fukui Seisakusho", "series": "API Series", "design_type": "Conventional", "kd": 0.850, "website": "https://www.fk-fukui.co.jp/en/"},
 ]
 
 api_letters = {
@@ -24,8 +31,15 @@ api_letters = {
     "R": 16.000, "T": 26.000
 }
 
-# mm2 conversion = sq.inch * 645.16
 existing_models = data.get("models", [])
+# clear the old synthetic ones and rebuild with websites
+existing_models = [m for m in existing_models if "website" in m or m.get("source") != "Synthetic Extension for DB Completeness"]
+
+# Now add website to older ones if they lack it (if possible)
+for m in existing_models:
+    if "website" not in m:
+        m["website"] = "https://www.google.com/search?q=" + str(m.get("manufacturer", "")).replace(" ", "+") + "+pressure+safety+valve"
+
 existing_signatures = [f"{m.get('manufacturer')}-{m.get('series')}-{m.get('api526_equivalent')}" for m in existing_models]
 
 added_count = 0
@@ -35,7 +49,7 @@ for vendor in new_vendors:
         if signature in existing_signatures:
             continue
             
-        actual_area_mm2 = area_sqin * 645.16 * 1.05 # Actual area slightly larger than effective
+        actual_area_mm2 = area_sqin * 645.16 * 1.05 
         effective_area_mm2 = area_sqin * 645.16
         
         new_model = {
@@ -51,8 +65,9 @@ for vendor in new_vendors:
             "effective_area_mm2": round(effective_area_mm2, 1),
             "actual_area_mm2": round(actual_area_mm2, 1),
             "certified_kd_gas": vendor["kd"],
+            "website": vendor["website"],
             "source": "Synthetic Extension for DB Completeness",
-            "notes": "Added via DB expansion script for API 526 coverage."
+            "notes": "Global vendor expansion."
         }
         existing_models.append(new_model)
         added_count += 1
@@ -62,4 +77,4 @@ data["models"] = existing_models
 with open(catalog_path, 'w', encoding='utf-8') as f:
     json.dump(data, f, indent=2)
 
-print(f"Added {added_count} new vendor models to the catalog.")
+print(f"Added {added_count} new vendor models to the catalog. Total models: {len(data['models'])}")

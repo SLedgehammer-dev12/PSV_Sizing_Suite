@@ -47,7 +47,14 @@ if page == "1. Liquid Relief (Sıvı Tahliye)":
         valves = get_vendor_valves(res['Selected_Orifice_Letter'])
         if valves:
             df = pd.DataFrame(valves)
-            st.dataframe(df, use_container_width=True)
+            st.data_editor(
+                df,
+                column_config={
+                    "website": st.column_config.LinkColumn("Website", display_text="Open Website")
+                },
+                hide_index=True,
+                use_container_width=True
+            )
         else:
             st.info("Bu orifis için veritabanında ticari vana bulunamadı veya Paralel Vana sayısı yetersiz.")
 
@@ -80,7 +87,14 @@ elif page == "2. Gas/Vapor Relief (Gaz Tahliye)":
         valves = get_vendor_valves(res['Selected_Orifice_Letter'])
         if valves:
             df = pd.DataFrame(valves)
-            st.dataframe(df, use_container_width=True)
+            st.data_editor(
+                df,
+                column_config={
+                    "website": st.column_config.LinkColumn("Website", display_text="Open Website")
+                },
+                hide_index=True,
+                use_container_width=True
+            )
         else:
             st.info("Bu orifis için veritabanında ticari vana bulunamadı veya Paralel Vana sayısı yetersiz.")
 
@@ -113,7 +127,14 @@ elif page == "3. Two-Phase Flashing (İki Fazlı)":
         valves = get_vendor_valves(res['Selected_Orifice_Letter'])
         if valves:
             df = pd.DataFrame(valves)
-            st.dataframe(df, use_container_width=True)
+            st.data_editor(
+                df,
+                column_config={
+                    "website": st.column_config.LinkColumn("Website", display_text="Open Website")
+                },
+                hide_index=True,
+                use_container_width=True
+            )
         else:
             st.info("Bu orifis için veritabanında ticari vana bulunamadı veya Paralel Vana sayısı yetersiz.")
 

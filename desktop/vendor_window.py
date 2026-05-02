@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QLabel, QMessageBox
 from PyQt5.QtCore import Qt
 from core.vendor_catalog import get_vendor_valves
+import webbrowser
 
 class VendorTableWidget(QWidget):
     def __init__(self, parent=None):
@@ -26,15 +27,34 @@ class VendorTableWidget(QWidget):
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setMinimumHeight(150)
+        self.table.cellDoubleClicked.connect(self.on_cell_double_clicked)
         
         self.layout.addWidget(self.table)
         self.setLayout(self.layout)
+        self.current_valves = []
+
+    def on_cell_double_clicked(self, row, column):
+        if row < len(self.current_valves):
+            valve = self.current_valves[row]
+            website = valve.get("website")
+            if website:
+                reply = QMessageBox.question(
+                    self,
+                    "Üretici Sayfası",
+                    f"'{valve.get('manufacturer')}' firmasının web sayfasına gitmek istiyor musunuz?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                if reply == QMessageBox.Yes:
+                    webbrowser.open(website)
+            else:
+                QMessageBox.information(self, "Bilgi", "Bu üretici için web sitesi verisi bulunamadı.")
 
     def update_valves(self, api_letter):
         api_letter = api_letter.split('(')[0].strip() if api_letter else "-"
-        valves = get_vendor_valves(api_letter)
-        self.table.setRowCount(len(valves))
-        for row, v in enumerate(valves):
+        self.current_valves = get_vendor_valves(api_letter)
+        self.table.setRowCount(len(self.current_valves))
+        for row, v in enumerate(self.current_valves):
             self.table.setItem(row, 0, QTableWidgetItem(str(v.get("manufacturer", ""))))
             self.table.setItem(row, 1, QTableWidgetItem(str(v.get("series", ""))))
             self.table.setItem(row, 2, QTableWidgetItem(str(v.get("model_code", ""))))
