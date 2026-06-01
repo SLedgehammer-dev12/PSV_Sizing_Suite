@@ -15,7 +15,6 @@ class LiquidCalcWorker(QThread):
 
     def run(self):
         try:
-            self.msleep(300)
             res = calculate_liquid_relief_area(
                 q_gpm=self.inputs['q_gpm'],
                 p1_psia=self.inputs['p1_psia'],
@@ -38,7 +37,6 @@ class GasCalcWorker(QThread):
 
     def run(self):
         try:
-            self.msleep(300)
             res = calculate_gas_relief_area(
                 w_lb_h=self.inputs['w_lb_h'],
                 p1_psia=self.inputs['p1_psia'],
@@ -63,7 +61,6 @@ class TwoPhaseCalcWorker(QThread):
 
     def run(self):
         try:
-            self.msleep(300)
             omega = calculate_omega_flashing(self.inputs['v0'], self.inputs['v9'])
             res = calculate_two_phase_area(
                 w_lb_h=self.inputs['w_lb_h'],
@@ -88,7 +85,6 @@ class FireWettedWorker(QThread):
 
     def run(self):
         try:
-            self.msleep(300)
             w_lb_h, q_btu_h = calculate_fire_wetted_load(
                 a_wetted_sqft=self.inputs['a_wetted'],
                 f_factor=self.inputs['f_factor'],
@@ -120,7 +116,6 @@ class FireUnwettedWorker(QThread):
 
     def run(self):
         try:
-            self.msleep(300)
             a_req, f_prime = calculate_fire_unwetted_area(
                 a_exposed_sqft=self.inputs['a_exposed'],
                 p1_psia=self.inputs['p1_psia'],
@@ -150,7 +145,6 @@ class ThermalWorker(QThread):
 
     def run(self):
         try:
-            self.msleep(300)
             q_gpm = calculate_thermal_expansion_load(
                 b_expansion_coeff=self.inputs['b'],
                 h_heat_transfer_btu_h=self.inputs['h_btu'],

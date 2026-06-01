@@ -25,18 +25,15 @@ def calculate_mixture_properties(composition_dict, t_rankine, p_psia, fraction_t
     if fraction_type.lower() == "mass":
         mole_fractions = {}
         total_moles = 0.0
-        # Calculate moles of each component per 1 kg of mixture
         for fluid, mass_frac in composition_normalized.items():
             try:
-                # MW in kg/mol
-                mw_pure = CP.PropsSI('molar_mass', 'T', 300, 'P', 101325, fluid)
+                mw_pure = CP.PropsSI('molar_mass', 'T', t_k, 'P', p_pa, fluid)
                 moles = mass_frac / mw_pure
                 mole_fractions[fluid] = moles
                 total_moles += moles
             except Exception as e:
                 raise ValueError(f"Could not get properties for {fluid}: {str(e)}")
         
-        # Normalize to get mole fractions
         composition_normalized = {k: v/total_moles for k, v in mole_fractions.items()}
 
     # Single pure fluid

@@ -3,6 +3,22 @@ __pycache__/
 build/
 dist/
 *.pyc
-*.spec
+/*.spec
 releases/
 auth.json
+
+# Build outputs
+*.exe
+*.dmg
+*.AppImage
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

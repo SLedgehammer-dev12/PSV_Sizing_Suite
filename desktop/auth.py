@@ -1,21 +1,34 @@
 import os
 import json
 import hashlib
+import secrets
 
 import sys
 
 def get_base_path():
     if getattr(sys, 'frozen', False):
-        # If the application is run as a bundle (PyInstaller)
         return os.path.dirname(sys.executable)
     else:
-        # If the application is run from a Python interpreter
         return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 AUTH_FILE = os.path.join(get_base_path(), 'auth.json')
 
-def hash_password(password):
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+def hash_password(password, salt=None):
+    if salt is None:
+        salt = secrets.token_hex(16)
+    key = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt.encode('utf-8'),
+        100000
+    )
+    return salt + ':' + key.hex()
+
+def verify_password(password, stored_hash):
+    if ':' not in stored_hash:
+        return hash_password(password).split(':')[1] == stored_hash
+    salt, _ = stored_hash.split(':', 1)
+    return hash_password(password, salt) == stored_hash
 
 def init_auth():
     if not os.path.exists(AUTH_FILE):
@@ -31,22 +44,20 @@ def check_login(username, password):
     init_auth()
     with open(AUTH_FILE, 'r') as f:
         data = json.load(f)
-        
-    pw_hash = hash_password(password)
-    
+
     if username == "admin":
-        return pw_hash == data.get("admin_hash")
+        return verify_password(password, data.get("admin_hash", ""))
     elif username == "user":
-        return pw_hash == data.get("user_hash")
+        return verify_password(password, data.get("user_hash", ""))
     return False
 
 def change_password(username, new_password):
     init_auth()
     with open(AUTH_FILE, 'r') as f:
         data = json.load(f)
-        
+
     data[f"{username}_hash"] = hash_password(new_password)
-    
+
     with open(AUTH_FILE, 'w') as f:
         json.dump(data, f)
     return True

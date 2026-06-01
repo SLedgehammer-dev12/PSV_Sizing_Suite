@@ -1,13 +1,16 @@
-# unit_converter.py
+# Atmospheric pressure constants
+ATM_PSIA = 14.6959
+PSI_PER_BAR = 14.50377
+R_PSIA_FT3_LBMOL_R = 10.7316
 
 def barg_to_psia(barg):
-    return (barg * 14.50377) + 14.6959
+    return (barg * PSI_PER_BAR) + ATM_PSIA
 
 def bara_to_psia(bara):
-    return bara * 14.50377
+    return bara * PSI_PER_BAR
 
 def psia_to_barg(psia):
-    return (psia - 14.6959) / 14.50377
+    return (psia - ATM_PSIA) / PSI_PER_BAR
 
 def kg_h_to_lb_h(kg_h):
     return kg_h * 2.204623
@@ -54,24 +57,20 @@ def kcal_kg_to_btu_lb(kcal_kg):
 def kj_kgK_to_btu_lbF(kj_kgK):
     return kj_kgK * 0.238846
 
-# --- Gas Volumetric to Mass Flow Converters ---
-# Gas constant R in (psia * ft3) / (lb-mol * °R) is 10.7316
-
 def actual_m3_h_to_lb_h(m3_h, p_psia, t_rankine, mw, z):
     """Convert actual m3/h at relieving conditions to mass flow lb/h."""
-    rho_lb_ft3 = (p_psia * mw) / (z * 10.7316 * t_rankine)
+    rho_lb_ft3 = (p_psia * mw) / (z * R_PSIA_FT3_LBMOL_R * t_rankine)
     ft3_h = m3_h * 35.31467
     return ft3_h * rho_lb_ft3
 
 def sm3_h_to_lb_h(sm3_h, mw):
-    """Convert Standard m3/h (60°F / 15.56°C, 14.696 psia) to mass flow lb/h. Assume Z=1 at standard."""
-    rho_std_lb_ft3 = (14.696 * mw) / (1.0 * 10.7316 * 519.67)
+    """Convert Standard m3/h (60°F, 14.696 psia) to mass flow lb/h."""
+    rho_std_lb_ft3 = (ATM_PSIA * mw) / (1.0 * R_PSIA_FT3_LBMOL_R * 519.67)
     ft3_h = sm3_h * 35.31467
     return ft3_h * rho_std_lb_ft3
 
 def nm3_h_to_lb_h(nm3_h, mw):
-    """Convert Normal m3/h (0°C, 1.01325 bar) to mass flow lb/h. Assume Z=1 at normal."""
-    # 0 C = 491.67 R, 1.01325 bar = 14.696 psia
-    rho_norm_lb_ft3 = (14.696 * mw) / (1.0 * 10.7316 * 491.67)
+    """Convert Normal m3/h (0°C, 1.01325 bar) to mass flow lb/h."""
+    rho_norm_lb_ft3 = (ATM_PSIA * mw) / (1.0 * R_PSIA_FT3_LBMOL_R * 491.67)
     ft3_h = nm3_h * 35.31467
     return ft3_h * rho_norm_lb_ft3

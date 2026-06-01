@@ -1,5 +1,6 @@
 import math
 from .valve_selection import select_orifice
+from .kb_coefficient import get_kb
 
 def calculate_c_coefficient(k):
     """
@@ -7,10 +8,11 @@ def calculate_c_coefficient(k):
     API 520 Part I formulation.
     """
     if k <= 0:
-        return 315 # Conservative fallback
-    
-    # C = 520 * sqrt( k * (2 / (k+1))^((k+1)/(k-1)) )
-    return 520.0 * math.sqrt(k * ((2.0 / (k + 1.0)) ** ((k + 1.0) / (k - 1.0))))
+        return 315.0
+    if abs(k - 1.0) < 1e-10:
+        return 315.0
+    exponent = (k + 1.0) / (k - 1.0)
+    return 520.0 * math.sqrt(k * ((2.0 / (k + 1.0)) ** exponent))
 
 
 def calculate_f2_coefficient(k, r):
@@ -19,17 +21,26 @@ def calculate_f2_coefficient(k, r):
     r = P2 / P1 (Back pressure / Relieving pressure)
     """
     if r >= 1.0:
-        return 0.0 # No flow
+        return 0.0
+    if r <= 0.0:
+        r = 1e-10
+    if abs(k - 1.0) < 1e-10:
+        term = (2.0 * r ** 2.0 * math.log(1.0 / r)) / (1.0 - r ** 2.0)
+        if term < 0:
+            return 0.0
+        return math.sqrt(term)
     
-    # API 520 F2 equation
     term1 = k / (k - 1.0)
     term2 = r ** (2.0 / k)
     term3 = (1.0 - (r ** ((k - 1.0) / k))) / (1.0 - r)
     
+    if term1 <= 0 or term3 <= 0:
+        return 0.0
+    
     return math.sqrt(term1 * term2 * term3)
 
 
-def calculate_gas_relief_area(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k, kd=0.975, kb=1.0, kc=1.0, num_valves=1):
+def calculate_gas_relief_area(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k, kd=0.975, kb=None, kc=1.0, num_valves=1, valve_type="conventional", set_pressure_psig=None):
     """
     Calculate required area for gas/vapor relief using API 520 formulation.
     Determines whether flow is critical or subcritical automatically.
@@ -43,9 +54,15 @@ def calculate_gas_relief_area(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k, kd=
     mw: Molecular weight
     k: Ratio of specific heats (Cp/Cv)
     kd: Discharge coefficient (default 0.975 for gas)
-    kb: Back pressure correction factor (default 1.0)
+    kb: Back pressure correction factor (auto-calculated if None)
     kc: Combination correction factor for rupture disks (default 1.0)
+    valve_type: "conventional" or "balanced_bellows"
+    set_pressure_psig: Required for kb auto-calculation
     """
+    # Auto-calculate Kb if not provided
+    if kb is None:
+        sp = set_pressure_psig if set_pressure_psig else (p1_psia - 14.6959)
+        kb = get_kb(p2_psia, sp, valve_type)
     # Calculate critical flow pressure
     # P_cf = P1 * (2 / (k+1))^(k/(k-1))
     p_cf = p1_psia * ((2.0 / (k + 1.0)) ** (k / (k - 1.0)))
