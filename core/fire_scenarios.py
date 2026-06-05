@@ -1,5 +1,5 @@
 import math
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional
 from .gas_relief import calculate_c_coefficient
 
 # API 521 Table 7 — Environment factors (F)
@@ -24,22 +24,26 @@ def get_env_factor(description: str = "bare") -> float:
 
 
 def calculate_heat_absorption(
-    a_wetted_sqft: float, f_factor: float
+    a_wetted_sqft: float,
+    f_factor: float,
+    adequate_drainage: bool = True,
+    wetted_area_cap: Optional[float] = 2800.0,
 ) -> float:
     """
     Calculate total heat absorption rate for fire exposure.
 
     API 521 Eq. 7:
-    Q = 21000 * F * A^0.82          for A <= 20000 sqft
-    Q = 21000 * F * 20000^0.82
-        + CGA * F * (A - 20000)     for A > 20000 sqft
+    Q = C * F * A^0.82
 
-    where CGA = 21000 Btu/h/ft2 (conservative default).
+    where C = 21000 if adequate drainage and firefighting exist,
+    otherwise C = 34500.
 
     Parameters
     ----------
     a_wetted_sqft : Wetted surface area (sqft)
     f_factor : Environment factor (dimensionless)
+    adequate_drainage : Whether adequate drainage and prompt firefighting are present
+    wetted_area_cap : Maximum wetted surface area to consider (default 2800.0 sqft)
 
     Returns
     -------
@@ -48,23 +52,20 @@ def calculate_heat_absorption(
     if a_wetted_sqft <= 0:
         return 0.0
 
-    base_heat = 21000.0 * f_factor * (a_wetted_sqft ** 0.82)
+    c_factor = 21000.0 if adequate_drainage else 34500.0
+    effective_area = a_wetted_sqft
+    if wetted_area_cap is not None and wetted_area_cap > 0:
+        effective_area = min(a_wetted_sqft, wetted_area_cap)
 
-    if a_wetted_sqft > 20000:
-        excess = a_wetted_sqft - 20000
-        cga_factor = 21000.0  # conservative for general hydrocarbon
-        base_heat = (
-            21000.0 * f_factor * (20000.0 ** 0.82)
-            + cga_factor * f_factor * excess
-        )
-
-    return base_heat
+    return c_factor * f_factor * (effective_area ** 0.82)
 
 
 def calculate_fire_wetted_load(
     a_wetted_sqft: float,
     f_factor: float,
     heat_of_vap_btu_lb: float,
+    adequate_drainage: bool = True,
+    wetted_area_cap: Optional[float] = 2800.0,
 ) -> Tuple[float, float]:
     """
     Calculate relief load for a wetted vessel exposed to fire (API 521).
@@ -74,6 +75,8 @@ def calculate_fire_wetted_load(
     a_wetted_sqft : Wetted surface area (sqft)
     f_factor : Environment factor (dimensionless)
     heat_of_vap_btu_lb : Latent heat of vaporization (Btu/lb)
+    adequate_drainage : Whether adequate drainage and prompt firefighting are present
+    wetted_area_cap : Maximum wetted surface area to consider (default 2800.0 sqft)
 
     Returns
     -------
@@ -82,7 +85,9 @@ def calculate_fire_wetted_load(
     if heat_of_vap_btu_lb <= 0:
         raise ValueError("Heat of vaporization must be positive.")
 
-    q_btu_h = calculate_heat_absorption(a_wetted_sqft, f_factor)
+    q_btu_h = calculate_heat_absorption(
+        a_wetted_sqft, f_factor, adequate_drainage, wetted_area_cap
+    )
     w_lb_h = q_btu_h / heat_of_vap_btu_lb
 
     return w_lb_h, q_btu_h

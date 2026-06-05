@@ -12,6 +12,11 @@ from .two_phase import (
     calculate_omega_flashing,
     calculate_omega_subcooled,
 )
+from .thermo_props import (
+    calculate_mixture_properties,
+    get_coolprop_fluids,
+    calculate_two_phase_omega_coolprop,
+)
 from .fire_scenarios import (
     calculate_fire_wetted_load,
     calculate_fire_unwetted_area,
@@ -22,3 +27,4 @@ from .fire_scenarios import (
 from .thermal_expansion import calculate_thermal_expansion_load
 from .blowby import calculate_blowby_flowrate
 from .report import generate_report, generate_and_open_report
+from .advanced_sizing import calculate_napier_steam_area, area_relief_2phase_subcooled

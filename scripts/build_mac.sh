@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="v2.2.0"
+VERSION="v2.3.0"
 APPNAME="PSV_Sizing_Suite_${VERSION}"
 
 echo "============================================="
@@ -56,6 +56,7 @@ pyinstaller --noconsole \
     --hidden-import core.report \
     --hidden-import core.piping \
     --hidden-import core.valve_types \
+    --hidden-import core.advanced_sizing \
     --exclude-module PyQt5.QtSvg \
     --exclude-module PyQt5.QtSql \
     --exclude-module PyQt5.QtQml \

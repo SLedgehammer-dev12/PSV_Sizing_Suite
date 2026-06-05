@@ -33,6 +33,7 @@ def calculate_pilot_gas_area(
     kb: Optional[float] = None,
     set_pressure_psig: Optional[float] = None,
     num_valves: int = 1,
+    overpressure_pct: float = 10.0,
 ) -> Dict[str, Union[float, str]]:
     """
     Calculate required orifice area for a pilot-operated gas relief valve.
@@ -45,8 +46,12 @@ def calculate_pilot_gas_area(
     flow_type = "CRITICAL" if p2_psia <= p_cf else "SUBCRITICAL"
 
     if kb is None:
-        sp = set_pressure_psig if set_pressure_psig else (p1_psia - 14.6959)
-        kb = get_kb(p2_psia, sp, "conventional")
+        if set_pressure_psig:
+            sp = set_pressure_psig
+        else:
+            p1_gauge = max(p1_psia - 14.6959, 0.0)
+            sp = p1_gauge / (1.0 + overpressure_pct / 100.0)
+        kb = get_kb(p2_psia, sp, "conventional", overpressure_pct)
 
     if flow_type == "CRITICAL":
         c = calculate_c_coefficient(k)

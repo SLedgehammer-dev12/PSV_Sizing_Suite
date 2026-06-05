@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.3.0 (2026-06-05)
+
+### ✨ Yeni Özellikler
+- **Dinamik Birim Sistemi (SI / USC):** Tüm sekmelerdeki girdi ve çıktıların dinamik olarak SI Metrik (barg, °C, kg/h, L/min, mm²) ve USC Amerikan (psig, psia, °F, gpm, in²) birimleri arasında geçiş yapabilmesi sağlandı.
+- **Napier Buhar Sizing & Katsayı Entegrasyonu:** Buhar tahliyeleri için Kn yüksek basınç düzeltmesi ve Ksh kızgın buhar superheat katsayısı interpolasyonu ile Napier denklemi gömüldü.
+- **Alt-Soğutulmuş İki Fazlı Flashing (API 520 C.2.3):** Alt-soğutulmuş veya doymuş sıvıların rölyef esnasında flashing yapmasını hassas biçimde çözen API 520 Ek C.2.3 Omega metodu entegre edildi.
+- **Alternatif ve Kontrol (Verification) Hesaplama Arayüzü:** Buhar ve iki fazlı alt-soğutulmuş akışlarda hem standart denklemler hem de gelişmiş modeller yan yana çalıştırılarak karşılaştırmalı kontrol/doğrulama yapılması sağlandı.
+
+### 🔧 İyileştirmeler
+- **Sıfır Bağımlılık (Zero-Dependency Embedding):** PolyKin ve psvpy kütüphanelerinin matematik algoritmaları harici Numpy, Scipy ve Pandas bağımlılıkları olmadan saf Python (`math` kütüphanesi) ile sıfırdan yazılarak gömüldü.
+- **Test Süiti Genişletme:** Test paketi yeni fiziksel modelleri, interpolasyonları ve birim çevrim sınırlarını kapsayacak şekilde 100 test case'ine çıkarıldı ve tamamı başarıyla doğrulandı.
+
+---
+
 ## v2.2.0 (2026-06-01)
 
 ### ✨ Yeni Özellikler

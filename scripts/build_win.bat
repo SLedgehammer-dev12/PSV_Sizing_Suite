@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set VERSION=v2.2.0
+set VERSION=v2.3.0
 set APPNAME=PSV_Sizing_Suite_%VERSION%
 
 echo =============================================

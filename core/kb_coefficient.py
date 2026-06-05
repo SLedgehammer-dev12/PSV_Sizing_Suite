@@ -89,7 +89,8 @@ def get_kb(
     if set_pressure_psig <= 0:
         return 1.0
 
-    bp_pct = (back_pressure_psia / set_pressure_psig) * 100.0
+    bp_gauge = max(back_pressure_psia - 14.6959, 0.0)
+    bp_pct = (bp_gauge / set_pressure_psig) * 100.0
 
     if valve_type == "conventional":
         return 1.0

@@ -67,6 +67,9 @@ def _fallback_convert(value: float, from_unit: str, to_unit: str) -> float:
         ("m3/h", "gpm"): m3_h_to_gpm,
         ("gpm", "m3/h"): gpm_to_m3_h,
         ("degC", "degR"): c_to_rankine,
+        ("degR", "degC"): lambda v: (v - 491.67) / 1.8,
+        ("degC", "degF"): c_to_f,
+        ("degF", "degC"): lambda v: (v - 32.0) / 1.8,
         ("m3/kg", "ft3/lb"): m3_kg_to_ft3_lb,
         ("ft3/lb", "m3/kg"): lambda v: v / 16.01846,
         ("m2", "sqft"): m2_to_sqft,
@@ -74,6 +77,16 @@ def _fallback_convert(value: float, from_unit: str, to_unit: str) -> float:
         ("kcal/h", "BTU/h"): kcal_h_to_btu_h,
         ("kW", "BTU/h"): kw_to_btu_h,
         ("kcal/kg", "Btu/lb"): kcal_kg_to_btu_lb,
+        ("mm2", "sqin"): lambda v: v / 645.16,
+        ("sqin", "mm2"): lambda v: v * 645.16,
+        ("mm2", "in2"): lambda v: v / 645.16,
+        ("in2", "mm2"): lambda v: v * 645.16,
+        ("L/min", "gpm"): lambda v: v / 3.785411784,
+        ("gpm", "L/min"): lambda v: v * 3.785411784,
+        ("L/min", "US_gpm"): lambda v: v / 3.785411784,
+        ("US_gpm", "L/min"): lambda v: v * 3.785411784,
+        ("kJ/kg", "Btu/lb"): lambda v: v / 2.326,
+        ("Btu/lb", "kJ/kg"): lambda v: v * 2.326,
     }
 
     key = (from_unit, to_unit)

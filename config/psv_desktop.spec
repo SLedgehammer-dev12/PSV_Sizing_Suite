@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PSV Sizing Suite v2.2.0 — PyInstaller spec
+PSV Sizing Suite v2.3.0 — PyInstaller spec
 Platforms: Windows, macOS, Linux
 """
 import sys
@@ -8,7 +8,7 @@ from pathlib import Path
 
 block_cipher = None
 
-VERSION = "v2.2.0"
+VERSION = "v2.3.0"
 
 hidden_imports = [
     # Core engine
@@ -17,6 +17,7 @@ hidden_imports = [
     'core.vendor_catalog', 'core.valve_selection',
     'core.liquid_relief', 'core.gas_relief', 'core.two_phase',
     'core.fire_scenarios', 'core.thermal_expansion', 'core.blowby',
+    'core.advanced_sizing',
     # Desktop UI
     'desktop', 'desktop.auth', 'desktop.app', 'desktop.tabs',
     'desktop.tabs_extra', 'desktop.workers', 'desktop.vendor_window',

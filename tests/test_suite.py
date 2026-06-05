@@ -6,10 +6,11 @@ import math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
-from core.thermo_props import calculate_mixture_properties, get_coolprop_fluids
+from core.thermo_props import calculate_mixture_properties, get_coolprop_fluids, calculate_two_phase_omega_coolprop
 from core.liquid_relief import calculate_liquid_relief_area, calculate_reynolds, calculate_kv
 from core.gas_relief import calculate_gas_relief_area, calculate_c_coefficient, calculate_f2_coefficient
 from core.two_phase import calculate_omega_flashing, calculate_two_phase_area, calculate_omega_subcooled
+from core.piping import calculate_inlet_pressure_drop, check_inlet_rule, check_outlet_rule
 from core.fire_scenarios import (
     calculate_fire_wetted_load, calculate_fire_unwetted_area,
     calculate_heat_absorption, get_env_factor, ENV_FACTORS,
@@ -301,6 +302,28 @@ class TestTwoPhase:
         )
         assert 'Multiple' in str(res['Selected_Orifice_Letter'])
 
+    def test_two_phase_omega_coolprop(self):
+        comp = {"Water": 1.0}
+        res = calculate_two_phase_omega_coolprop(
+            comp, p0_psia=150.0, state_type="saturated_liquid"
+        )
+        assert res["v0_ft3_lb"] > 0
+        assert res["v9_ft3_lb"] > res["v0_ft3_lb"]
+        assert res["omega"] > 0.01
+
+        res_sub = calculate_two_phase_omega_coolprop(
+            comp, p0_psia=150.0, state_type="subcooled_liquid", t_rankine=600.0
+        )
+        assert res_sub["omega"] > 0
+
+    def test_two_phase_area_with_kb(self):
+        res = calculate_two_phase_area(
+            w_lb_h=100000, p0_psia=150.0, p_back_psia=64.6959,
+            v0_ft3_lb=0.018, omega=2.0,
+            valve_type="balanced_bellows", set_pressure_psig=100.0
+        )
+        assert res["Kb"] < 1.0
+
 
 # =============================================================================
 # Fire Scenarios
@@ -323,16 +346,20 @@ class TestFireScenarios:
         assert q > 0
         assert w == q / 100
 
-    def test_wetted_fire_large_area(self):
-        """Above 20000 sqft, the formula changes."""
-        w_small, _ = calculate_fire_wetted_load(20000, 1.0, 100)
-        w_large, _ = calculate_fire_wetted_load(25000, 1.0, 100)
-        assert w_large > w_small
+    def test_wetted_fire_capped(self):
+        w_2800, q_2800 = calculate_fire_wetted_load(2800, 1.0, 100)
+        w_5000, q_5000 = calculate_fire_wetted_load(5000, 1.0, 100)
+        assert q_2800 == q_5000
 
-    def test_heat_absorption_boundary(self):
-        q_at = calculate_heat_absorption(20000, 1.0)
-        q_below = calculate_heat_absorption(19999, 1.0)
-        assert q_at > q_below
+    def test_wetted_fire_uncapped(self):
+        _, q_2800 = calculate_fire_wetted_load(2800, 1.0, 100, wetted_area_cap=None)
+        _, q_5000 = calculate_fire_wetted_load(5000, 1.0, 100, wetted_area_cap=None)
+        assert q_5000 > q_2800
+
+    def test_wetted_fire_no_drainage(self):
+        _, q_drainage = calculate_fire_wetted_load(100, 1.0, 100, adequate_drainage=True)
+        _, q_no_drainage = calculate_fire_wetted_load(100, 1.0, 100, adequate_drainage=False)
+        assert q_no_drainage == pytest.approx(q_drainage * (34500.0 / 21000.0), rel=1e-4)
 
     def test_unwetted_fire(self):
         a, f_prime = calculate_fire_unwetted_area(
@@ -480,15 +507,15 @@ class TestKbCoefficient:
         assert kb == 1.0
 
     def test_balanced_low_bp(self):
-        kb = get_kb(10, 100, "balanced_bellows")
+        kb = get_kb(24.6959, 100, "balanced_bellows")
         assert kb == pytest.approx(0.99, abs=0.01)
 
     def test_balanced_moderate_bp(self):
-        kb = get_kb(35, 100, "balanced_bellows")
+        kb = get_kb(49.6959, 100, "balanced_bellows")
         assert 0.9 <= kb <= 1.0
 
     def test_balanced_high_bp(self):
-        kb = get_kb(50, 100, "balanced_bellows")
+        kb = get_kb(64.6959, 100, "balanced_bellows")
         assert kb < 1.0
         assert kb > 0.5
 
@@ -625,6 +652,123 @@ class TestErrorHandling:
     def test_reynolds_negative_inf(self):
         re = calculate_reynolds(100, 1.0, -1, 1.0)
         assert re == float('inf')
+
+
+class TestPiping:
+    def test_liquid_piping_pressure_drop(self):
+        # Liquid test (using GPM)
+        res = calculate_inlet_pressure_drop(
+            flow_gpm=100.0, fluid_density_lb_ft3=62.4, viscosity_cp=1.0,
+            pipe_id_in=2.067, pipe_length_ft=50.0,
+            fittings_90deg=2, gate_valves=1
+        )
+        assert res["delta_p_psi"] > 0
+        assert res["velocity_fps"] > 0
+        assert res["reynolds"] > 0
+
+    def test_gas_piping_pressure_drop(self):
+        # Gas test (using lb/h)
+        res = calculate_inlet_pressure_drop(
+            flow_gpm=None, fluid_density_lb_ft3=1.2, viscosity_cp=0.018,
+            pipe_id_in=3.068, pipe_length_ft=30.0,
+            flow_rate_lb_h=5000.0
+        )
+        assert res["delta_p_psi"] > 0
+        assert res["velocity_fps"] > 0
+        assert res["flow_gpm"] > 0
+
+    def test_piping_rules_conventional(self):
+        # Conventional valve rules
+        passes, pct = check_inlet_rule(delta_p_psi=2.5, set_pressure_psig=100.0, valve_type="conventional")
+        assert passes is True
+        assert pct == 2.5
+
+        passes_fail, pct_fail = check_inlet_rule(delta_p_psi=3.5, set_pressure_psig=100.0, valve_type="conventional")
+        assert passes_fail is False
+
+    def test_piping_rules_pilot_remote(self):
+        # Pilot valve with remote sensing should pass even at high pressure drop
+        passes, pct = check_inlet_rule(
+            delta_p_psi=5.0, set_pressure_psig=100.0, valve_type="pilot", remote_sensing=True
+        )
+        assert passes is True
+        assert pct == 5.0
+
+        passes_fail, _ = check_inlet_rule(
+            delta_p_psi=5.0, set_pressure_psig=100.0, valve_type="pilot", remote_sensing=False
+        )
+        assert passes_fail is False
+
+
+class TestAdvancedSizing:
+    def test_subcooled_flashing_polykin_case(self):
+        from core.advanced_sizing import area_relief_2phase_subcooled
+        # PolyKin example: Q=378.5 L/min, P1=20.733 bara, P2=1.703 bara, Ps=7.419 bara, rho1=511.3 kg/m3, rho9=262.7 kg/m3
+        res = area_relief_2phase_subcooled(
+            q_l_min=378.5, p1_bara=20.733, p2_bara=1.703, ps_bara=7.419,
+            rho1_kg_m3=511.3, rho9_kg_m3=262.7, kd=0.65, kb=1.0, kc=1.0, kv=1.0
+        )
+        # PolyKin says A = 135 mm2 (approx)
+        assert res['Required_Area_mm2'] == pytest.approx(135.0, abs=2.0)
+        assert res['Critical_Flow'] is True
+        assert res['Flow_Type'] == "CRITICAL"
+
+    def test_napier_steam_kn_correction(self):
+        from core.advanced_sizing import calculate_napier_steam_area
+        # P1 = 2000 psia (> 1514.7 psia)
+        res = calculate_napier_steam_area(
+            w_lb_h=50000.0, p1_psia=2000.0, p2_psia=50.0, t_rankine=None,
+            kd=0.975, kb=1.0, kc=1.0, num_valves=1
+        )
+        assert res['Kn'] > 1.0  # (0.1906*2000 - 1000)/(0.2292*2000 - 1061) = 1.02688
+        assert res['Kn'] == pytest.approx(1.02688, rel=0.001)
+
+    def test_napier_steam_superheat_ksh(self):
+        from core.advanced_sizing import get_ksh
+        # At P1 = 100 psia, Tsat is ~327.8 °F
+        # If superheated to 400 °F, Ksh should be < 1.0
+        ksh_super = get_ksh(p1_psia=100.0, t_f=400.0)
+        assert ksh_super < 1.0
+        assert ksh_super > 0.8
+        
+        # If saturated or subcooled, Ksh should be 1.0
+        ksh_sat = get_ksh(p1_psia=100.0, t_f=300.0)
+        assert ksh_sat == 1.0
+
+    def test_gas_relief_steam_routing(self):
+        # Test routing and cross-checking in gas_relief
+        res = calculate_gas_relief_area(
+            w_lb_h=10000.0, p1_psia=114.7, p2_psia=14.7, t_rankine=560.0,
+            z=1.0, mw=18.02, k=1.3, is_steam=True, use_napier=True
+        )
+        assert 'Verification_Required_Area_sqin' in res
+        assert res['Verification_Method'] == 'API 520 Gaz/Buhar Denklemi'
+        
+        # Now test with use_napier=False
+        res2 = calculate_gas_relief_area(
+            w_lb_h=10000.0, p1_psia=114.7, p2_psia=14.7, t_rankine=560.0,
+            z=1.0, mw=18.02, k=1.3, is_steam=True, use_napier=False
+        )
+        assert 'Verification_Required_Area_sqin' in res2
+        assert res2['Verification_Method'] == 'Napier Buhar Denklemi'
+
+    def test_two_phase_subcooled_flashing_routing(self):
+        # Test routing and cross-checking in two_phase
+        res = calculate_two_phase_area(
+            w_lb_h=100000.0, p0_psia=150.0, p_back_psia=14.7,
+            v0_ft3_lb=0.018, omega=1.5, is_subcooled_flashing=True,
+            use_c23=True, p_sat_psia=50.0
+        )
+        assert 'Verification_Required_Area_sqin' in res
+        assert res['Verification_Method'] == 'Standart iki fazlı Omega Metodu'
+
+        res2 = calculate_two_phase_area(
+            w_lb_h=100000.0, p0_psia=150.0, p_back_psia=14.7,
+            v0_ft3_lb=0.018, omega=1.5, is_subcooled_flashing=True,
+            use_c23=False, p_sat_psia=50.0
+        )
+        assert 'Verification_Required_Area_sqin' in res2
+        assert res2['Verification_Method'] == 'API 520 C.2.3 Flashing Modeli'
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# PSV Sizing Suite v2.2.0
+# PSV Sizing Suite v2.3.0
 
 Pressure Safety Valve sizing hesaplama platformu — API Standard 520 (Part I) & API Standard 521 uyumlu.
 
@@ -29,8 +29,8 @@ chmod +x scripts/build_mac.sh
 ```
 
 Çıktı:
-- Windows: `dist/PSV_Sizing_Suite_v2.2.0/PSV_Sizing_Suite_v2.2.0.exe` + Setup.exe
-- macOS: `dist/PSV_Sizing_Suite_v2.2.0.dmg`
+- Windows: `dist/PSV_Sizing_Suite_v2.3.0/PSV_Sizing_Suite_v2.3.0.exe` + Setup.exe
+- macOS: `dist/PSV_Sizing_Suite_v2.3.0.dmg`
 
 ### 2. Streamlit Web
 

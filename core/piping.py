@@ -41,7 +41,7 @@ def darcy_friction_factor(re: float, epsilon_d: float) -> float:
 
 
 def calculate_inlet_pressure_drop(
-    flow_gpm: float,
+    flow_gpm: Optional[float],
     fluid_density_lb_ft3: float,
     viscosity_cp: float,
     pipe_id_in: float,
@@ -50,13 +50,14 @@ def calculate_inlet_pressure_drop(
     fittings_45deg: int = 0,
     gate_valves: int = 0,
     roughness_in: float = 0.00015,
+    flow_rate_lb_h: Optional[float] = None,
 ) -> Dict[str, float]:
     """
     Calculate inlet line pressure drop per API 520 Part II.
     
     Parameters
     ----------
-    flow_gpm : Flow rate (US GPM)
+    flow_gpm : Flow rate (US GPM) - optional if flow_rate_lb_h is provided
     fluid_density_lb_ft3 : Fluid density (lb/ft3)
     viscosity_cp : Fluid viscosity (cP)
     pipe_id_in : Pipe inner diameter (inches)
@@ -65,6 +66,7 @@ def calculate_inlet_pressure_drop(
     fittings_45deg : Number of 45° elbows
     gate_valves : Number of fully open gate valves
     roughness_in : Pipe wall roughness (inches, default 0.00015 for steel)
+    flow_rate_lb_h : Mass flow rate (lb/h) - optional, used for gas/two-phase
     
     Returns
     -------
@@ -72,14 +74,27 @@ def calculate_inlet_pressure_drop(
     """
     pipe_area_ft2 = math.pi * (pipe_id_in / 24.0) ** 2
     
-    # Velocity (ft/s)
-    flow_cfs = flow_gpm / (7.48052 * 60.0)
-    velocity_fps = flow_cfs / pipe_area_ft2
+    # Calculate volumetric flow rate in CFS
+    if flow_rate_lb_h is not None and flow_rate_lb_h > 0:
+        flow_cfs = flow_rate_lb_h / (3600.0 * fluid_density_lb_ft3)
+        flow_gpm = flow_cfs * 7.48052 * 60.0
+    elif flow_gpm is not None and flow_gpm > 0:
+        flow_cfs = flow_gpm / (7.48052 * 60.0)
+        flow_rate_lb_h = flow_cfs * 3600.0 * fluid_density_lb_ft3
+    else:
+        flow_cfs = 0.0
+        flow_gpm = 0.0
+        flow_rate_lb_h = 0.0
+        
+    velocity_fps = flow_cfs / pipe_area_ft2 if pipe_area_ft2 > 0 else 0.0
     
     # Reynolds number
     pipe_id_ft = pipe_id_in / 12.0
     viscosity_lb_ft_s = viscosity_cp * 0.000672
-    re = (fluid_density_lb_ft3 * velocity_fps * pipe_id_ft) / viscosity_lb_ft_s
+    if viscosity_lb_ft_s > 0:
+        re = (fluid_density_lb_ft3 * velocity_fps * pipe_id_ft) / viscosity_lb_ft_s
+    else:
+        re = float('inf')
     
     # Friction factor
     epsilon_d = roughness_in / pipe_id_in if pipe_id_in > 0 else 0
@@ -102,6 +117,8 @@ def calculate_inlet_pressure_drop(
         "reynolds": re,
         "friction_factor": f,
         "equivalent_length_ft": equiv_length_ft,
+        "flow_gpm": flow_gpm,
+        "flow_rate_lb_h": flow_rate_lb_h,
     }
 
 
@@ -109,6 +126,7 @@ def check_inlet_rule(
     delta_p_psi: float,
     set_pressure_psig: float,
     valve_type: str = "conventional",
+    remote_sensing: bool = False,
 ) -> Tuple[bool, float]:
     """
     Check if inlet pressure drop is within API 520 Part II limits.
@@ -117,7 +135,10 @@ def check_inlet_rule(
     -------
     (passes: bool, delta_p_pct: float)
     """
-    limit_pct = 1.5 if valve_type == "pilot" else 3.0
+    if valve_type == "pilot" and remote_sensing:
+        limit_pct = 100.0  # essentially exempt
+    else:
+        limit_pct = 3.0
     delta_p_pct = (delta_p_psi / set_pressure_psig) * 100.0 if set_pressure_psig > 0 else 0
     return delta_p_pct <= limit_pct, delta_p_pct
 

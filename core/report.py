@@ -9,7 +9,7 @@ from PyQt5.QtCore import QUrl
 try:
     import weasyprint
     HAS_WEASYPRINT = True
-except ImportError:
+except (ImportError, OSError):
     HAS_WEASYPRINT = False
 
 

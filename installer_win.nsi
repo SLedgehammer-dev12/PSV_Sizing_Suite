@@ -2,7 +2,7 @@
 ; Sertifikasız build — Windows Defender uyarısı verebilir
 
 !define PRODUCT_NAME "PSV Sizing Suite"
-!define PRODUCT_VERSION "v2.2.0"
+!define PRODUCT_VERSION "v2.3.0"
 !define PRODUCT_PUBLISHER "PSV Engineering"
 !define PRODUCT_WEB_SITE "https://github.com/SLedgehammer-dev12/PSV_Sizing_Suite"
 
