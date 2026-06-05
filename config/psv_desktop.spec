@@ -43,6 +43,7 @@ excludes = [
     'turtle', 'sqlite3',
     'scipy', 'sympy', 'pandas.io',
     'cv2', 'PIL', 'Pillow',
+]
 import os
 
 a = Analysis(
