@@ -43,12 +43,13 @@ excludes = [
     'turtle', 'sqlite3',
     'scipy', 'sympy', 'pandas.io',
     'cv2', 'PIL', 'Pillow',
-]
+import os
 
-a = Analysis(['main.py'],
-    pathex=['.'],
+a = Analysis(
+    [os.path.join(SPECPATH, '..', 'main.py')],
+    pathex=[os.path.join(SPECPATH, '..')],
     binaries=[],
-    datas=[('vendor_data', 'vendor_data')],
+    datas=[(os.path.join(SPECPATH, '..', 'vendor_data'), 'vendor_data')],
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
@@ -70,7 +71,7 @@ exe = EXE(pyz,
     upx=True,
     upx_exclude=['vcruntime*.dll'],
     console=False,
-    icon='assets/icon.ico'
+    icon=os.path.join(SPECPATH, '..', 'assets', 'icon.ico')
 )
 
 coll = COLLECT(exe,

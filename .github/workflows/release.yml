@@ -40,6 +40,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/PSV_Sizing_Suite_v2.3.0_Setup.exe
+            dist/PSV_Sizing_Suite_Setup_v2.3.0.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
