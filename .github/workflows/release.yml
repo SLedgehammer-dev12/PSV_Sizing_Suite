@@ -32,9 +32,13 @@ jobs:
         run: |
           pyinstaller config/psv_desktop.spec
 
+      - name: Install NSIS
+        run: |
+          choco install nsis -y --no-progress
+
       - name: Build Installer using NSIS
         run: |
-          makensis installer_win.nsi
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer_win.nsi
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2
