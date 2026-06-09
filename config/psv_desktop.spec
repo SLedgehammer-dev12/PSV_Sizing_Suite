@@ -3,13 +3,19 @@
 PSV Sizing Suite — PyInstaller spec
 Platforms: Windows, macOS, Linux
 """
-import sys, os as _os
-from pathlib import Path
+import sys, os, re as _re
 
 block_cipher = None
 
-sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), '..'))
-from core import __version_tag__ as VERSION
+# Read version from core/__init__.py without importing
+# SPECPATH (spec file directory, e.g. PROJECT/config/) is injected by PyInstaller
+_ver_file = os.path.join(SPECPATH, '..', 'core', '__init__.py')
+if os.path.exists(_ver_file):
+    _re_content = open(_ver_file).read()
+    _match = _re.search(r'__version__\s*=\s*[\"']([^\"\']+)[\"']', _re_content)
+    VERSION = 'v' + _match.group(1) if _match else 'v2.2.0'
+else:
+    VERSION = 'v2.2.0'
 
 hidden_imports = [
     # Core engine
