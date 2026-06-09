@@ -1,14 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PSV Sizing Suite v2.3.0 — PyInstaller spec
+PSV Sizing Suite — PyInstaller spec
 Platforms: Windows, macOS, Linux
 """
-import sys
+import sys, os as _os
 from pathlib import Path
 
 block_cipher = None
 
-VERSION = "v2.3.0"
+sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), '..'))
+from core import __version_tag__ as VERSION
 
 hidden_imports = [
     # Core engine

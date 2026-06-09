@@ -11,8 +11,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from typing import Optional
 
+from core import __version__
+from core.models import (
+    LiquidReliefInput, GasReliefInput, TwoPhaseInput,
+    FireWettedInput, FireUnwettedInput, ThermalExpansionInput,
+    PipingInletInput, ConvertInput,
+)
 from core.liquid_relief import calculate_liquid_relief_area
 from core.gas_relief import calculate_gas_relief_area
 from core.two_phase import (
@@ -38,7 +44,7 @@ from core.units import convert, HAS_PINT
 app = FastAPI(
     title="PSV Sizing Suite API",
     description="Pressure Safety Valve sizing calculations per API 520/521",
-    version="2.1.0",
+    version=__version__,
 )
 
 app.add_middleware(
@@ -50,96 +56,16 @@ app.add_middleware(
 )
 
 
-# =============================================================================
-# Request / Response Models
-# =============================================================================
-
-class LiquidReliefRequest(BaseModel):
-    q_gpm: float = Field(..., description="Flow rate (US GPM)")
-    p1_psia: float = Field(..., description="Relieving pressure (psia)")
-    p2_psia: float = Field(..., description="Back pressure (psia)")
-    g: float = Field(..., description="Specific gravity")
-    mu_cp: float = Field(1.0, description="Viscosity (cP)")
-    kd: float = Field(0.65, description="Discharge coefficient")
-    kw: float = Field(1.0, description="Back pressure capacity correction")
-    num_valves: int = Field(1, ge=1, description="Number of parallel valves")
-
-
-class GasReliefRequest(BaseModel):
-    w_lb_h: float = Field(..., description="Mass flow rate (lb/h)")
-    p1_psia: float = Field(..., description="Relieving pressure (psia)")
-    p2_psia: float = Field(..., description="Back pressure (psia)")
-    t_rankine: float = Field(..., description="Relieving temperature (Rankine)")
-    z: float = Field(..., description="Compressibility factor")
-    mw: float = Field(..., description="Molecular weight")
-    k: float = Field(..., description="Specific heat ratio")
-    kd: float = Field(0.975, description="Discharge coefficient")
-    kb: Optional[float] = Field(None, description="Back pressure correction (auto if None)")
-    kc: float = Field(1.0, description="Combination correction factor")
-    num_valves: int = Field(1, ge=1)
-    valve_type: str = Field("conventional", description="conventional or balanced_bellows")
-    set_pressure_psig: Optional[float] = Field(None, description="Set pressure for Kb calculation")
-
-
-class TwoPhaseRequest(BaseModel):
-    w_lb_h: float = Field(..., description="Mass flow rate (lb/h)")
-    p0_psia: float = Field(..., description="Stagnation relieving pressure (psia)")
-    p_back_psia: float = Field(..., description="Back pressure (psia)")
-    v0_ft3_lb: float = Field(..., description="Specific volume at inlet (ft3/lb)")
-    v9_ft3_lb: Optional[float] = Field(None, description="Specific vol at 90% P0 (ft3/lb)")
-    omega: Optional[float] = Field(None, description="Omega parameter (calc from v0/v9 if None)")
-    kd: float = Field(0.85, description="Discharge coefficient")
-    num_valves: int = Field(1, ge=1)
-
-
-class FireWettedRequest(BaseModel):
-    a_wetted_sqft: float = Field(..., description="Wetted surface area (sqft)")
-    f_factor: float = Field(1.0, description="Environment factor")
-    heat_of_vap_btu_lb: float = Field(..., description="Latent heat (Btu/lb)")
-    p1_psia: float = Field(..., description="Relieving pressure (psia)")
-    t_rankine: float = Field(..., description="Gas temperature (Rankine)")
-    z: float = Field(0.9, description="Compressibility")
-    mw: float = Field(..., description="Molecular weight")
-    k: float = Field(1.3, description="Specific heat ratio")
-
-
-class FireUnwettedRequest(BaseModel):
-    a_exposed_sqft: float = Field(..., description="Exposed area (sqft)")
-    p1_psia: float = Field(..., description="Relieving pressure (psia)")
-    t_gas_rankine: float = Field(..., description="Gas temperature (Rankine)")
-    t_wall_rankine: float = Field(..., description="Wall temperature (Rankine)")
-    k: float = Field(..., description="Specific heat ratio")
-    kd: float = Field(0.975, description="Discharge coefficient")
-    alpha: float = Field(0.5, description="Radiation absorptivity")
-
-
-class ThermalExpansionRequest(BaseModel):
-    b_expansion_coeff: float = Field(..., description="Cubical expansion coefficient (1/°F)")
-    h_heat_transfer_btu_h: float = Field(..., description="Heat transfer rate (BTU/h)")
-    g_specific_gravity: float = Field(..., description="Specific gravity")
-    c_specific_heat: float = Field(..., description="Specific heat (BTU/lb°F)")
-    mu_cp: float = Field(1.0, description="Viscosity (cP)")
-    p1_psia: float = Field(..., description="Relieving pressure (psia)")
-    p2_psia: float = Field(..., description="Back pressure (psia)")
-
-
-class PipingCheckRequest(BaseModel):
-    flow_gpm: float
-    fluid_density_lb_ft3: float
-    viscosity_cp: float
-    pipe_id_in: float
-    pipe_length_ft: float
-    set_pressure_psig: float
-    fittings_90deg: int = 0
-    fittings_45deg: int = 0
-    gate_valves: int = 0
-    valve_type: str = "conventional"
-
-
-class ConvertRequest(BaseModel):
-    value: float
-    from_unit: str
-    to_unit: str
+# All request/response models are imported from core.models.
+# Endpoint-specific aliases kept for backward compatibility.
+LiquidReliefRequest = LiquidReliefInput
+GasReliefRequest = GasReliefInput
+TwoPhaseRequest = TwoPhaseInput
+FireWettedRequest = FireWettedInput
+FireUnwettedRequest = FireUnwettedInput
+ThermalExpansionRequest = ThermalExpansionInput
+PipingCheckRequest = PipingInletInput
+ConvertRequest = ConvertInput
 
 
 # =============================================================================
@@ -150,7 +76,7 @@ class ConvertRequest(BaseModel):
 async def root():
     return {
         "app": "PSV Sizing Suite API",
-        "version": "2.1.0",
+        "version": __version__,
         "standards": ["API 520 Part I", "API 521", "ASME Section VIII"],
         "units_backend": "pint" if HAS_PINT else "fallback",
         "endpoints": {
@@ -181,6 +107,7 @@ async def liquid_relief(req: LiquidReliefRequest):
             kd=req.kd,
             kw=req.kw,
             num_valves=req.num_valves,
+            valve_type=req.valve_type,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -226,6 +153,9 @@ async def two_phase(req: TwoPhaseRequest):
             omega=omega,
             kd=req.kd,
             num_valves=req.num_valves,
+            valve_type=req.valve_type,
+            set_pressure_psig=req.set_pressure_psig,
+            overpressure_pct=req.overpressure_pct,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -243,12 +173,13 @@ async def fire_wetted(req: FireWettedRequest):
         gas_res = calculate_gas_relief_area(
             w_lb_h=w_lb_h,
             p1_psia=req.p1_psia,
-            p2_psia=14.7,
+            p2_psia=req.p2_psia,
             t_rankine=req.t_rankine,
             z=req.z,
             mw=req.mw,
             k=req.k,
         )
+        gas_res['valve_type'] = 'conventional'
         gas_res['Relief_Load_lb_h'] = w_lb_h
         gas_res['Heat_Absorption_Btu_h'] = q_btu_h
         return gas_res
@@ -306,7 +237,7 @@ async def thermal_expansion(req: ThermalExpansionRequest):
 async def piping_check(req: PipingCheckRequest):
     try:
         inlet = calculate_inlet_pressure_drop(
-            flow_gpm=req.flow_gpm,
+            flow_gpm=req.flow_gpm or req.flow_rate_lb_h,
             fluid_density_lb_ft3=req.fluid_density_lb_ft3,
             viscosity_cp=req.viscosity_cp,
             pipe_id_in=req.pipe_id_in,

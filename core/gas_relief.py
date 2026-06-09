@@ -1,6 +1,12 @@
 import math
+from typing import Optional
 from .valve_selection import select_orifice
 from .kb_coefficient import get_kb
+from .advanced_sizing import calculate_napier_steam_area
+
+# API 520 Section 7 — Pilot-operated discharge coefficients
+KD_GAS_PILOT = 0.99
+KD_LIQUID_PILOT = 0.80
 
 def calculate_c_coefficient(k):
     """
@@ -53,9 +59,12 @@ def calculate_gas_relief_area(
     If is_steam is True, it also performs Napier steam calculation.
     Depending on use_napier, it uses either Napier or API Gas as primary sizing,
     with the other as a verification check.
+    
+    For pilot-operated valves (valve_type="pilot"), uses Kd = 0.99 (API 520 Section 7).
     """
-    from .kb_coefficient import get_kb
-    from .advanced_sizing import calculate_napier_steam_area
+    # Pilot valve Kd override (API 520 Section 7)
+    if valve_type == "pilot" and not is_steam:
+        kd = KD_GAS_PILOT
 
     # Auto-calculate Kb if not provided
     if kb is None:
@@ -95,6 +104,7 @@ def calculate_gas_relief_area(
         'Selected_Orifice_Area_sqin': selected_area_gas,
         'Num_Valves': num_valves,
         'Kb_Factor': kb,
+        'Kd_Used': kd,
     }
 
     if is_steam:

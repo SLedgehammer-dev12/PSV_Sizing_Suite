@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="v2.3.0"
+# Read version from core module (suppress WeasyPrint warnings on stderr)
+VERSION=$(python3 -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)" 2>&1 | grep -E '^v[0-9]' || echo "v2.2.0")
 APPNAME="PSV_Sizing_Suite_${VERSION}"
 
 echo "============================================="
@@ -84,42 +85,17 @@ else
 fi
 
 # ---------- Create DMG ----------
-echo "[6/6] Creating DMG..."
-
-DMG_SETTINGS=$(mktemp)
-cat > "${DMG_SETTINGS}" << EOF
-import plistlib
-application = 'dist/${APPNAME}.app'
-filename = 'dist/${APPNAME}.dmg'
-
-settings = {
-    'files': [application],
-    'symlinks': { 'Applications': '/Applications' },
-    'icon_locations': { '${APPNAME}.app': (120, 120), 'Applications': (390, 120) },
-    'background': None,
-    'window_rect': ((100, 100), (550, 310)),
-    'icon_size': 80,
-    'text_size': 12,
-}
-EOF
-
-# Try dmgbuild first, fall back to hdiutil
-if dmgbuild -s "${DMG_SETTINGS}" "${APPNAME}" "dist/${APPNAME}.dmg" 2>/dev/null; then
-    echo "  ✓ DMG created (dmgbuild): dist/${APPNAME}.dmg"
-else
-    echo "  - dmgbuild failed, trying hdiutil..."
-    rm -f "dist/${APPNAME}.dmg"
-    hdiutil create -srcfolder "dist/${APPNAME}.app" \
-        -volname "${APPNAME}" \
-        -fs HFS+ -format UDRW -size 500m \
-        "dist/${APPNAME}-tmp.dmg" 2>/dev/null
-    hdiutil convert "dist/${APPNAME}-tmp.dmg" \
-        -format UDZO -imagekey zlib-level=9 \
-        -o "dist/${APPNAME}.dmg" 2>/dev/null
-    rm -f "dist/${APPNAME}-tmp.dmg"
-    echo "  ✓ DMG created (hdiutil): dist/${APPNAME}.dmg"
-fi
-rm -f "${DMG_SETTINGS}"
+echo "[6/6] Creating DMG (hdiutil)..."
+rm -f "dist/${APPNAME}.dmg"
+hdiutil create -srcfolder "dist/${APPNAME}.app" \
+    -volname "${APPNAME}" \
+    -fs HFS+ -format UDRW -size 500m \
+    "dist/${APPNAME}-tmp.dmg"
+hdiutil convert "dist/${APPNAME}-tmp.dmg" \
+    -format UDZO -imagekey zlib-level=9 \
+    -o "dist/${APPNAME}.dmg"
+rm -f "dist/${APPNAME}-tmp.dmg"
+echo "  ✓ DMG created: dist/${APPNAME}.dmg"
 
 if [ ! -f "dist/${APPNAME}.dmg" ]; then
     echo "[ERROR] DMG creation failed"

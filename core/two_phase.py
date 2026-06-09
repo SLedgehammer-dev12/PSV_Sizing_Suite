@@ -1,6 +1,8 @@
 import math
 from typing import Dict, Union, Optional
 from .valve_selection import select_orifice
+from .kb_coefficient import get_kb
+from .advanced_sizing import area_relief_2phase_subcooled
 
 # 68.09 = (1/3600) * sqrt( 2 * 32.174 * 144 * 25000 )
 # Unit conversion factor: lb/h → lb/s, psi→psf, g_c, 25000 for consistency
@@ -121,9 +123,6 @@ def calculate_two_phase_area(
     
     If is_subcooled_flashing is True, it also calculates relief area per API 520 Appendix C.2.3.
     """
-    from .kb_coefficient import get_kb
-    from .advanced_sizing import area_relief_2phase_subcooled
-
     if kb is None:
         if valve_type == "balanced_bellows":
             if set_pressure_psig:

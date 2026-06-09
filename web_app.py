@@ -3,6 +3,7 @@ import html
 import math
 from typing import Dict, Any
 
+from core import __version_tag__
 from core.liquid_relief import calculate_liquid_relief_area
 from core.gas_relief import calculate_gas_relief_area
 from core.two_phase import calculate_two_phase_area, calculate_omega_flashing
@@ -244,7 +245,7 @@ is_si = (unit_system == "SI (Metrik)")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Standartlar:**\n- API 520 Part I & II\n- API 521\n- API 526\n- ASME Sec VIII")
-st.sidebar.markdown("**Versiyon:** `v2.3.0-premium`")
+st.sidebar.markdown(f"**Versiyon:** `{__version_tag__}`")
 
 # Render header
 st.markdown(f"""
@@ -288,7 +289,8 @@ if page == "1. Liquid Relief (Sıvı Tahliye)":
             
             res = calculate_liquid_relief_area(
                 q_gpm=q_gpm, p1_psia=p1_psia, p2_psia=p2_psia, 
-                g=g, mu_cp=mu_cp, num_valves=num_valves
+                g=g, mu_cp=mu_cp, num_valves=num_valves,
+                valve_type=valve_type
             )
             
             st.markdown("### Hesaplama Sonuçları")
@@ -346,19 +348,24 @@ elif page == "2. Gas/Vapor Relief (Gaz/Buhar Tahliye)":
     col1, col2 = st.columns(2)
     
     with col1:
+        # Check if fire session data should override defaults
+        gas_w_default = st.session_state.get("gas_w_lb_h", 10000.0)
+        gas_p1_default = st.session_state.get("gas_p1_psia", 100.0)
+        gas_p2_default = st.session_state.get("gas_p2_psia", 14.7)
+        
         if is_si:
-            w_input = st.number_input("Kütlesel Debi (kg/h)", min_value=0.1, value=4535.9, format="%.1f")
-            p1_input = st.number_input("Rölyef Basıncı P1 (barg)", min_value=0.01, value=5.9, format="%.2f")
-            p2_input = st.number_input("Toplam Karşı Basınç P2 (barg)", min_value=0.0, value=0.0, format="%.2f")
+            w_input = st.number_input("Kütlesel Debi (kg/h)", min_value=0.1, value=gas_w_default / 2.204623, format="%.1f")
+            p1_input = st.number_input("Rölyef Basıncı P1 (barg)", min_value=0.01, value=(gas_p1_default - 14.6959) / 14.50377, format="%.2f")
+            p2_input = st.number_input("Toplam Karşı Basınç P2 (barg)", min_value=0.0, value=(gas_p2_default - 14.6959) / 14.50377, format="%.2f")
             w_lb_h = convert(w_input, "kg/h", "lb/h")
             p1_psia = convert(p1_input, "barg", "psia")
             p2_psia = convert(p2_input, "barg", "psia")
         else:
-            w_lb_h = st.number_input("Kütlesel Debi (lb/h)", min_value=0.1, value=10000.0, format="%.1f")
-            p1_psia = st.number_input("Rölyef Basıncı P1 (psia)", min_value=14.7, value=100.0, format="%.2f")
-            p2_psia = st.number_input("Toplam Karşı Basınç P2 (psia)", min_value=14.7, value=14.7, format="%.2f")
+            w_lb_h = st.number_input("Kütlesel Debi (lb/h)", min_value=0.1, value=gas_w_default, format="%.1f")
+            p1_psia = st.number_input("Rölyef Basıncı P1 (psia)", min_value=14.7, value=gas_p1_default, format="%.2f")
+            p2_psia = st.number_input("Toplam Karşı Basınç P2 (psia)", min_value=14.7, value=gas_p2_default, format="%.2f")
             
-        valve_type = st.selectbox("Vana Tipi", ["conventional", "balanced_bellows"])
+        valve_type = st.selectbox("Vana Tipi", ["conventional", "balanced_bellows", "pilot"])
         overpressure_pct = st.number_input("Aşırı Basınç (%)", min_value=1.0, value=10.0, format="%.1f")
 
     with col2:
@@ -813,8 +820,11 @@ elif page == "4. Fire Scenario (Yangın Senaryosu - API 521)":
         if is_si:
             latent_input = st.number_input("Buharlaşma Gizli Isısı (kJ/kg)", min_value=1.0, value=279.1, format="%.1f")
             heat_of_vap_btu_lb = convert(latent_input, "kJ/kg", "Btu/lb")
+            p2_input = st.number_input("Back Pressure P2 (barg)", min_value=0.0, value=0.0, format="%.2f")
+            p2_psia = convert(p2_input, "barg", "psia")
         else:
             heat_of_vap_btu_lb = st.number_input("Buharlaşma Gizli Isısı (Btu/lb)", min_value=1.0, value=120.0, format="%.1f")
+            p2_psia = st.number_input("Back Pressure P2 (psia)", min_value=14.7, value=14.7, format="%.2f")
             
         adequate_drainage = st.checkbox("Drenaj ve İtfaiye Altyapısı Var (C = 21000)", value=True)
         
@@ -882,9 +892,25 @@ elif page == "4. Fire Scenario (Yangın Senaryosu - API 521)":
                     </div>
                 """, unsafe_allow_html=True)
                 
-            # Quick button to fill Gaz/Buhar Sizing
-            st.session_state["gas_w_fire"] = w_lb_h
-            st.info(f"💡 Hesaplanan yangın yükü ({flow_display:.1f} {flow_label}) Gaz/Buhar boyutlandırma modülü için hafızaya alındı!")
+            # Fire → Gas sizing auto-routing
+            st.session_state["fire_w_lb_h"] = w_lb_h
+            st.session_state["fire_p1_psia"] = p1_psia
+            st.session_state["fire_p2_psia"] = p2_psia
+            st.session_state["fire_z"] = z
+            st.session_state["fire_mw"] = mw
+            st.session_state["fire_k"] = k
+            st.session_state["fire_t_rankine"] = t_rankine
+            
+            st.success(f"🔥 Yangın yükü hesaplandı: {flow_display:.1f} {flow_label}")
+            if st.button("➡️ Gaz/Vapor Relief Modülüne Aktar ve Hesapla", type="secondary", use_container_width=True):
+                st.session_state["gas_w_lb_h"] = w_lb_h
+                st.session_state["gas_p1_psia"] = p1_psia
+                st.session_state["gas_p2_psia"] = p2_psia
+                st.session_state["gas_z"] = z
+                st.session_state["gas_mw"] = mw
+                st.session_state["gas_k"] = k
+                st.session_state["gas_tr"] = t_rankine
+                st.info("✅ Değerler Gaz tab'ına aktarıldı — lütfen sağ üst menüden 'Gas/Vapor Relief'e geçin ve HESAPLA'ya basın.")
             
         except Exception as e:
             st.error(f"Hata: {str(e)}")

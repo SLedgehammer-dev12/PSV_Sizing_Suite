@@ -1,8 +1,13 @@
-; PSV Sizing Suite v2.2.0 — Windows Installer (NSIS)
+; PSV Sizing Suite — Windows Installer (NSIS)
 ; Sertifikasız build — Windows Defender uyarısı verebilir
+; Version should be passed as /DVERSION=x.y.z from build script.
+; Default fallback:
 
 !define PRODUCT_NAME "PSV Sizing Suite"
-!define PRODUCT_VERSION "v2.3.0"
+!ifndef VERSION
+  !define VERSION "v2.2.0"
+!endif
+!define PRODUCT_VERSION "${VERSION}"
 !define PRODUCT_PUBLISHER "PSV Engineering"
 !define PRODUCT_WEB_SITE "https://github.com/SLedgehammer-dev12/PSV_Sizing_Suite"
 

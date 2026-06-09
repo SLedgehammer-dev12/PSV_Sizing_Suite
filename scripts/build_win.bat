@@ -1,7 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set VERSION=v2.3.0
+:: Read version from core module
+for /f "tokens=*" %%i in ('python -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)"') do set VERSION=%%i
+if "%VERSION%"=="" set VERSION=v2.2.0
 set APPNAME=PSV_Sizing_Suite_%VERSION%
 
 echo =============================================
@@ -51,7 +53,7 @@ if %errorlevel% neq 0 (
 :: ---------- Create NSIS Installer ----------
 echo [5/5] Installer olusturuluyor...
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
-    "C:\Program Files (x86)\NSIS\makensis.exe" installer_win.nsi >nul 2>&1
+    "C:\Program Files (x86)\NSIS\makensis.exe" /DVERSION=%VERSION% installer_win.nsi >nul 2>&1
     if !errorlevel! equ 0 (
         echo [OK] Installer olusturuldu: dist\%APPNAME%_Setup.exe
     ) else (

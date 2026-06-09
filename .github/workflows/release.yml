@@ -38,12 +38,82 @@ jobs:
 
       - name: Build Installer using NSIS
         run: |
-          & "C:\Program Files (x86)\NSIS\makensis.exe" installer_win.nsi
+          $version = python -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)"
+          & "C:\Program Files (x86)\NSIS\makensis.exe" "/DVERSION=$version" installer_win.nsi
 
-      - name: Create Release and Upload Asset
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/PSV_Sizing_Suite_Setup_v2.3.0.exe
+            dist/*.exe
+            dist/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build .app bundle
+        run: |
+          VERSION=$(python3 -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)")
+          pyinstaller --noconsole \
+            --name "PSV_Sizing_Suite_${VERSION}" \
+            --icon "assets/icon.icns" \
+            --add-data "vendor_data:vendor_data" \
+            --osx-bundle-identifier "com.psv.sizing-suite" \
+            --target-architecture arm64 \
+            --hidden-import desktop.auth \
+            --hidden-import desktop.tabs \
+            --hidden-import desktop.tabs_extra \
+            --hidden-import desktop.workers \
+            --hidden-import desktop.graph_window \
+            --hidden-import desktop.vendor_window \
+            --hidden-import desktop.report_generator \
+            --hidden-import core.kb_coefficient \
+            --hidden-import core.units \
+            --hidden-import core.report \
+            --hidden-import core.piping \
+            --hidden-import core.valve_types \
+            --hidden-import core.advanced_sizing \
+            --exclude-module PyQt5.QtSvg \
+            --exclude-module PyQt5.QtSql \
+            --exclude-module PyQt5.QtQml \
+            --exclude-module PyQt5.QtNetwork \
+            --exclude-module PyQt5.QtTest \
+            --exclude-module PyQt5.QtXml \
+            main.py
+
+      - name: Create DMG
+        run: |
+          VERSION=$(python3 -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)")
+          APP="dist/PSV_Sizing_Suite_${VERSION}.app"
+          if [ -d "$APP" ]; then
+            hdiutil create -srcfolder "$APP" \
+              -volname "PSV_Sizing_Suite_${VERSION}" \
+              -fs HFS+ -format UDZO -imagekey zlib-level=9 \
+              "dist/PSV_Sizing_Suite_${VERSION}.dmg"
+          fi
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

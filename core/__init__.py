@@ -1,6 +1,10 @@
 # PSV Sizing Suite - Core Engine
 # All API 520 and 521 engineering calculations.
 
+__version__ = "2.2.0"
+__version_tag__ = f"v{__version__}"
+
+from . import models
 from .unit_converter import *
 from .units import convert, unit_info, HAS_PINT, ATM_PSIA, PSI_PER_BAR
 from .valve_selection import select_orifice, API_ORIFICE_AREAS

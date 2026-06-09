@@ -1,6 +1,10 @@
 @echo off
+:: Read version from core module
+for /f "tokens=*" %%i in ('python -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)"') do set VERSION=%%i
+if "%VERSION%"=="" set VERSION=v2.2.0
+
 echo =======================================================
-echo PSV SIZING SUITE v2.3.0 - EXE OLUSTURMA ARACI
+echo PSV SIZING SUITE %VERSION% - EXE OLUSTURMA ARACI
 echo =======================================================
 echo UYARI: Eger bu klasor yolunda (D:\Is\Calisan...) Turkce 
 echo karakterler varsa PyInstaller hata verecektir.
@@ -18,8 +22,8 @@ pip install -r requirements.txt
 pip install pyinstaller
 
 echo EXE Derleniyor...
-pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_v2.3.0_Desktop" --hidden-import "core.advanced_sizing" --add-data "vendor_data;vendor_data" "main.py"
-pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_v2.3.0_Web" --hidden-import "core.advanced_sizing" --add-data "vendor_data;vendor_data" --add-data "web_app.py;." "run_streamlit.py"
+pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_%VERSION%_Desktop" --hidden-import "core.advanced_sizing" --add-data "vendor_data;vendor_data" "main.py"
+pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_%VERSION%_Web" --hidden-import "core.advanced_sizing" --add-data "vendor_data;vendor_data" --add-data "web_app.py;." "run_streamlit.py"
 
 echo Islemler tamamlandi. Sonuclari 'dist' klasorunde bulabilirsiniz.
 pause

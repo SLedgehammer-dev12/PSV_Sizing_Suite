@@ -21,7 +21,8 @@ class LiquidCalcWorker(QThread):
                 p2_psia=self.inputs['p2_psia'],
                 g=self.inputs['g'],
                 mu_cp=self.inputs['mu_cp'],
-                num_valves=self.inputs.get('num_valves', 1)
+                num_valves=self.inputs.get('num_valves', 1),
+                valve_type=self.inputs.get('valve_type', 'conventional'),
             )
             self.finished.emit(res)
         except Exception as e:
@@ -45,7 +46,10 @@ class GasCalcWorker(QThread):
                 z=self.inputs['z'],
                 mw=self.inputs['mw'],
                 k=self.inputs['k'],
-                num_valves=self.inputs.get('num_valves', 1)
+                num_valves=self.inputs.get('num_valves', 1),
+                valve_type=self.inputs.get('valve_type', 'conventional'),
+                set_pressure_psig=self.inputs.get('set_pressure_psig'),
+                overpressure_pct=self.inputs.get('overpressure_pct', 10.0),
             )
             self.finished.emit(res)
         except Exception as e:
@@ -90,11 +94,11 @@ class FireWettedWorker(QThread):
                 f_factor=self.inputs['f_factor'],
                 heat_of_vap_btu_lb=self.inputs['h_vap']
             )
-            # Use gas relief to calculate area for the vaporized load
+            p2 = self.inputs.get('p2_psia', 14.6959)
             res = calculate_gas_relief_area(
                 w_lb_h=w_lb_h,
                 p1_psia=self.inputs['p1_psia'],
-                p2_psia=14.7, # Default atmospheric backpressure for fire if not specified
+                p2_psia=p2,
                 t_rankine=self.inputs['t_rankine'],
                 z=self.inputs['z'],
                 mw=self.inputs['mw'],

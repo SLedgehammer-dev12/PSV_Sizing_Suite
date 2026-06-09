@@ -1,5 +1,9 @@
 import math
+from typing import Optional
 from .valve_selection import select_orifice
+
+# API 520 Section 7 — Pilot-operated discharge coefficient for liquid
+KD_LIQUID_PILOT = 0.80
 
 def calculate_reynolds(q_gpm, g, mu_cp, area_sq_in):
     """
@@ -25,7 +29,7 @@ def calculate_kv(re):
     return min(max(kv, 0.1), 1.0)
 
 
-def calculate_liquid_relief_area(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=1.0, num_valves=1):
+def calculate_liquid_relief_area(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=1.0, num_valves=1, valve_type="conventional"):
     """
     Calculate required area for liquid relief using API 520 formulation.
     
@@ -35,12 +39,16 @@ def calculate_liquid_relief_area(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=
     p2_psia: Total back pressure in psia
     g: Specific gravity
     mu_cp: Viscosity in cP
-    kd: Discharge coefficient (default 0.65 for liquid)
+    kd: Discharge coefficient (default 0.65 for liquid, 0.80 for pilot)
     kw: Back pressure capacity correction factor (default 1.0)
+    valve_type: "conventional", "balanced_bellows", or "pilot"
     
     Returns:
     dict containing calculated parameters.
     """
+    if valve_type == "pilot":
+        kd = KD_LIQUID_PILOT
+
     delta_p = p1_psia - p2_psia
     if delta_p <= 0:
         raise ValueError("Relieving pressure must be greater than back pressure.")
@@ -87,5 +95,6 @@ def calculate_liquid_relief_area(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=
         'Required_Area_Final_sqin': a_req_final_per_valve,
         'Selected_Orifice_Letter': final_letter,
         'Selected_Orifice_Area_sqin': final_selected_area,
-        'Num_Valves': num_valves
+        'Num_Valves': num_valves,
+        'Kd_Used': kd,
     }

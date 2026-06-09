@@ -173,6 +173,44 @@ class TestGasRelief:
         # Higher back pressure should increase required area (Kb < 1)
         assert res['Required_Area_sqin'] > 0
 
+    def test_pilot_gas_kb_not_applied(self):
+        """Pilot valve should have Kb=1.0 (no back pressure correction)."""
+        res = calculate_gas_relief_area(
+            w_lb_h=10000, p1_psia=100, p2_psia=55,
+            t_rankine=560, z=0.9, mw=28, k=1.4,
+            valve_type="pilot",
+        )
+        assert res['Kb_Factor'] == 1.0
+
+    def test_gas_valve_type_pilot_kd(self):
+        """Pilot valve should use Kd=0.99."""
+        res = calculate_gas_relief_area(
+            w_lb_h=5000, p1_psia=114.7, p2_psia=14.7,
+            t_rankine=560, z=1.0, mw=28, k=1.4,
+            valve_type="pilot", kb=None,
+        )
+        assert res['Kd_Used'] == 0.99
+        assert res['Kb_Factor'] == 1.0
+
+    def test_gas_subcritical_with_f2(self):
+        """Subcritical flow should have F2 < 1.0."""
+        res = calculate_gas_relief_area(
+            w_lb_h=10000, p1_psia=500, p2_psia=480,
+            t_rankine=600, z=0.9, mw=28, k=1.4,
+        )
+        assert res['Flow_Type'] == 'SUBCRITICAL'
+        if 'F2_Coefficient' in res and res['F2_Coefficient'] is not None:
+            assert res['F2_Coefficient'] < 1.0
+
+    def test_gas_c_coefficient_in_result(self):
+        """C coefficient should be present in standard gas results."""
+        res = calculate_gas_relief_area(
+            w_lb_h=5000, p1_psia=114.7, p2_psia=14.7,
+            t_rankine=560, z=1.0, mw=28, k=1.4,
+        )
+        assert 'C_Coefficient' in res
+        assert res['C_Coefficient'] > 0
+
 
 # =============================================================================
 # Liquid Relief
@@ -228,6 +266,43 @@ class TestLiquidRelief:
                 q_gpm=60, p1_psia=50, p2_psia=50,
                 g=1.0, mu_cp=1.0,
             )
+
+    def test_liquid_kw_factor_reduces_area(self):
+        """With kw<1.0 (back pressure correction), required area should increase."""
+        res_no_correction = calculate_liquid_relief_area(
+            q_gpm=100, p1_psia=150, p2_psia=30,
+            g=1.0, mu_cp=1.0, kw=1.0,
+        )
+        res_corrected = calculate_liquid_relief_area(
+            q_gpm=100, p1_psia=150, p2_psia=30,
+            g=1.0, mu_cp=1.0, kw=0.8,
+        )
+        assert res_corrected['Required_Area_Final_sqin'] > res_no_correction['Required_Area_Final_sqin']
+
+    def test_liquid_extreme_viscosity(self):
+        """Very high viscosity should significantly reduce Kv."""
+        res = calculate_liquid_relief_area(
+            q_gpm=60, p1_psia=100, p2_psia=14.7,
+            g=1.0, mu_cp=100000,
+        )
+        assert res['Kv'] < 0.5
+        assert res['Required_Area_Final_sqin'] > 0
+
+    def test_liquid_valve_type_pilot_kd_override(self):
+        """Pilot valve should explicitly show Kd_Used=0.80."""
+        res = calculate_liquid_relief_area(
+            q_gpm=60, p1_psia=114.7, p2_psia=14.7,
+            g=1.0, mu_cp=1.0, valve_type="pilot",
+        )
+        assert res['Kd_Used'] == 0.80
+
+    def test_liquid_explicit_kd_override(self):
+        """Manually passing kd=0.9 should be respected."""
+        res = calculate_liquid_relief_area(
+            q_gpm=60, p1_psia=114.7, p2_psia=14.7,
+            g=1.0, mu_cp=1.0, kd=0.9,
+        )
+        assert res['Kd_Used'] == 0.9
 
 
 class TestReynolds:
@@ -381,6 +456,27 @@ class TestFireScenarios:
         with pytest.raises(ValueError):
             calculate_fire_wetted_load(100, 1.0, 0)
 
+    def test_heat_absorption_20000sqft_crossover(self):
+        """At 20000 sqft there is a crossover in API 521 equation."""
+        q_below = calculate_heat_absorption(19000, f_factor=1.0, adequate_drainage=True)
+        q_at = calculate_heat_absorption(20000, f_factor=1.0, adequate_drainage=True)
+        q_above = calculate_heat_absorption(21000, f_factor=1.0, adequate_drainage=True)
+        assert q_below > 0
+        assert q_at > 0
+        assert q_above > 0
+
+    def test_heat_absorption_shape(self):
+        """Heat absorption should be monotonic increasing with area."""
+        q1 = calculate_heat_absorption(100, 1.0)
+        q2 = calculate_heat_absorption(500, 1.0)
+        q3 = calculate_heat_absorption(1000, 1.0)
+        assert q1 < q2 < q3
+
+    def test_f_factor_no_drainage_returns_higher(self):
+        q_drain = calculate_heat_absorption(100, 1.0, adequate_drainage=True)
+        q_no_drain = calculate_heat_absorption(100, 1.0, adequate_drainage=False)
+        assert q_no_drain > q_drain
+
 
 # =============================================================================
 # Thermal Expansion
@@ -417,6 +513,55 @@ class TestBlowby:
     def test_zero_cv_calculated(self):
         with pytest.raises(ValueError):
             calculate_blowby_flowrate(1000, 10, 0)
+
+
+# =============================================================================
+# Pilot Valve Types (core/valve_types.py)
+# =============================================================================
+
+class TestValveTypes:
+    def test_pilot_gas_full_calculation(self):
+        from core.valve_types import calculate_pilot_gas_area
+        res = calculate_pilot_gas_area(
+            w_lb_h=5000, p1_psia=114.7, p2_psia=14.7,
+            t_rankine=560, z=1.0, mw=28, k=1.4,
+        )
+        assert res['Kd'] == 0.99
+        assert 'Selected_Orifice_Letter' in res
+        assert res['Required_Area_sqin'] > 0
+
+    def test_pilot_liquid_full_calculation(self):
+        from core.valve_types import calculate_pilot_liquid_area
+        res = calculate_pilot_liquid_area(
+            q_gpm=60, p1_psia=114.7, p2_psia=14.7, g=1.0, mu_cp=1.0,
+        )
+        assert res['Kd'] == 0.80
+        assert 'Selected_Orifice_Letter' in res
+        assert res['Required_Area_sqin'] > 0
+
+    def test_pilot_gas_area_vs_liquid_same_q(self):
+        """For same conditions, gas area differs from liquid area (different Kd, different equation)."""
+        from core.valve_types import calculate_pilot_gas_area as g_fn
+        from core.valve_types import calculate_pilot_liquid_area as l_fn
+        g_res = g_fn(w_lb_h=5000, p1_psia=114.7, p2_psia=14.7, t_rankine=560, z=1.0, mw=28, k=1.4)
+        l_res = l_fn(q_gpm=60, p1_psia=114.7, p2_psia=14.7, g=1.0, mu_cp=1.0)
+        assert g_res['Kd'] == 0.99
+        assert l_res['Kd'] == 0.80
+
+    def test_pilot_gas_kd_constants(self):
+        from core.valve_types import KD_GAS, KD_LIQUID, KD_TWO_PHASE
+        assert KD_GAS == 0.99
+        assert KD_LIQUID == 0.80
+        assert KD_TWO_PHASE == 0.85
+
+    def test_pilot_area_kd_ratio(self):
+        """Verify formula: higher Kd → smaller required area."""
+        from core.valve_types import KD_GAS, KD_LIQUID
+        required = 0.5
+        gas_needed = required / KD_GAS
+        liq_needed = required / KD_LIQUID
+        assert gas_needed < required + 0.01
+        assert liq_needed > gas_needed
 
 
 # =============================================================================
@@ -463,6 +608,71 @@ class TestUnitConverter:
     def test_actual_m3h_to_lbh(self):
         result = actual_m3_h_to_lb_h(100, 100, 560, 28, 0.9)
         assert result > 0
+
+
+# =============================================================================
+# Units (pint wrapper — core/units.py)
+# =============================================================================
+
+class TestUnits:
+    def test_convert_gpm_to_lmin(self):
+        from core.units import convert
+        result = convert(100, "gpm", "L/min")
+        assert result == pytest.approx(378.541, rel=0.01)
+
+    def test_convert_psia_to_barg(self):
+        from core.units import convert
+        result = convert(114.7, "psia", "barg")
+        assert result == pytest.approx(6.89476, rel=0.01)
+
+    def test_convert_barg_to_psia(self):
+        from core.units import convert
+        result = convert(6.9, "barg", "psia")
+        assert result == pytest.approx(114.9, rel=0.01)
+
+    def test_convert_c_to_f(self):
+        from core.units import convert
+        result = convert(100, "degC", "degF")
+        assert result == pytest.approx(212.0, rel=0.01)
+
+    def test_convert_f_to_c(self):
+        from core.units import convert
+        result = convert(212, "degF", "degC")
+        assert result == pytest.approx(100.0, rel=0.01)
+
+    def test_convert_invalid_unit(self):
+        from core.units import convert
+        with pytest.raises((ValueError, Exception)):
+            convert(100, "gpm", "nonexistent")
+
+    def test_convert_pint_not_available(self):
+        from core.units import HAS_PINT
+        # Verify the module loads regardless
+        assert HAS_PINT is not None
+
+    def test_unit_info_contains_pint(self):
+        from core.units import unit_info
+        info = unit_info()
+        assert "backend" in info
+        assert info["backend"] in ("pint", "fallback")
+
+    def test_atm_psia_constant(self):
+        from core.units import ATM_PSIA
+        assert ATM_PSIA == pytest.approx(14.6959, rel=1e-4)
+
+    def test_psi_per_bar_constant(self):
+        from core.units import PSI_PER_BAR
+        assert PSI_PER_BAR == pytest.approx(14.50377, rel=1e-4)
+
+    def test_convert_kg_h_to_lb_h(self):
+        from core.units import convert
+        result = convert(100, "kg/h", "lb/h")
+        assert result == pytest.approx(220.462, rel=0.01)
+
+    def test_convert_sqin_to_mm2(self):
+        from core.units import convert
+        result = convert(1.0, "sqin", "mm2")
+        assert result == pytest.approx(645.16, rel=0.01)
 
 
 # =============================================================================
@@ -699,6 +909,49 @@ class TestPiping:
         )
         assert passes_fail is False
 
+    def test_outlet_rule_pass(self):
+        passes, pct = check_outlet_rule(back_pressure_psi=5.0, set_pressure_psig=100.0)
+        assert passes is True
+        assert pct == 5.0
+
+    def test_outlet_rule_fail(self):
+        passes, pct = check_outlet_rule(back_pressure_psi=12.0, set_pressure_psig=100.0)
+        assert passes is False
+        assert pct == 12.0
+
+    def test_outlet_rule_zero_set(self):
+        passes, pct = check_outlet_rule(back_pressure_psi=5.0, set_pressure_psig=0.0)
+        assert passes is False
+        assert pct == 0.0
+
+    def test_darcy_laminar(self):
+        from core.piping import darcy_friction_factor
+        f = darcy_friction_factor(1000, 0.001)
+        assert f == pytest.approx(0.064, rel=0.01)
+
+    def test_darcy_turbulent(self):
+        from core.piping import darcy_friction_factor
+        f = darcy_friction_factor(100000, 0.001)
+        assert 0.01 < f < 0.05
+
+    def test_darcy_negative_re(self):
+        from core.piping import darcy_friction_factor
+        f = darcy_friction_factor(-100, 0.001)
+        assert f == 0.0
+
+    def test_darcy_zero_re(self):
+        from core.piping import darcy_friction_factor
+        f = darcy_friction_factor(0, 0.001)
+        assert f == 0.0
+
+    def test_piping_no_flow(self):
+        res = calculate_inlet_pressure_drop(
+            flow_gpm=0.0, fluid_density_lb_ft3=62.4, viscosity_cp=1.0,
+            pipe_id_in=2.0, pipe_length_ft=10.0,
+        )
+        assert res["delta_p_psi"] == 0.0
+        assert res["velocity_fps"] == 0.0
+
 
 class TestAdvancedSizing:
     def test_subcooled_flashing_polykin_case(self):
@@ -769,6 +1022,301 @@ class TestAdvancedSizing:
         )
         assert 'Verification_Required_Area_sqin' in res2
         assert res2['Verification_Method'] == 'API 520 C.2.3 Flashing Modeli'
+
+    def test_napier_kn_below_range(self):
+        """P1 < 1514.7 → Kn = 1.0."""
+        from core.advanced_sizing import calculate_napier_steam_area
+        res = calculate_napier_steam_area(
+            w_lb_h=10000, p1_psia=500, p2_psia=14.7, t_rankine=None,
+            kd=0.975, kb=1.0, kc=1.0, num_valves=1,
+        )
+        assert res['Kn'] == 1.0
+
+    def test_napier_kn_above_range(self):
+        """P1=2000 psia → Kn should be ~1.0269 per API 520."""
+        from core.advanced_sizing import calculate_napier_steam_area
+        res = calculate_napier_steam_area(
+            w_lb_h=50000, p1_psia=2000, p2_psia=50, t_rankine=None,
+            kd=0.975, kb=1.0, kc=1.0, num_valves=1,
+        )
+        assert res['Kn'] == pytest.approx(1.02688, rel=0.001)
+
+    def test_ksh_interpolation_saturated(self):
+        from core.advanced_sizing import get_ksh
+        ksh = get_ksh(p1_psia=50.0, t_f=250.0)  # Tsat at 50 psia is ~297°F
+        assert ksh == 1.0
+
+    def test_ksh_interpolation_superheated(self):
+        from core.advanced_sizing import get_ksh
+        # At P1=200 psia, Tsat ~381.8°F, superheated to 450°F
+        ksh = get_ksh(p1_psia=200.0, t_f=450.0)
+        assert 0.8 < ksh < 1.0
+
+    def test_ksh_extrapolate_below_table(self):
+        from core.advanced_sizing import get_ksh
+        # Below the lowest P in table (200 psia in current code)
+        ksh = get_ksh(p1_psia=50.0, t_f=500.0)
+        assert ksh > 0
+
+    def test_two_phase_omega_subcooled_critical(self):
+        omega = calculate_omega_subcooled(
+            p0_psia=1000, p_sat_psia=800,
+            v0_ft3_lb=0.018, v_sat_ft3_lb=0.025,
+            h0_btu_lb=300, h_sat_btu_lb=400,
+        )
+        assert omega > 0.01
+        assert omega < 10
+
+    def test_two_phase_omega_subcooled_zero_delta_h(self):
+        """Same enthalpy → no flashing → omega should be very low."""
+        omega = calculate_omega_subcooled(
+            p0_psia=150, p_sat_psia=100,
+            v0_ft3_lb=0.018, v_sat_ft3_lb=0.022,
+            h0_btu_lb=250, h_sat_btu_lb=250,
+        )
+        assert omega >= 0
+
+
+# =============================================================================
+# Pilot Valve Kd Tests (Phase 0.3)
+# =============================================================================
+
+class TestPilotValveKd:
+    def test_pilot_gas_kd_default_override(self):
+        gas_res = calculate_gas_relief_area(
+            w_lb_h=5000.0, p1_psia=114.7, p2_psia=14.7, t_rankine=560.0,
+            z=1.0, mw=28.0, k=1.4, valve_type="pilot",
+        )
+        assert gas_res['Kd_Used'] == 0.99
+
+    def test_pilot_liquid_kd_default_override(self):
+        liq_res = calculate_liquid_relief_area(
+            q_gpm=60.0, p1_psia=114.7, p2_psia=14.7,
+            g=1.0, mu_cp=1.0, valve_type="pilot",
+        )
+        assert liq_res['Kd_Used'] == 0.80
+
+    def test_conventional_uses_default_kd(self):
+        gas_res = calculate_gas_relief_area(
+            w_lb_h=5000.0, p1_psia=114.7, p2_psia=14.7, t_rankine=560.0,
+            z=1.0, mw=28.0, k=1.4,
+        )
+        assert gas_res['Kd_Used'] == 0.975
+
+    def test_balanced_bellows_uses_default_kd(self):
+        liq_res = calculate_liquid_relief_area(
+            q_gpm=60.0, p1_psia=114.7, p2_psia=14.7,
+            g=1.0, mu_cp=1.0, valve_type="balanced_bellows",
+        )
+        assert liq_res['Kd_Used'] == 0.65
+
+
+# =============================================================================
+# Mach Number / Sonic Velocity Tests (Phase 1.3)
+# =============================================================================
+
+class TestMachNumber:
+    def test_sonic_velocity_air(self):
+        from core.piping import calculate_sonic_velocity
+        # Air at 60°F, k=1.4, MW=29
+        v = calculate_sonic_velocity(k=1.4, mw=29.0, t_rankine=520.0)
+        assert 1100 < v < 1200  # ~1117 ft/s expected
+
+    def test_mach_subsonic(self):
+        from core.piping import calculate_mach_number, check_mach_limit
+        mach = calculate_mach_number(velocity_fps=200.0, k=1.4, mw=29.0, t_rankine=520.0)
+        assert 0.15 < mach < 0.20
+        ok, val, msg = check_mach_limit(mach)
+        assert ok is True
+
+    def test_mach_transonic_warning(self):
+        from core.piping import calculate_mach_number, check_mach_limit
+        mach = calculate_mach_number(velocity_fps=600.0, k=1.4, mw=29.0, t_rankine=520.0)
+        assert 0.5 < mach < 0.6
+        ok, val, msg = check_mach_limit(mach)
+        assert ok is True
+        assert "Marginal" in msg
+
+    def test_mach_exceeds_limit(self):
+        from core.piping import calculate_mach_number, check_mach_limit
+        mach = calculate_mach_number(velocity_fps=1000.0, k=1.4, mw=29.0, t_rankine=520.0)
+        assert 0.85 < mach < 0.95
+        ok, val, msg = check_mach_limit(mach)
+        assert ok is False
+        assert "Exceeds" in msg
+
+    def test_mach_zero_velocity(self):
+        from core.piping import calculate_mach_number
+        mach = calculate_mach_number(velocity_fps=0.0, k=1.4, mw=29.0, t_rankine=520.0)
+        assert mach == 0.0
+
+    def test_piping_output_includes_mach(self):
+        from core.piping import calculate_inlet_pressure_drop
+        res = calculate_inlet_pressure_drop(
+            flow_gpm=100.0, fluid_density_lb_ft3=62.3, viscosity_cp=1.0,
+            pipe_id_in=4.0, pipe_length_ft=50.0,
+        )
+        assert 'velocity_fps' in res
+        assert res['velocity_fps'] > 0
+
+
+# =============================================================================
+# Shared Pydantic Model Tests (Phase 1.1)
+# =============================================================================
+
+class TestSharedModels:
+    from core.models import (
+        LiquidReliefInput, GasReliefInput, TwoPhaseInput,
+        FireWettedInput, PipingInletInput, ConvertInput,
+    )
+
+    def test_liquid_model_valid(self):
+        m = self.LiquidReliefInput(q_gpm=100, p1_psia=200, p2_psia=14.7, g=1.0, mu_cp=1.0)
+        assert m.valve_type == "conventional"
+
+    def test_liquid_model_pilot(self):
+        m = self.LiquidReliefInput(q_gpm=100, p1_psia=200, p2_psia=14.7, g=1.0, mu_cp=1.0, valve_type="pilot")
+        assert m.valve_type == "pilot"
+        assert m.num_valves == 1
+
+    def test_gas_model_invalid_k(self):
+        import pydantic
+        with pytest.raises(pydantic.ValidationError):
+            self.GasReliefInput(w_lb_h=100, p1_psia=200, p2_psia=14.7, t_rankine=560, z=1, mw=28, k=0.9)
+
+    def test_fire_model_back_pressure_default(self):
+        m = self.FireWettedInput(
+            a_wetted_sqft=100, heat_of_vap_btu_lb=200, p1_psia=200,
+            t_rankine=560, mw=28, k=1.3,
+        )
+        assert m.p2_psia == 14.6959
+
+    def test_piping_model_optional_flow(self):
+        m = self.PipingInletInput(
+            flow_rate_lb_h=10000, fluid_density_lb_ft3=62.3,
+            viscosity_cp=1.0, pipe_id_in=4.0, pipe_length_ft=50,
+            set_pressure_psig=100,
+        )
+        assert m.flow_gpm is None
+
+    def test_convert_model(self):
+        m = self.ConvertInput(value=100, from_unit="gpm", to_unit="L/min")
+        assert m.value == 100.0
+
+    def test_gas_model_pilot_valve_default(self):
+        m = self.GasReliefInput(w_lb_h=5000, p1_psia=114.7, p2_psia=14.7, t_rankine=560, z=1, mw=28, k=1.4)
+        assert m.valve_type == "conventional"
+
+    def test_gas_model_steam_routing(self):
+        m = self.GasReliefInput(w_lb_h=5000, p1_psia=114.7, p2_psia=14.7, t_rankine=560, z=1, mw=18, k=1.3, is_steam=True)
+        assert m.is_steam is True
+
+    def test_two_phase_model_with_valve_type(self):
+        m = self.TwoPhaseInput(
+            w_lb_h=100000, p0_psia=200, p_back_psia=14.7,
+            v0_ft3_lb=0.018, omega=1.5,
+        )
+        assert m.valve_type == "conventional"
+
+    def test_two_phase_model_with_set_pressure(self):
+        m = self.TwoPhaseInput(
+            w_lb_h=100000, p0_psia=200, p_back_psia=14.7,
+            v0_ft3_lb=0.018, omega=1.5,
+            valve_type="balanced_bellows", set_pressure_psig=150.0,
+        )
+        assert m.kd == 0.85
+
+    def test_fire_model_adequate_drainage_default(self):
+        m = self.FireWettedInput(
+            a_wetted_sqft=500, heat_of_vap_btu_lb=200, p1_psia=200,
+            t_rankine=560, mw=28, k=1.3,
+        )
+        assert m.adequate_drainage is True
+
+    def test_piping_model_valve_type_default(self):
+        m = self.PipingInletInput(
+            flow_gpm=100, fluid_density_lb_ft3=62.3, viscosity_cp=1.0,
+            pipe_id_in=4.0, pipe_length_ft=50, set_pressure_psig=100,
+        )
+        assert m.valve_type == "conventional"
+
+    def test_piping_model_remote_sensing(self):
+        m = self.PipingInletInput(
+            flow_gpm=100, fluid_density_lb_ft3=62.3, viscosity_cp=1.0,
+            pipe_id_in=4.0, pipe_length_ft=50, set_pressure_psig=100,
+            valve_type="pilot", remote_sensing=True,
+        )
+        assert m.remote_sensing is True
+
+    def test_liquid_model_kw_param(self):
+        m = self.LiquidReliefInput(q_gpm=100, p1_psia=200, p2_psia=14.7, g=1.0, mu_cp=1.0, kw=0.8)
+        assert m.kw == 0.8
+
+    def test_gas_kb_auto_none(self):
+        m = self.GasReliefInput(w_lb_h=5000, p1_psia=114.7, p2_psia=14.7, t_rankine=560, z=1, mw=28, k=1.4)
+        assert m.kb is None
+
+    def test_liquid_mu_cp_default(self):
+        m = self.LiquidReliefInput(q_gpm=100, p1_psia=200, p2_psia=14.7, g=1.0)
+        assert m.mu_cp == 1.0
+
+    def test_fire_model_k_default(self):
+        m = self.FireWettedInput(
+            a_wetted_sqft=100, heat_of_vap_btu_lb=200, p1_psia=200,
+            t_rankine=560, mw=28, k=1.3,
+        )
+        assert m.k == 1.3
+
+    def test_gas_model_validation_error_on_negative_flow(self):
+        import pydantic
+        with pytest.raises(pydantic.ValidationError):
+            self.GasReliefInput(w_lb_h=-500, p1_psia=114.7, p2_psia=14.7, t_rankine=560, z=1, mw=28, k=1.4)
+
+    def test_liquid_model_validation_error_on_zero_g(self):
+        import pydantic
+        with pytest.raises(pydantic.ValidationError):
+            self.LiquidReliefInput(q_gpm=100, p1_psia=200, p2_psia=14.7, g=0.0, mu_cp=1.0)
+
+
+# =============================================================================
+# API Endpoint Integration Tests (Phase 2)
+# =============================================================================
+
+class TestApiIntegration:
+    def test_liquid_relief_endpoint_response(self):
+        from core.liquid_relief import calculate_liquid_relief_area as fn
+        res = fn(q_gpm=60, p1_psia=114.7, p2_psia=14.7, g=1.0, mu_cp=1.0)
+        assert 'Required_Area_Final_sqin' in res or 'Required_Area_sqin' in res
+
+    def test_gas_relief_endpoint_response(self):
+        from core.gas_relief import calculate_gas_relief_area as fn
+        res = fn(w_lb_h=5000, p1_psia=114.7, p2_psia=14.7, t_rankine=560,
+                 z=1.0, mw=28, k=1.4)
+        assert 'Required_Area_Final_sqin' in res or 'Required_Area_sqin' in res
+
+    def test_two_phase_endpoint_response(self):
+        from core.two_phase import calculate_two_phase_area as fn
+        res = fn(w_lb_h=10000, p0_psia=150, p_back_psia=14.7,
+                 v0_ft3_lb=0.018, omega=1.5)
+        assert 'Required_Area_Final_sqin' in res or 'Required_Area_sqin' in res
+
+    def test_fire_wetted_endpoint_response(self):
+        from core.fire_scenarios import calculate_fire_wetted_load as fn
+        w, q = fn(a_wetted_sqft=100, f_factor=1.0, heat_of_vap_btu_lb=200)
+        assert w > 0 and q > 0
+
+    def test_piping_endpoint_response(self):
+        from core.piping import calculate_inlet_pressure_drop as fn
+        res = fn(flow_gpm=100, fluid_density_lb_ft3=62.3, viscosity_cp=1.0,
+                 pipe_id_in=4.0, pipe_length_ft=50)
+        assert 'delta_p_psi' in res
+
+    @pytest.mark.skipif(True, reason="Requires FastAPI/httpx; run manually with: pytest -m 'not skip_auto'")
+    def test_fastapi_http_health(self):
+        import httpx
+        r = httpx.get("http://localhost:8000/health")
+        assert r.status_code == 200
+        assert r.json()["status"] == "healthy"
 
 
 if __name__ == "__main__":

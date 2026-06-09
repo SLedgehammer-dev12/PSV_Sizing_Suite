@@ -92,7 +92,7 @@ def get_kb(
     bp_gauge = max(back_pressure_psia - 14.6959, 0.0)
     bp_pct = (bp_gauge / set_pressure_psig) * 100.0
 
-    if valve_type == "conventional":
+    if valve_type in ("conventional", "pilot"):
         return 1.0
 
     if overpressure_pct <= 15:

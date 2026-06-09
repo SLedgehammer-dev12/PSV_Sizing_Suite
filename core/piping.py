@@ -8,6 +8,26 @@ API 520 Part II limits:
 import math
 from typing import Dict, List, Optional, Tuple
 
+# Speed of sound in ideal gas: a = sqrt(k * R * T * g_c)
+# g_c = 32.174 lbm·ft/(lbf·s²)
+GC = 32.174
+R_UNIVERSAL = 1545.0  # ft·lbf/(lbmol·°R)
+
+# Sonic velocity in gas at given conditions
+def calculate_sonic_velocity(k: float, mw: float, t_rankine: float) -> float:
+    r_gas = R_UNIVERSAL / mw
+    return math.sqrt(k * r_gas * t_rankine * GC)
+
+
+def calculate_mach_number(
+    velocity_fps: float,
+    k: float,
+    mw: float,
+    t_rankine: float,
+) -> float:
+    sonic = calculate_sonic_velocity(k, mw, t_rankine)
+    return velocity_fps / sonic if sonic > 0 else 0.0
+
 # Darcy friction factor for turbulent flow (Colebrook-White)
 def darcy_friction_factor(re: float, epsilon_d: float) -> float:
     """
@@ -122,6 +142,14 @@ def calculate_inlet_pressure_drop(
     }
 
 
+def check_mach_limit(mach: float, limit: float = 0.7) -> Tuple[bool, float, str]:
+    if mach >= 0.7:
+        return (False, mach, f"Exceeds 0.7 Mach limit (Ma={mach:.3f})")
+    if mach >= 0.5:
+        return (True, mach, f"Marginal — consider larger pipe (Ma={mach:.3f})")
+    return (True, mach, f"Adequate (Ma={mach:.3f})")
+
+
 def check_inlet_rule(
     delta_p_psi: float,
     set_pressure_psig: float,
@@ -154,7 +182,9 @@ def check_outlet_rule(
     -------
     (passes: bool, back_pressure_pct: float)
     """
-    bp_pct = (back_pressure_psi / set_pressure_psig) * 100.0 if set_pressure_psig > 0 else 0
+    if set_pressure_psig <= 0:
+        return False, 0.0
+    bp_pct = (back_pressure_psi / set_pressure_psig) * 100.0
     return bp_pct <= 10.0, bp_pct
 
 

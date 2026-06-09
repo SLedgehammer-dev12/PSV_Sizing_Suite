@@ -44,6 +44,15 @@ class FireWettedTab(QWidget):
         p1_layout.addWidget(self.p1_unit)
         form_layout.addRow("Relieving Pressure (P1):", p1_layout)
 
+        # Back Pressure
+        p2_layout = QHBoxLayout()
+        self.p2_input = QLineEdit("14.7")
+        self.p2_unit = QComboBox()
+        self.p2_unit.addItems(["barg", "psia"])
+        p2_layout.addWidget(self.p2_input)
+        p2_layout.addWidget(self.p2_unit)
+        form_layout.addRow("Back Pressure (P2):", p2_layout)
+
         self.t_input = QLineEdit("564.67")
         form_layout.addRow("Gas Temp (°R):", self.t_input)
 
@@ -101,6 +110,7 @@ class FireWettedTab(QWidget):
             area = float(self.area_input.text())
             hvap = float(self.hvap_input.text())
             p1 = float(self.p1_input.text())
+            p2 = float(self.p2_input.text())
             t = float(self.t_input.text())
             z = float(self.z_input.text())
             mw = float(self.mw_input.text())
@@ -113,9 +123,11 @@ class FireWettedTab(QWidget):
                 hvap = kcal_kg_to_btu_lb(hvap)
             if self.p1_unit.currentText() == "barg":
                 p1 = barg_to_psia(p1)
+            if self.p2_unit.currentText() == "barg":
+                p2 = barg_to_psia(p2)
 
             inputs = {
-                'a_wetted': area, 'h_vap': hvap, 'p1_psia': p1, 
+                'a_wetted': area, 'h_vap': hvap, 'p1_psia': p1, 'p2_psia': p2,
                 't_rankine': t, 'z': z, 'mw': mw, 'k': k, 'f_factor': f
             }
 

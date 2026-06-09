@@ -65,6 +65,12 @@ class LiquidReliefTab(QWidget):
         grid.addWidget(QLabel("Number of Parallel Valves:"), 2, 2)
         grid.addWidget(self.num_valves_input, 2, 3)
 
+        self.valve_type_combo = QComboBox()
+        self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
+        # Row 3
+        grid.addWidget(QLabel("Valve Type:"), 3, 0)
+        grid.addWidget(self.valve_type_combo, 3, 1)
+
         input_group.setLayout(grid)
         main_layout.addWidget(input_group)
 
@@ -171,7 +177,7 @@ class LiquidReliefTab(QWidget):
             if num_valves < 1:
                 num_valves = 1
 
-            inputs = {'q_gpm': flow, 'p1_psia': p1, 'p2_psia': p2, 'g': g, 'mu_cp': mu, 'num_valves': num_valves}
+            inputs = {'q_gpm': flow, 'p1_psia': p1, 'p2_psia': p2, 'g': g, 'mu_cp': mu, 'num_valves': num_valves, 'valve_type': self.valve_type_combo.currentText()}
             self.last_inputs = inputs
 
             self.calc_btn.setEnabled(False)
@@ -338,8 +344,13 @@ class GasReliefTab(QWidget):
 
         grid.addWidget(QLabel("Specific Heat Ratio (k):"), 3, 0)
         grid.addLayout(k_layout, 3, 1)
-        grid.addWidget(QLabel("Number of Parallel Valves:"), 3, 2)
-        grid.addWidget(self.num_valves_input, 3, 3)
+
+        self.valve_type_combo = QComboBox()
+        self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
+        grid.addWidget(QLabel("Valve Type:"), 4, 0)
+        grid.addWidget(self.valve_type_combo, 4, 1)
+        grid.addWidget(QLabel("Number of Parallel Valves:"), 4, 2)
+        grid.addWidget(self.num_valves_input, 4, 3)
 
         input_group.setLayout(grid)
         main_layout.addWidget(input_group)
@@ -518,7 +529,14 @@ class GasReliefTab(QWidget):
             if num_valves < 1:
                 num_valves = 1
 
-            inputs = {'w_lb_h': flow_lb_h, 'p1_psia': p1, 'p2_psia': p2, 't_rankine': t, 'z': z, 'mw': mw, 'k': k, 'num_valves': num_valves}
+            sp_psig = (p1 - 14.6959) / (1.0 + 10.0 / 100.0)
+            inputs = {
+                'w_lb_h': flow_lb_h, 'p1_psia': p1, 'p2_psia': p2,
+                't_rankine': t, 'z': z, 'mw': mw, 'k': k,
+                'num_valves': num_valves,
+                'valve_type': self.valve_type_combo.currentText(),
+                'set_pressure_psig': sp_psig,
+            }
             self.last_inputs = inputs
 
             self.calc_btn.setEnabled(False)
