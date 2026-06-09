@@ -46,10 +46,9 @@ excludes = [
     'PyQt5.QtWebEngine', 'PyQt5.QtWebSockets',
     'PyQt5.QtBluetooth', 'PyQt5.QtPositioning',
     'PyQt5.QtMultimedia', 'PyQt5.QtSensors',
-    'tkinter', 'test', 'unittest', 'email',
-    'http', 'urllib', 'xml', 'xmlrpc',
-    'pydoc', 'distutils', 'ensurepip',
-    'turtle', 'sqlite3',
+    'unittest', 'email',
+    'xml', 'xmlrpc', 'pydoc',
+    'ensurepip', 'turtle', 'sqlite3',
     'scipy', 'sympy', 'pandas.io',
     'cv2', 'PIL', 'Pillow',
 ]
