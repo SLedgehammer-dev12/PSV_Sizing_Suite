@@ -10,12 +10,14 @@ block_cipher = None
 # Read version from core/__init__.py without importing
 # SPECPATH (spec file directory, e.g. PROJECT/config/) is injected by PyInstaller
 _ver_file = os.path.join(SPECPATH, '..', 'core', '__init__.py')
+VERSION = 'v2.2.0'
 if os.path.exists(_ver_file):
-    _re_content = open(_ver_file).read()
-    _match = _re.search(r'__version__\s*=\s*[\"']([^\"\']+)[\"']', _re_content)
-    VERSION = 'v' + _match.group(1) if _match else 'v2.2.0'
-else:
-    VERSION = 'v2.2.0'
+    for _line in open(_ver_file):
+        if '__version__ ' in _line and '=' in _line:
+            _parts = _line.split('=', 1)
+            if len(_parts) == 2:
+                VERSION = 'v' + _parts[1].strip().strip('"\'')
+            break
 
 hidden_imports = [
     # Core engine
