@@ -108,6 +108,7 @@ async def liquid_relief(req: LiquidReliefRequest):
             kw=req.kw,
             num_valves=req.num_valves,
             valve_type=req.valve_type,
+            overpressure_pct=req.overpressure_pct,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -226,6 +227,8 @@ async def thermal_expansion(req: ThermalExpansionRequest):
             p2_psia=req.p2_psia,
             g=req.g_specific_gravity,
             mu_cp=req.mu_cp,
+            num_valves=req.num_valves,
+            valve_type=req.valve_type,
         )
         res['Relief_Load_gpm'] = q_gpm
         return res
@@ -237,7 +240,8 @@ async def thermal_expansion(req: ThermalExpansionRequest):
 async def piping_check(req: PipingCheckRequest):
     try:
         inlet = calculate_inlet_pressure_drop(
-            flow_gpm=req.flow_gpm or req.flow_rate_lb_h,
+            flow_gpm=req.flow_gpm,
+            flow_rate_lb_h=req.flow_rate_lb_h,
             fluid_density_lb_ft3=req.fluid_density_lb_ft3,
             viscosity_cp=req.viscosity_cp,
             pipe_id_in=req.pipe_id_in,

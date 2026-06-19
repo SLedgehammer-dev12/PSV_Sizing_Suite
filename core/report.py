@@ -3,9 +3,6 @@ import tempfile
 import html
 from typing import Dict, Optional
 
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl
-
 try:
     import weasyprint
     HAS_WEASYPRINT = True
@@ -100,14 +97,4 @@ def generate_report(
     return output_path
 
 
-def generate_and_open_report(
-    tab_name: str,
-    inputs_dict: Dict[str, str],
-    results_dict: Dict[str, str],
-):
-    """Generate report and open it with system viewer."""
-    path = generate_report(tab_name, inputs_dict, results_dict)
-    QDesktopServices.openUrl(QUrl.fromLocalFile(path))
-
-
-__all__ = ["generate_report", "generate_and_open_report", "HAS_WEASYPRINT"]
+__all__ = ["generate_report", "HAS_WEASYPRINT"]

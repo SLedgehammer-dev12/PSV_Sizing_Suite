@@ -318,9 +318,17 @@ class ThermalExpansionTab(QWidget):
         p2_layout.addWidget(self.p2_unit)
         form_layout.addRow("Back Pressure (P2):", p2_layout)
 
+        # Valve configuration
+        self.num_valves_input = QLineEdit("1")
+        form_layout.addRow("Number of Parallel Valves:", self.num_valves_input)
+
+        self.valve_type_combo = QComboBox()
+        self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
+        form_layout.addRow("Valve Type:", self.valve_type_combo)
+
         input_group.setLayout(form_layout)
         main_layout.addWidget(input_group)
-
+        
         self.calc_btn = QPushButton("HESAPLA (CALCULATE)")
         self.calc_btn.setMinimumHeight(40)
         self.calc_btn.setStyleSheet("font-weight: bold; background-color: #2980b9; color: white;")
@@ -328,10 +336,10 @@ class ThermalExpansionTab(QWidget):
         
         self.progress = QProgressBar()
         self.progress.setVisible(False)
-
+        
         main_layout.addWidget(self.progress)
         main_layout.addWidget(self.calc_btn)
-
+        
         result_group = QGroupBox("Results")
         res_layout = QFormLayout()
         
@@ -342,15 +350,15 @@ class ThermalExpansionTab(QWidget):
         res_font = QFont("Arial", 11, QFont.Bold)
         self.res_area.setFont(res_font)
         self.res_orifice.setFont(res_font)
-
+        
         res_layout.addRow("Relief Load (US GPM):", self.res_q)
         res_layout.addRow("Required Area:", self.res_area)
         res_layout.addRow("Selected API Orifice:", self.res_orifice)
-
+        
         result_group.setLayout(res_layout)
         main_layout.addWidget(result_group)
         main_layout.addStretch()
-
+        
         self.setLayout(main_layout)
 
     def run_calculation(self):
@@ -375,7 +383,9 @@ class ThermalExpansionTab(QWidget):
 
             inputs = {
                 'h_btu': h, 'b': b, 'g': g, 'c': c, 'mu_cp': mu,
-                'p1_psia': p1, 'p2_psia': p2
+                'p1_psia': p1, 'p2_psia': p2,
+                'num_valves': int(self.num_valves_input.text()),
+                'valve_type': self.valve_type_combo.currentText(),
             }
 
             self.calc_btn.setEnabled(False)

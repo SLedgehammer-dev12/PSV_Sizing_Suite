@@ -290,7 +290,7 @@ if page == "1. Liquid Relief (Sıvı Tahliye)":
             res = calculate_liquid_relief_area(
                 q_gpm=q_gpm, p1_psia=p1_psia, p2_psia=p2_psia, 
                 g=g, mu_cp=mu_cp, num_valves=num_valves,
-                valve_type=valve_type
+                valve_type=valve_type, overpressure_pct=overpressure_pct
             )
             
             st.markdown("### Hesaplama Sonuçları")

@@ -23,6 +23,7 @@ class LiquidCalcWorker(QThread):
                 mu_cp=self.inputs['mu_cp'],
                 num_valves=self.inputs.get('num_valves', 1),
                 valve_type=self.inputs.get('valve_type', 'conventional'),
+                overpressure_pct=self.inputs.get('overpressure_pct', 10.0),
             )
             self.finished.emit(res)
         except Exception as e:
@@ -160,7 +161,9 @@ class ThermalWorker(QThread):
                 p1_psia=self.inputs['p1_psia'],
                 p2_psia=self.inputs['p2_psia'],
                 g=self.inputs['g'],
-                mu_cp=self.inputs['mu_cp']
+                mu_cp=self.inputs['mu_cp'],
+                num_valves=self.inputs.get('num_valves', 1),
+                valve_type=self.inputs.get('valve_type', 'conventional'),
             )
             res['Relief_Load_gpm'] = q_gpm
             self.finished.emit(res)

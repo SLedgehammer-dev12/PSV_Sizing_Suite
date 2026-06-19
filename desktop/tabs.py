@@ -177,7 +177,7 @@ class LiquidReliefTab(QWidget):
             if num_valves < 1:
                 num_valves = 1
 
-            inputs = {'q_gpm': flow, 'p1_psia': p1, 'p2_psia': p2, 'g': g, 'mu_cp': mu, 'num_valves': num_valves, 'valve_type': self.valve_type_combo.currentText()}
+            inputs = {'q_gpm': flow, 'p1_psia': p1, 'p2_psia': p2, 'g': g, 'mu_cp': mu, 'num_valves': num_valves, 'valve_type': self.valve_type_combo.currentText(), 'overpressure_pct': 10.0}
             self.last_inputs = inputs
 
             self.calc_btn.setEnabled(False)

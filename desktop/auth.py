@@ -2,16 +2,16 @@ import os
 import json
 import hashlib
 import secrets
+import platform
 
-import sys
+if platform.system() == "Windows":
+    _base = os.environ.get("APPDATA", os.path.expanduser("~"))
+else:
+    _base = os.path.expanduser("~")
 
-def get_base_path():
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    else:
-        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-AUTH_FILE = os.path.join(get_base_path(), 'auth.json')
+APP_DATA_DIR = os.path.join(_base, ".psv_sizing_suite")
+os.makedirs(APP_DATA_DIR, exist_ok=True)
+AUTH_FILE = os.path.join(APP_DATA_DIR, "auth.json")
 
 def hash_password(password, salt=None):
     if salt is None:

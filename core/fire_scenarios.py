@@ -20,7 +20,13 @@ ENV_FACTORS: Dict[str, float] = {
 
 def get_env_factor(description: str = "bare") -> float:
     """Look up environment factor from API 521 Table 7."""
-    return ENV_FACTORS.get(description, 1.0)
+    if description not in ENV_FACTORS:
+        valid = ", ".join(sorted(ENV_FACTORS.keys()))
+        raise ValueError(
+            f"Unknown environment factor '{description}'. "
+            f"Valid values: {valid}"
+        )
+    return ENV_FACTORS[description]
 
 
 def calculate_heat_absorption(

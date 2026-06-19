@@ -16,6 +16,7 @@ class LiquidReliefInput(BaseModel):
     kw: float = Field(default=1.0, ge=0.1, le=1.0, description="Back pressure capacity correction")
     num_valves: int = Field(default=1, ge=1, le=100, description="Number of parallel valves")
     valve_type: Literal["conventional", "balanced_bellows", "pilot"] = Field(default="conventional", description="Valve type")
+    overpressure_pct: float = Field(default=10.0, ge=1.0, le=50.0, description="Percent overpressure")
 
 
 class GasReliefInput(BaseModel):
@@ -83,6 +84,8 @@ class ThermalExpansionInput(BaseModel):
     mu_cp: float = Field(default=1.0, gt=0, description="Viscosity (cP)")
     p1_psia: float = Field(gt=0, description="Relieving pressure (psia)")
     p2_psia: float = Field(ge=0, description="Back pressure (psia)")
+    num_valves: int = Field(default=1, ge=1, le=100, description="Number of parallel valves")
+    valve_type: Literal["conventional", "balanced_bellows", "pilot"] = Field(default="conventional", description="Valve type")
 
 
 class PipingInletInput(BaseModel):
@@ -122,6 +125,8 @@ class LiquidReliefOutput(ReliefOutput):
     Required_Area_No_Visc_sqin: float
     Reynolds_Number: float
     Kv: float
+    Kp: float
+    Overpressure_Pct: float
 
 
 class GasReliefOutput(ReliefOutput):

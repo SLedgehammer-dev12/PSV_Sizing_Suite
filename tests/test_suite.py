@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from core.thermo_props import calculate_mixture_properties, get_coolprop_fluids, calculate_two_phase_omega_coolprop
-from core.liquid_relief import calculate_liquid_relief_area, calculate_reynolds, calculate_kv
+from core.liquid_relief import calculate_liquid_relief_area, calculate_reynolds, calculate_kv, calculate_kp
 from core.gas_relief import calculate_gas_relief_area, calculate_c_coefficient, calculate_f2_coefficient
 from core.two_phase import calculate_omega_flashing, calculate_two_phase_area, calculate_omega_subcooled
 from core.piping import calculate_inlet_pressure_drop, check_inlet_rule, check_outlet_rule
@@ -304,6 +304,47 @@ class TestLiquidRelief:
         )
         assert res['Kd_Used'] == 0.9
 
+    def test_kp_pilot_returns_1(self):
+        """Pilot valves always have Kp = 1.0 per API 520 Section 7."""
+        assert calculate_kp(10.0, "pilot") == 1.0
+        assert calculate_kp(25.0, "pilot") == 1.0
+
+    def test_kp_conventional_10pct(self):
+        """10% overpressure → Kp = 0.6."""
+        assert calculate_kp(10.0, "conventional") == 0.6
+
+    def test_kp_conventional_25pct(self):
+        """25% overpressure → Kp = 1.0."""
+        assert calculate_kp(25.0, "conventional") == 1.0
+
+    def test_kp_conventional_interpolation(self):
+        """17.5% overpressure → Kp = 0.8 (linear interp between 0.6 and 1.0)."""
+        kp = calculate_kp(17.5, "conventional")
+        assert kp == pytest.approx(0.8, abs=1e-9)
+
+    def test_kp_below_10_clamps(self):
+        """Below 10% overpressure, Kp clamps at 0.6."""
+        assert calculate_kp(5.0, "conventional") == 0.6
+
+    def test_kp_above_25_clamps(self):
+        """Above 25% overpressure, Kp clamps at 1.0."""
+        assert calculate_kp(30.0, "conventional") == 1.0
+
+    def test_kp_applied_in_calculation(self):
+        """Kp should appear in the result dict and affect area."""
+        res_10 = calculate_liquid_relief_area(
+            q_gpm=60, p1_psia=114.7, p2_psia=14.7,
+            g=1.0, mu_cp=1.0, overpressure_pct=10.0,
+        )
+        res_25 = calculate_liquid_relief_area(
+            q_gpm=60, p1_psia=114.7, p2_psia=14.7,
+            g=1.0, mu_cp=1.0, overpressure_pct=25.0,
+        )
+        assert 'Kp' in res_10
+        assert 'Kp' in res_25
+        # Kp at 10% (0.6) reduces denominator → larger area than at 25% (1.0)
+        assert res_10['Required_Area_Final_sqin'] > res_25['Required_Area_Final_sqin']
+
 
 class TestReynolds:
     def test_reynolds_high(self):
@@ -412,7 +453,10 @@ class TestFireScenarios:
 
     def test_get_env_factor(self):
         assert get_env_factor("bare") == 1.0
-        assert get_env_factor("nonexistent") == 1.0
+
+    def test_get_env_factor_invalid_raises(self):
+        with pytest.raises(ValueError, match="Unknown environment factor"):
+            get_env_factor("nonexistent")
 
     def test_wetted_fire(self):
         w, q = calculate_fire_wetted_load(

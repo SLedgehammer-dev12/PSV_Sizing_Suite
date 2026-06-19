@@ -1,7 +1,7 @@
 # PSV Sizing Suite - Core Engine
 # All API 520 and 521 engineering calculations.
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 __version_tag__ = f"v{__version__}"
 
 from . import models
@@ -30,5 +30,5 @@ from .fire_scenarios import (
 )
 from .thermal_expansion import calculate_thermal_expansion_load
 from .blowby import calculate_blowby_flowrate
-from .report import generate_report, generate_and_open_report
+from .report import generate_report
 from .advanced_sizing import calculate_napier_steam_area, area_relief_2phase_subcooled
