@@ -1,7 +1,6 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
+from PyQt5.QtWidgets import (QHBoxLayout, QFormLayout,
                               QLineEdit, QComboBox, QPushButton, QLabel,
                               QMessageBox, QGroupBox, QGridLayout)
-from PyQt5.QtGui import QFont
 
 from core.unit_converter import (barg_to_psia, m2_to_sqft,
                                  c_to_rankine, kcal_kg_to_btu_lb, kw_to_btu_h, kcal_h_to_btu_h)

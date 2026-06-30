@@ -1,9 +1,7 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFormLayout, 
-                             QLineEdit, QComboBox, QPushButton, QLabel, 
-                             QMessageBox, QGroupBox, QProgressBar, QScrollArea,
-                             QTableWidget, QTableWidgetItem, QHeaderView)
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout,
+                              QLineEdit, QComboBox, QPushButton, QLabel,
+                              QMessageBox, QGroupBox,
+                              QTableWidget, QTableWidgetItem, QHeaderView)
 
 from core.unit_converter import (barg_to_psia, bara_to_psia, m3_h_to_gpm, kg_h_to_lb_h, c_to_rankine, m3_kg_to_ft3_lb,
                                  kg_s_to_lb_h, actual_m3_h_to_lb_h, sm3_h_to_lb_h, nm3_h_to_lb_h)
