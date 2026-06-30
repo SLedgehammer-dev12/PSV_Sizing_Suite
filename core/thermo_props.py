@@ -19,6 +19,8 @@ COOLPROP_FALLBACK_DEFAULTS = {
     'k': COOLPROP_FALLBACK_K
 }
 
+_MW_CACHE = {}
+
 def calculate_mixture_properties(composition_dict, t_rankine, p_psia, fraction_type="mole"):
     """
     composition_dict: dict of fluid fractions (0 to 1) e.g. {'Methane': 0.8, 'Ethane': 0.2}
@@ -52,7 +54,9 @@ def calculate_mixture_properties(composition_dict, t_rankine, p_psia, fraction_t
         total_moles = 0.0
         for fluid, mass_frac in composition_normalized.items():
             try:
-                mw_pure = CP.PropsSI('molar_mass', 'T', COOLPROP_REF_TEMP_K, 'P', COOLPROP_REF_PRESSURE_PA, fluid)
+                if fluid not in _MW_CACHE:
+                    _MW_CACHE[fluid] = CP.PropsSI('molar_mass', 'T', COOLPROP_REF_TEMP_K, 'P', COOLPROP_REF_PRESSURE_PA, fluid)
+                mw_pure = _MW_CACHE[fluid]
                 moles = mass_frac / mw_pure
                 mole_fractions[fluid] = moles
                 total_moles += moles
