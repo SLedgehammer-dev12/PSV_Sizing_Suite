@@ -9,9 +9,6 @@ from core.unit_converter import (barg_to_psia, bara_to_psia, m3_h_to_gpm, kg_h_t
                                  kg_s_to_lb_h, actual_m3_h_to_lb_h, sm3_h_to_lb_h, nm3_h_to_lb_h)
 from desktop.workers import LiquidCalcWorker, GasCalcWorker, TwoPhaseCalcWorker
 from core.thermo_props import calculate_mixture_properties, get_coolprop_fluids
-from desktop.vendor_window import VendorTableWidget
-from desktop.report_generator import generate_and_open_report
-from desktop.graph_window import PlotWindow
 from desktop.base_tab import BaseCalcTab
 
 class LiquidReliefTab(BaseCalcTab):

@@ -1,14 +1,11 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
-                             QLineEdit, QComboBox, QPushButton, QLabel,
-                             QMessageBox, QGroupBox, QProgressBar, QScrollArea, QGridLayout)
+                              QLineEdit, QComboBox, QPushButton, QLabel,
+                              QMessageBox, QGroupBox, QGridLayout)
 from PyQt5.QtGui import QFont
 
 from core.unit_converter import (barg_to_psia, m2_to_sqft,
                                  c_to_rankine, kcal_kg_to_btu_lb, kw_to_btu_h, kcal_h_to_btu_h)
 from desktop.workers import FireWettedWorker, FireUnwettedWorker, ThermalWorker
-from desktop.vendor_window import VendorTableWidget
-from desktop.report_generator import generate_and_open_report
-from desktop.graph_window import PlotWindow
 from desktop.base_tab import BaseCalcTab
 
 class FireWettedTab(BaseCalcTab):
@@ -132,62 +129,6 @@ class FireWettedTab(BaseCalcTab):
         except Exception as e:
             QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
 
-    def on_calc_success(self, res):
-        self.calc_btn.setEnabled(True)
-        self.progress.setVisible(False)
-        self.last_res = res
-        self.update_result_units()
-        self.res_q.setText(f"{res['Heat_Absorption_Btu_h']:.2f}")
-        self.res_w.setText(f"{res['Relief_Load_lb_h']:.2f}")
-        self.vendor_table_widget.update_valves(res['Selected_Orifice_Letter'])
-
-    def update_result_units(self):
-        if not hasattr(self, 'last_res'): return
-        res = self.last_res
-        unit = self.res_area_unit.currentText()
-        mult = 645.16 if unit == "mm²" else 1.0
-
-        req_area = res.get('Required_Area_sqin', 0) * mult
-        sel_area = res.get('Selected_Orifice_Area_sqin', 0)
-        if isinstance(sel_area, (int, float)): sel_area *= mult
-
-        self.res_area.setText(f"{req_area:.4f} {unit}")
-
-        letter = res.get('Selected_Orifice_Letter', '-')
-        if "Multiple" in str(letter):
-            self.res_orifice.setStyleSheet("color: white; background-color: #e74c3c; font-weight: bold; padding: 2px; border-radius: 3px;")
-            self.res_orifice.setText(f"DİKKAT: 'T' Orifisini aştı! Lütfen Paralel Vana Sayısını artırın.")
-        elif letter != '-':
-            self.res_orifice.setStyleSheet("color: #c0392b; font-weight: bold;")
-            self.res_orifice.setText(f"{letter} ({sel_area:.2f} {unit})")
-        else:
-            self.res_orifice.setText("-")
-
-    def export_pdf(self):
-        if not hasattr(self, 'last_res'):
-            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
-            return
-        results = {
-            "Heat Absorption (Btu/h)": self.res_q.text(),
-            "Relief Load (lb/h)": self.res_w.text(),
-            "Required Area": self.res_area.text(),
-            "Selected API Orifice": self.res_orifice.text()
-        }
-        generate_and_open_report("Fire (Wetted)", self.last_inputs, results)
-
-    def show_graph(self):
-        if not hasattr(self, 'last_res'):
-            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
-            return
-        results = {
-            "res_area": self.res_area.text(),
-            "res_orifice": self.res_orifice.text(),
-            "req_area_sqin": self.last_res.get('Required_Area_sqin', 0),
-            "sel_area_sqin": self.last_res.get('Selected_Orifice_Area_sqin', 0)
-        }
-        self.plot_win = PlotWindow(self, "Fire (Wetted)", self.last_inputs, results)
-        self.plot_win.exec_()
-
 
 
 class FireUnwettedTab(BaseCalcTab):
@@ -273,60 +214,6 @@ class FireUnwettedTab(BaseCalcTab):
             QMessageBox.warning(self, "Input Error", "Please enter valid numerical values.")
         except Exception as e:
             QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
-
-    def on_calc_success(self, res):
-        self.calc_btn.setEnabled(True)
-        self.progress.setVisible(False)
-        self.last_res = res
-        self.update_result_units()
-        self.res_fprime.setText(f"{res['F_Prime']:.5f}")
-        self.vendor_table_widget.update_valves(res['Selected_Orifice_Letter'])
-
-    def update_result_units(self):
-        if not hasattr(self, 'last_res'): return
-        res = self.last_res
-        unit = self.res_area_unit.currentText()
-        mult = 645.16 if unit == "mm²" else 1.0
-
-        req_area = res.get('Required_Area_sqin', 0) * mult
-        sel_area = res.get('Selected_Orifice_Area_sqin', 0)
-        if isinstance(sel_area, (int, float)): sel_area *= mult
-
-        self.res_area.setText(f"{req_area:.4f} {unit}")
-
-        letter = res.get('Selected_Orifice_Letter', '-')
-        if "Multiple" in str(letter):
-            self.res_orifice.setStyleSheet("color: white; background-color: #e74c3c; font-weight: bold; padding: 2px; border-radius: 3px;")
-            self.res_orifice.setText(f"DİKKAT: 'T' Orifisini aştı! Lütfen Paralel Vana Sayısını artırın.")
-        elif letter != '-':
-            self.res_orifice.setStyleSheet("color: #c0392b; font-weight: bold;")
-            self.res_orifice.setText(f"{letter} ({sel_area:.2f} {unit})")
-        else:
-            self.res_orifice.setText("-")
-
-    def export_pdf(self):
-        if not hasattr(self, 'last_res'):
-            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
-            return
-        results = {
-            "F' Factor": self.res_fprime.text(),
-            "Required Area": self.res_area.text(),
-            "Selected API Orifice": self.res_orifice.text()
-        }
-        generate_and_open_report("Fire (Unwetted)", self.last_inputs, results)
-
-    def show_graph(self):
-        if not hasattr(self, 'last_res'):
-            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
-            return
-        results = {
-            "res_area": self.res_area.text(),
-            "res_orifice": self.res_orifice.text(),
-            "req_area_sqin": self.last_res.get('Required_Area_sqin', 0),
-            "sel_area_sqin": self.last_res.get('Selected_Orifice_Area_sqin', 0)
-        }
-        self.plot_win = PlotWindow(self, "Fire (Unwetted)", self.last_inputs, results)
-        self.plot_win.exec_()
 
 
 
