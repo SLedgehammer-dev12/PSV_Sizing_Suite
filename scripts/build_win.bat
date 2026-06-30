@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 :: Read version from core module
 for /f "tokens=*" %%i in ('python -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)"') do set VERSION=%%i
-if "%VERSION%"=="" set VERSION=v2.2.0
+if "%VERSION%"=="" set VERSION=v2.3.0
 set APPNAME=PSV_Sizing_Suite_%VERSION%
 
 echo =============================================

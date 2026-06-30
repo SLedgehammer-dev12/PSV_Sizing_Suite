@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Read version from core module (suppress WeasyPrint warnings on stderr)
-VERSION=$(python3 -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)" 2>&1 | grep -E '^v[0-9]' || echo "v2.2.0")
+VERSION=$(python3 -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)" 2>&1 | grep -E '^v[0-9]' || echo "v2.3.0")
 APPNAME="PSV_Sizing_Suite_${VERSION}"
 
 echo "============================================="
