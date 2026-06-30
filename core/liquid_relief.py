@@ -24,6 +24,12 @@ def calculate_kv(re):
 
 
 def calculate_liquid_relief_area(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=1.0, num_valves=1):
+    """
+    API 520 Part I Section 5.8 — Liquid relief valve sizing.
+
+    Uses Reynolds-number-dependent iterative sizing with Kv viscosity
+    correction factor. Returns required area, selected orifice, Re, and Kv.
+    """
     validate_liquid_inputs(q_gpm, p1_psia, p2_psia, g, mu_cp, kd, kw)
     if num_valves < 1:
         raise ValueError("num_valves must be >= 1")

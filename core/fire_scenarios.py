@@ -7,6 +7,7 @@ from .constants import (
 import math
 
 def calculate_fire_wetted_load(a_wetted_sqft, f_factor, heat_of_vap_btu_lb):
+    """API 521 Section 4.4.13 — Fire wetted relief load (eq. 17-18)."""
     validate_fire_wetted_inputs(a_wetted_sqft, f_factor, heat_of_vap_btu_lb)
 
     q_btu_h = FIRE_WETTED_HEAT_CONSTANT * f_factor * (a_wetted_sqft ** FIRE_WETTED_AREA_EXPONENT)
