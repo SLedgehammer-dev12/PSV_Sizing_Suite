@@ -8,6 +8,11 @@ from .constants import (
     LBFT3_PER_KGM3, KPA_PER_PSIA,
 )
 
+# Aliases for units.py compatibility
+ATM_PSIA = ATMOSPHERIC_PSIA
+PSI_PER_BAR = PSIA_PER_BAR
+R_PSIA_FT3_LBMOL_R = R_PER_BARA
+
 def barg_to_psia(barg):
     return (barg * PSIA_PER_BAR) + ATMOSPHERIC_PSIA
 
