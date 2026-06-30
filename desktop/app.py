@@ -109,21 +109,29 @@ class PSVSizingApp(QMainWindow):
     # --- MENU ACTION METHODS ---
 
     def extract_tab_data(self, tab_widget):
-        """Helper to extract data from a tab's line edits and combo boxes."""
+        """Extract user inputs and computed results from a tab widget."""
         inputs = {}
         results = {}
-        
-        # Iterate over all attributes of the tab
+
+        SKIP_ATTRS = {
+            'calc_btn', 'pdf_btn', 'graph_btn', 'progress', 'btn_layout',
+            'main_layout', 'vendor_table_widget', 'tab_name',
+            'calc_button_text', 'calc_button_color', 'last_inputs',
+            'last_res', 'worker', 'plot_win', 'coolprop_fluids',
+            'comp_table', 'frac_type_combo', 'btn_add_fluid', 'btn_remove_fluid',
+            'res_area_unit',
+        }
+
         for attr_name, obj in tab_widget.__dict__.items():
+            if attr_name in SKIP_ATTRS:
+                continue
             if isinstance(obj, QLineEdit):
                 inputs[attr_name] = obj.text()
             elif isinstance(obj, QComboBox):
                 inputs[attr_name] = obj.currentText()
             elif isinstance(obj, QLabel) and attr_name.startswith("res_"):
-                # Result labels
                 results[attr_name] = obj.text()
-                
-        # Special handling for tables
+
         if hasattr(tab_widget, 'comp_table'):
             table_data = []
             for row in range(tab_widget.comp_table.rowCount()):
@@ -135,7 +143,7 @@ class PSVSizingApp(QMainWindow):
                         "fraction": edit.text()
                     })
             inputs['__comp_table__'] = table_data
-                
+
         return inputs, results
 
     def restore_tab_data(self, tab_widget, data):
