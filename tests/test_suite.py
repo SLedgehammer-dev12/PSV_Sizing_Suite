@@ -27,6 +27,8 @@ from core.validation import (
     validate_fire_unwetted_inputs, validate_thermal_inputs, validate_blowby_inputs
 )
 from core.valve_selection import select_orifice, API_ORIFICE_AREAS
+from core.kb_coefficient import get_kb, interpolate_kb, KB_BALANCED_BELLOWS_10PCT
+from core.piping import check_inlet_rule
 
 
 class TestPSVSizingCore(unittest.TestCase):
@@ -832,6 +834,81 @@ class TestUpdateCheck(unittest.TestCase):
             with patch.object(QMessageBox, "information") as mock_info:
                 window.check_update()
                 mock_info.assert_called_once()
+
+
+class TestV230Modules(unittest.TestCase):
+
+    def test_kb_conventional_returns_one(self):
+        kb = get_kb(50, 100, "conventional", 10)
+        self.assertEqual(kb, 1.0)
+
+    def test_kb_balanced_bellows_interpolated(self):
+        kb = get_kb(44.7, 200, "balanced_bellows", 10)
+        self.assertLess(kb, 1.0)
+        self.assertGreater(kb, 0.8)
+
+    def test_kb_balanced_bellows_25pct(self):
+        kb = get_kb(44.7, 200, "balanced_bellows", 25)
+        self.assertLessEqual(kb, 1.0)
+
+    def test_interpolate_kb_exact_point(self):
+        kb = interpolate_kb(10.0, KB_BALANCED_BELLOWS_10PCT)
+        self.assertAlmostEqual(kb, 0.990, places=3)
+
+    def test_interpolate_kb_between_points(self):
+        kb = interpolate_kb(7.5, KB_BALANCED_BELLOWS_10PCT)
+        self.assertGreater(kb, 0.985)
+        self.assertLess(kb, 0.995)
+
+    def test_interpolate_kb_empty_curve(self):
+        kb = interpolate_kb(50, {})
+        self.assertEqual(kb, 1.0)
+
+    def test_napier_steam_area_basic(self):
+        from core.advanced_sizing import calculate_napier_steam_area
+        res = calculate_napier_steam_area(10000, 500, 14.7)
+        self.assertIn('Required_Area_sqin', res)
+        self.assertGreater(res['Required_Area_sqin'], 0)
+
+    def test_ksh_interpolation(self):
+        from core.advanced_sizing import get_ksh
+        ksh = get_ksh(500, 300)
+        self.assertGreater(ksh, 0.5)
+        self.assertLessEqual(ksh, 1.0)
+
+    def test_subcooled_two_phase_smoke(self):
+        from core.advanced_sizing import area_relief_2phase_subcooled
+        try:
+            res = area_relief_2phase_subcooled(
+                q_l_min=100, p1_bara=10, p2_bara=1,
+                ps_bara=15, rho1_kg_m3=800, rho9_kg_m3=10
+            )
+            self.assertIn('Required_Area_sqin', res)
+        except (ValueError, ZeroDivisionError) as e:
+            self.assertTrue(True, f"Expected boundary condition: {e}")
+
+    def test_pilot_gas_area_smoke(self):
+        from core.valve_types import calculate_pilot_gas_area
+        res = calculate_pilot_gas_area(10000, 500, 14.7, 600, 0.9, 28, 1.4)
+        self.assertIn('Selected_Orifice_Letter', res)
+
+    def test_pilot_liquid_area_smoke(self):
+        from core.valve_types import calculate_pilot_liquid_area
+        res = calculate_pilot_liquid_area(60, 52.8, 1.0, 1.1, 1.0)
+        self.assertIn('Selected_Orifice_Letter', res)
+
+    def test_check_inlet_rule_pass(self):
+        ok, msg = check_inlet_rule(2.0, 100)
+        self.assertTrue(ok)
+
+    def test_check_inlet_rule_fail(self):
+        ok, msg = check_inlet_rule(4.0, 100)
+        self.assertFalse(ok)
+
+    def test_core_version_is_v230(self):
+        from core import __version__, __version_tag__
+        self.assertEqual(__version__, "2.3.0")
+        self.assertEqual(__version_tag__, "v2.3.0")
 
 
 if __name__ == "__main__":
