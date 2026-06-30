@@ -204,3 +204,48 @@ class ThermalWorker(QThread):
             self.finished.emit(res)
         except Exception as e:
             self.error.emit(str(e))
+
+
+class GraphCalcWorker(QThread):
+    finished = pyqtSignal(list, float, float)
+    error = pyqtSignal(str)
+
+    def __init__(self, tab_name, inputs):
+        super().__init__()
+        self.tab_name = tab_name
+        self.inputs = inputs
+
+    def run(self):
+        import numpy as np
+        try:
+            base_p1 = self.inputs.get('p1_psia') or self.inputs.get('p0_psia')
+            if not base_p1:
+                self.error.emit("No pressure value found.")
+                return
+
+            p_vals = np.linspace(base_p1 * 0.5, base_p1 * 1.5, 40)
+            a_vals = []
+
+            for p in p_vals:
+                temp_inputs = self.inputs.copy()
+                if "Liquid" in self.tab_name:
+                    res = calculate_liquid_relief_area(temp_inputs['q_gpm'], p, temp_inputs['p2_psia'], temp_inputs['g'], temp_inputs['mu_cp'], num_valves=temp_inputs.get('num_valves', 1))
+                    a_vals.append(res['Required_Area_Final_sqin'])
+                elif "Gas" in self.tab_name or "Fire (Wetted)" in self.tab_name:
+                    res = calculate_gas_relief_area(temp_inputs['w_lb_h'], p, temp_inputs.get('p2_psia', 14.7), temp_inputs['t_rankine'], temp_inputs['z'], temp_inputs['mw'], temp_inputs['k'], num_valves=temp_inputs.get('num_valves', 1))
+                    a_vals.append(res['Required_Area_sqin'])
+                elif "Two-Phase" in self.tab_name:
+                    omega = calculate_omega_flashing(temp_inputs['v0'], temp_inputs['v9'])
+                    res = calculate_two_phase_area(temp_inputs['w_lb_h'], p, temp_inputs['p_back_psia'], temp_inputs['v0'], omega, temp_inputs['kd'], num_valves=temp_inputs.get('num_valves', 1))
+                    a_vals.append(res['Required_Area_sqin'])
+                elif "Fire (Unwetted)" in self.tab_name:
+                    a_req, _ = calculate_fire_unwetted_area(temp_inputs['a_exposed'], p, temp_inputs['t_gas'], temp_inputs['t_wall'], temp_inputs['k'])
+                    a_vals.append(a_req)
+                elif "Thermal" in self.tab_name:
+                    q_gpm = calculate_thermal_expansion_load(temp_inputs['b'], temp_inputs['h_btu'], temp_inputs['g'], temp_inputs['c'])
+                    res = calculate_liquid_relief_area(q_gpm, p, temp_inputs['p2_psia'], temp_inputs['g'], temp_inputs['mu_cp'], num_valves=1)
+                    a_vals.append(res['Required_Area_Final_sqin'])
+
+            self.finished.emit(p_vals.tolist(), a_vals, base_p1)
+        except Exception as e:
+            self.error.emit(str(e))
