@@ -5,9 +5,6 @@ from .constants import (
     FIRE_UNWETTED_COEFF, FIRE_UNWETTED_WALL_EXPONENT, FIRE_UNWETTED_GAS_EXPONENT,
 )
 import math
-import logging
-
-logger = logging.getLogger(__name__)
 
 def calculate_fire_wetted_load(a_wetted_sqft, f_factor, heat_of_vap_btu_lb):
     validate_fire_wetted_inputs(a_wetted_sqft, f_factor, heat_of_vap_btu_lb)

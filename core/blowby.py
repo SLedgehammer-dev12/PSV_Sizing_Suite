@@ -1,7 +1,4 @@
 from .validation import validate_blowby_inputs
-import logging
-
-logger = logging.getLogger(__name__)
 
 def calculate_blowby_flowrate(assumed_flow_kg_h, nominal_cv, calculated_cv_at_blowby):
     """

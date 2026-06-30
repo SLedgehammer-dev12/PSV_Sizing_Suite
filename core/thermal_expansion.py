@@ -1,8 +1,5 @@
 from .validation import validate_thermal_inputs
 from .constants import THERMAL_EXPANSION_CONSTANT
-import logging
-
-logger = logging.getLogger(__name__)
 
 def calculate_thermal_expansion_load(b_expansion_coeff, h_heat_transfer_btu_h, g_specific_gravity, c_specific_heat):
     validate_thermal_inputs(b_expansion_coeff, h_heat_transfer_btu_h, g_specific_gravity, c_specific_heat)

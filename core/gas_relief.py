@@ -1,12 +1,10 @@
 import math
-import logging
 from .valve_selection import select_orifice
 from .validation import validate_gas_inputs
 from .constants import (
     GAS_FORMULA_CONSTANT, GAS_SUBCRITICAL_CONSTANT, GAS_DEFAULT_C_COEFF, K_NEAR_ONE_THRESHOLD,
 )
 
-logger = logging.getLogger(__name__)
 
 def calculate_c_coefficient(k):
     if k <= 0:

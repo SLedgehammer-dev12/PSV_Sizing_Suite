@@ -1,5 +1,4 @@
 import math
-import logging
 from .valve_selection import select_orifice
 from .validation import validate_liquid_inputs
 from .constants import (
@@ -8,7 +7,6 @@ from .constants import (
     KV_UPPER, KV_LOWER, KV_COEFF_A, KV_COEFF_B, KV_COEFF_C,
 )
 
-logger = logging.getLogger(__name__)
 
 def calculate_reynolds(q_gpm, g, mu_cp, area_sq_in):
     if area_sq_in <= 0 or mu_cp <= 0:

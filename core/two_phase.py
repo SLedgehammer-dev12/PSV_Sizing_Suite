@@ -1,12 +1,10 @@
 import math
-import logging
 from .valve_selection import select_orifice
 from .validation import validate_two_phase_inputs
 from .constants import (
     OMEGA_MULTIPLIER, TWO_PHASE_CRITICAL_CONSTANT, TWO_PHASE_AREA_CONSTANT,
 )
 
-logger = logging.getLogger(__name__)
 
 def calculate_omega_flashing(v0, v9):
     if v0 <= 0:
