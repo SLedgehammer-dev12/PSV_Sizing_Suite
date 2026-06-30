@@ -910,6 +910,26 @@ class TestV230Modules(unittest.TestCase):
         self.assertEqual(__version__, "2.3.0")
         self.assertEqual(__version_tag__, "v2.3.0")
 
+    def test_base_tab_instantiation(self):
+        from PyQt5.QtWidgets import QApplication, QLabel
+        from desktop.base_tab import BaseCalcTab
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication([])
+
+        class TestTab(BaseCalcTab):
+            def init_inputs(self):
+                self.main_layout.insertWidget(0, QLabel("Test Input"))
+
+        tab = TestTab("Test Tab")
+        self.assertIsNotNone(tab.calc_btn)
+        self.assertIsNotNone(tab.pdf_btn)
+        self.assertIsNotNone(tab.graph_btn)
+        self.assertIsNotNone(tab.res_area)
+        self.assertIsNotNone(tab.res_orifice)
+        self.assertIsNotNone(tab.vendor_table_widget)
+        self.assertEqual(tab.calc_btn.text(), "HESAPLA (CALCULATE)")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
