@@ -50,7 +50,7 @@ class BaseCalcTab(QWidget):
             "font-weight: bold; font-size: 14px; background-color: #27ae60; "
             "color: white; border-radius: 5px;"
         )
-        self.pdf_btn.clicked.connect(self.export_pdf)
+        self.pdf_btn.clicked.connect(self.export_report)
 
         self.graph_btn = QPushButton("GRAFİK (SHOW GRAPH)")
         self.graph_btn.setMinimumHeight(45)
@@ -186,7 +186,7 @@ class BaseCalcTab(QWidget):
         else:
             self.res_orifice.setText("-")
 
-    def export_pdf(self):
+    def export_report(self):
         if not hasattr(self, 'last_res') or self.last_res is None:
             QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
             return

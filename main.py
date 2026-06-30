@@ -4,11 +4,12 @@ import logging
 
 if getattr(sys, 'frozen', False):
     sys.path.insert(0, sys._MEIPASS)
-    log_dir = os.path.dirname(sys.executable)
+    log_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'PSV Sizing Suite', 'logs')
 else:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     log_dir = os.path.dirname(os.path.abspath(__file__))
 
+os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "psv_sizing_suite.log")
 logging.basicConfig(
     level=logging.INFO,

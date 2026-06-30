@@ -54,10 +54,22 @@ pyinstaller --noconsole \
     --hidden-import desktop.report_generator \
     --hidden-import core.kb_coefficient \
     --hidden-import core.units \
-    --hidden-import core.report \
     --hidden-import core.piping \
     --hidden-import core.valve_types \
     --hidden-import core.advanced_sizing \
+    --hidden-import core.unit_converter \
+    --hidden-import core.vendor_catalog \
+    --hidden-import core.valve_selection \
+    --hidden-import core.liquid_relief \
+    --hidden-import core.gas_relief \
+    --hidden-import core.two_phase \
+    --hidden-import core.fire_scenarios \
+    --hidden-import core.thermal_expansion \
+    --hidden-import core.blowby \
+    --hidden-import desktop.app \
+    --hidden-import pydantic \
+    --hidden-import email \
+    --hidden-import importlib.metadata \
     --exclude-module PyQt5.QtSvg \
     --exclude-module PyQt5.QtSql \
     --exclude-module PyQt5.QtQml \

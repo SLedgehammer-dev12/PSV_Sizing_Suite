@@ -44,7 +44,7 @@ if %errorlevel% neq 0 (
     echo.
     echo =============================================
     echo SON 20 SATIR:
-    type build.log | findstr /v "^$"
+    powershell -Command "Get-Content build.log -Tail 20"
     echo =============================================
     pause
     exit /b 1

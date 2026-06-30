@@ -13,7 +13,7 @@ except ImportError:
 
 def get_base_path():
     if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
+        return os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'PSV Sizing Suite')
     else:
         return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -70,6 +70,7 @@ def set_password_changed(username):
         json.dump(data, f)
 
 def init_auth():
+    os.makedirs(get_base_path(), exist_ok=True)
     if not os.path.exists(AUTH_FILE):
         data = {
             "user_hash": hash_password(DEFAULT_PASSWORD),

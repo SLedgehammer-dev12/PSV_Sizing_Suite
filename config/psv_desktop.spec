@@ -21,7 +21,7 @@ if os.path.exists(_ver_file):
 
 hidden_imports = [
     # Core engine
-    'core', 'core.kb_coefficient', 'core.units', 'core.report',
+    'core', 'core.kb_coefficient', 'core.units',
     'core.piping', 'core.valve_types', 'core.unit_converter',
     'core.vendor_catalog', 'core.valve_selection',
     'core.liquid_relief', 'core.gas_relief', 'core.two_phase',
@@ -56,7 +56,6 @@ excludes = [
     'scipy', 'sympy', 'pandas.io',
     'cv2', 'PIL', 'Pillow',
 ]
-import os
 
 a = Analysis(
     [os.path.join(SPECPATH, '..', 'main.py')],
