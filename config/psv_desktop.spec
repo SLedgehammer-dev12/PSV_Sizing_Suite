@@ -54,7 +54,7 @@ excludes = [
     'xml', 'xmlrpc', 'pydoc',
     'ensurepip', 'turtle', 'sqlite3',
     'scipy', 'sympy', 'pandas.io',
-    'cv2', 'PIL', 'Pillow',
+    'cv2',
 ]
 
 a = Analysis(

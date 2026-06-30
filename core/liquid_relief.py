@@ -41,7 +41,7 @@ def calculate_liquid_relief_area(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=
 
     letter, selected_area = select_orifice(a_req_no_visc_per_valve)
 
-    re = calculate_reynolds(q_gpm, g, mu_cp, selected_area * num_valves)
+    re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, selected_area)
     kv = calculate_kv(re)
     a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * kd * kw * kv)) * math.sqrt(g / delta_p)
     a_req_final_per_valve = a_req_final / num_valves
@@ -49,7 +49,7 @@ def calculate_liquid_relief_area(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=
 
     prev_letter = final_letter
     for iteration in range(10):
-        re = calculate_reynolds(q_gpm, g, mu_cp, final_selected_area * num_valves)
+        re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, final_selected_area)
         kv = calculate_kv(re)
         a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * kd * kw * kv)) * math.sqrt(g / delta_p)
         a_req_final_per_valve = a_req_final / num_valves

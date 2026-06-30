@@ -910,6 +910,48 @@ class TestV230Modules(unittest.TestCase):
         self.assertEqual(__version__, "2.3.0")
         self.assertEqual(__version_tag__, "v2.3.0")
 
+    def test_liquid_relief_multivalve(self):
+        from core.liquid_relief import calculate_liquid_relief_area
+        res1 = calculate_liquid_relief_area(q_gpm=120, p1_psia=100, p2_psia=10, g=1.0, mu_cp=10.0, num_valves=1)
+        res2 = calculate_liquid_relief_area(q_gpm=120, p1_psia=100, p2_psia=10, g=1.0, mu_cp=10.0, num_valves=2)
+        self.assertEqual(res1['Num_Valves'], 1)
+        self.assertEqual(res2['Num_Valves'], 2)
+        self.assertLess(res2['Reynolds_Number'], res1['Reynolds_Number'],
+                        "Per-valve Re should be lower for multi-valve configurations")
+
+    def test_pilot_liquid_multivalve(self):
+        from core.valve_types import calculate_pilot_liquid_area
+        res1 = calculate_pilot_liquid_area(q_gpm=120, p1_psia=100, p2_psia=10, g=1.0, mu_cp=10.0, num_valves=1)
+        res2 = calculate_pilot_liquid_area(q_gpm=120, p1_psia=100, p2_psia=10, g=1.0, mu_cp=10.0, num_valves=2)
+        self.assertEqual(res1['Num_Valves'], 1)
+        self.assertEqual(res2['Num_Valves'], 2)
+        self.assertLess(res2['Reynolds_Number'], res1['Reynolds_Number'],
+                        "Per-valve Re should be lower for multi-valve configurations")
+
+    def test_pilot_gas_subcritical_kb(self):
+        from core.valve_types import calculate_pilot_gas_area
+        res_no_bp = calculate_pilot_gas_area(10000, 200, 50, 600, 0.9, 28, 1.4)
+        res_with_bp = calculate_pilot_gas_area(10000, 200, 180, 600, 0.9, 28, 1.4)
+        self.assertEqual(res_no_bp['Flow_Type'], 'CRITICAL')
+        self.assertIn('Selected_Orifice_Letter', res_with_bp)
+        self.assertGreater(res_with_bp['Required_Area_sqin'], res_no_bp['Required_Area_sqin'],
+                           "Subcritical area should be larger than critical area")
+
+    def test_two_phase_eta_c_standard(self):
+        from core.two_phase import calculate_critical_pressure_ratio
+        eta_05 = calculate_critical_pressure_ratio(0.5)
+        self.assertAlmostEqual(eta_05, 0.55 - 0.1504 - 0.0221 - 0.0013, places=2)
+        eta_1 = calculate_critical_pressure_ratio(1.0)
+        self.assertAlmostEqual(eta_1, 0.55, places=2)
+        eta_4 = calculate_critical_pressure_ratio(4.0)
+        expected_eta_4 = 0.84 / (4.0 ** (1.0 / 7.0))
+        self.assertAlmostEqual(eta_4, expected_eta_4, places=3)
+        eta_10 = calculate_critical_pressure_ratio(10.0)
+        expected_eta_10 = 0.84 / (10.0 ** (1.0 / 7.0))
+        self.assertAlmostEqual(eta_10, expected_eta_10, places=3)
+        eta_zero = calculate_critical_pressure_ratio(0.0)
+        self.assertEqual(eta_zero, 1.0)
+
     def test_base_tab_instantiation(self):
         from PyQt5.QtWidgets import QApplication, QLabel
         from desktop.base_tab import BaseCalcTab

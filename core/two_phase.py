@@ -14,19 +14,19 @@ def calculate_omega_flashing(v0, v9):
 
 def calculate_critical_pressure_ratio(omega):
     """
-    Calculate critical pressure ratio (eta_c) for two-phase flow
-    using API 520 empirical correlation.
+    API 520 Annex C — Critical pressure ratio (ηc) for two-phase flow.
+
+    ω < 4:  ηc = 0.55 + 0.217·ln ω − 0.046·(ln ω)² + 0.004·(ln ω)³
+    ω ≥ 4:  ηc = 0.84 / ω^(1/7)
     """
     if omega <= 0:
         return 1.0
 
-    term1 = 1.0446 + 0.0093431 * math.sqrt(omega)
-    term2 = omega ** -0.56261
-    base = 1.0 + term1 * term2
-
-    power = -0.70356 + 0.014685 * math.log(omega)
-
-    return base ** power
+    if omega < 4.0:
+        ln_omega = math.log(omega)
+        return 0.55 + 0.217 * ln_omega - 0.046 * (ln_omega ** 2) + 0.004 * (ln_omega ** 3)
+    else:
+        return 0.84 / (omega ** (1.0 / 7.0))
 
 
 def calculate_two_phase_area(w_lb_h, p0_psia, p_back_psia, v0_ft3_lb, omega, kd=0.85, kb=1.0, kc=1.0, num_valves=1):
