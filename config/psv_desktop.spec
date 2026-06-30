@@ -50,7 +50,7 @@ excludes = [
     'PyQt5.QtWebEngine', 'PyQt5.QtWebSockets',
     'PyQt5.QtBluetooth', 'PyQt5.QtPositioning',
     'PyQt5.QtMultimedia', 'PyQt5.QtSensors',
-    'xml', 'xmlrpc', 'pydoc',
+    'xmlrpc', 'pydoc',
     'ensurepip', 'turtle', 'sqlite3',
     'scipy', 'sympy', 'pandas.io',
     'cv2',
