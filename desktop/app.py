@@ -16,9 +16,10 @@ from desktop.graph_window import PlotWindow
 from desktop.auth import check_login, change_password, must_change_password, set_password_changed, get_lockout_remaining
 from desktop.workers import UpdateCheckWorker
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QDialogButtonBox, QInputDialog
+from core import __version_tag__
 
-APP_VERSION = "v2.2"
-SCHEMA_VERSION = '2.2'
+APP_VERSION = __version_tag__
+SCHEMA_VERSION = '2.3'
 GITHUB_RELEASES_URL = "https://api.github.com/repos/SLedgehammer-dev12/PSV_Sizing_Suite/releases/latest"
 GITHUB_RELEASES_PAGE = "https://github.com/SLedgehammer-dev12/PSV_Sizing_Suite/releases/latest"
 

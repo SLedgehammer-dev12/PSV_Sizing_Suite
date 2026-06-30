@@ -44,7 +44,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:8501
 ```
 
 ## Key test files
-- `tests/test_suite.py` — 100 tests covering core, validation, edge cases, converters, auth, smoke, version, save/load, report, update check
+- `tests/test_suite.py` — 116 tests covering core, validation, edge cases, converters, auth, smoke, version, save/load, report, update check
 
 ## Known test categories
 | Class | Tests | Focus |

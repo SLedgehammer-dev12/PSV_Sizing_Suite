@@ -5,7 +5,7 @@
 
 !define PRODUCT_NAME "PSV Sizing Suite"
 !ifndef VERSION
-  !define VERSION "v2.2.0"
+  !define VERSION "v2.3.0"
 !endif
 !define PRODUCT_VERSION "${VERSION}"
 !define PRODUCT_PUBLISHER "PSV Engineering"

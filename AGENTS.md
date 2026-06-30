@@ -5,7 +5,7 @@ Advanced engineering calculation platform for Pressure Safety Valve (PSV) sizing
 
 ## Repository
 - **GitHub**: https://github.com/SLedgehammer-dev12/PSV_Sizing_Suite
-- **Current version**: v2.2
+- **Current version**: v2.3.0
 
 ## Codebase Conventions
 
@@ -33,8 +33,8 @@ releases/       Build artifacts (ZIP files)
 - Auth tests use temporary auth.json
 
 ### Build
-- Desktop: `pyinstaller --name PSV_Sizing_Suite_Desktop_v2.2_Windows --windowed --add-data "core;core" --add-data "desktop;desktop" --add-data "vendor_data;vendor_data" --hidden-import core ... main.py -y`
-- Web: `pyinstaller --name PSV_Sizing_Suite_Web_v2.2_Windows --windowed --add-data "core;core" --add-data "web_app.py;." --hidden-import core ... run_streamlit.py -y`
+- Desktop: `pyinstaller --name PSV_Sizing_Suite_Desktop_v2.3.0_Windows --windowed --add-data "core;core" --add-data "desktop;desktop" --add-data "vendor_data;vendor_data" --hidden-import core ... main.py -y`
+- Web: `pyinstaller --name PSV_Sizing_Suite_Web_v2.3.0_Windows --windowed --add-data "core;core" --add-data "web_app.py;." --hidden-import core ... run_streamlit.py -y`
 
 ## Key Decisions Made
 1. **Deferred BaseCalcTab refactor** — Too risky, ~1000 lines duplicated acceptable for now

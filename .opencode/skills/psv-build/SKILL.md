@@ -1,6 +1,6 @@
 ---
 name: psv-build
-description: Builds PSV Sizing Suite Desktop and Web EXEs with PyInstaller, creates release ZIPs, and updates the GitHub release. USE FOR: build exe, create release, deploy, package, compile, release v2.2, build desktop, build web, upload release.
+description: Builds PSV Sizing Suite Desktop and Web EXEs with PyInstaller, creates release ZIPs, and updates the GitHub release. USE FOR: build exe, create release, deploy, package, compile, release v2.3.0, build desktop, build web, upload release.
 ---
 
 # PSV Sizing Suite — Build & Release
@@ -29,35 +29,35 @@ Remove-Item -Recurse -Force "dist", "build" -ErrorAction SilentlyContinue
 
 ### Step 3: Build Desktop EXE
 ```bash
-pyinstaller --name PSV_Sizing_Suite_Desktop_v2.2_Windows --windowed --add-data "core;core" --add-data "desktop;desktop" --add-data "vendor_data;vendor_data" --hidden-import core --hidden-import core.thermo_props --hidden-import core.unit_converter --hidden-import core.vendor_catalog --hidden-import bcrypt main.py -y
+pyinstaller --name PSV_Sizing_Suite_Desktop_v2.3.0_Windows --windowed --add-data "core;core" --add-data "desktop;desktop" --add-data "vendor_data;vendor_data" --hidden-import core --hidden-import core.thermo_props --hidden-import core.unit_converter --hidden-import core.vendor_catalog --hidden-import bcrypt main.py -y
 ```
 
 ### Step 4: Build Web EXE
 ```bash
-pyinstaller --name PSV_Sizing_Suite_Web_v2.2_Windows --windowed --add-data "core;core" --add-data "web_app.py;." --hidden-import core --hidden-import core.thermo_props --hidden-import core.unit_converter --hidden-import core.vendor_catalog --hidden-import bcrypt run_streamlit.py -y
+pyinstaller --name PSV_Sizing_Suite_Web_v2.3.0_Windows --windowed --add-data "core;core" --add-data "web_app.py;." --hidden-import core --hidden-import core.thermo_props --hidden-import core.unit_converter --hidden-import core.vendor_catalog --hidden-import bcrypt run_streamlit.py -y
 ```
 
 ### Step 5: Create release ZIPs
 ```bash
-Compress-Archive -Path "dist\PSV_Sizing_Suite_Desktop_v2.2_Windows\*" -DestinationPath "releases\PSV_Sizing_Suite_Desktop_v2.2_Windows.zip" -Force
-Compress-Archive -Path "dist\PSV_Sizing_Suite_Web_v2.2_Windows\*" -DestinationPath "releases\PSV_Sizing_Suite_Web_v2.2_Windows.zip" -Force
+Compress-Archive -Path "dist\PSV_Sizing_Suite_Desktop_v2.3.0_Windows\*" -DestinationPath "releases\PSV_Sizing_Suite_Desktop_v2.3.0_Windows.zip" -Force
+Compress-Archive -Path "dist\PSV_Sizing_Suite_Web_v2.3.0_Windows\*" -DestinationPath "releases\PSV_Sizing_Suite_Web_v2.3.0_Windows.zip" -Force
 ```
 
 ### Step 6: Update GitHub release
 First delete old assets, then upload new ones:
 ```bash
-gh release delete-asset v2.2 "PSV_Sizing_Suite_Desktop_v2.2_Windows.zip" --yes
-gh release delete-asset v2.2 "PSV_Sizing_Suite_Web_v2.2_Windows.zip" --yes
-gh release upload v2.2 "releases\PSV_Sizing_Suite_Desktop_v2.2_Windows.zip" "releases\PSV_Sizing_Suite_Web_v2.2_Windows.zip" --clobber
+gh release delete-asset v2.3.0 "PSV_Sizing_Suite_Desktop_v2.3.0_Windows.zip" --yes
+gh release delete-asset v2.3.0 "PSV_Sizing_Suite_Web_v2.3.0_Windows.zip" --yes
+gh release upload v2.3.0 "releases\PSV_Sizing_Suite_Desktop_v2.3.0_Windows.zip" "releases\PSV_Sizing_Suite_Web_v2.3.0_Windows.zip" --clobber
 ```
 
 ### Step 7: Update release notes
 ```bash
-gh release edit v2.2 --notes "<release notes markdown>"
+gh release edit v2.3.0 --notes "<release notes markdown>"
 ```
 
 Include in release notes:
-- Version number (v2.2)
+- Version number (v2.3.0)
 - What's New section with features and fixes
 - Security improvements
 - Engineering fixes

@@ -55,7 +55,7 @@ function App() {
       <Layout>
         <Header style={{ background: '#fff', padding: '0 24px', borderBottom: '1px solid #f0f0f0' }}>
           <Title level={3} style={{ margin: '12px 0' }}>
-            PSV Sizing Suite v2.1
+            PSV Sizing Suite v2.3.0
           </Title>
         </Header>
         <Content style={{ margin: 24 }}>

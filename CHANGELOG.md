@@ -1,8 +1,8 @@
 # Changelog
 
-## v2.2.0 (2026-06-09)
+## v2.3.0 (2026-06-09)
 
-### ✨ Yeni Özellikler (v2.1 → v2.2)
+### ✨ Yeni Özellikler (v2.3.0 → v2.2)
 - Kb back pressure correction eğrisi (balanced bellows, API 520 Fig 11-4/5)
 - Subcooled two-phase flow (API 520 Section 5.8 omega metodu)
 - API 521 fire environment faktörleri (10 kategori)
@@ -15,7 +15,7 @@
 - FastAPI REST API (17 endpoint, Pydantic v2 modelleri)
 - React frontend (Ant Design, 4 hesaplama formu)
 
-### 🔧 İyileştirmeler (v2.1 → v2.2)
+### 🔧 İyileştirmeler (v2.3.0 → v2.2)
 - Zero-dependency embedding (PolyKin/psvpy → pure Python)
 - pytest migration (unittest → pytest)
 - Password hashing (PBKDF2-HMAC-SHA256 + salt)
@@ -55,7 +55,7 @@
 
 ---
 
-## v2.1.0 (Initial Release)
+## v2.3.0.0 (Initial Release)
 - İlk sürüm — temel PSV hesaplamaları (API 520/521)
 - PyQt5 desktop uygulaması
 - Streamlit web uygulaması

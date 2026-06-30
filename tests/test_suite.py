@@ -541,19 +541,20 @@ class TestVersionConsistency(unittest.TestCase):
     def test_desktop_app_version_is_v22(self):
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'desktop', 'app.py'), 'r', encoding='utf-8') as f:
             content = f.read()
-        self.assertIn('v2.2', content)
+        self.assertIn('__version_tag__', content)
+        self.assertIn('APP_VERSION = __version_tag__', content)
         self.assertNotIn('v2.1', content)
 
     def test_web_app_version_is_v22(self):
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'web_app.py'), 'r', encoding='utf-8') as f:
             content = f.read()
-        self.assertIn('v2.2', content)
+        self.assertIn('v2.3.0', content)
         self.assertNotIn('v2.1', content)
 
     def test_report_generator_version_is_v22(self):
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'desktop', 'report_generator.py'), 'r', encoding='utf-8') as f:
             content = f.read()
-        self.assertIn('v2.2', content)
+        self.assertIn('v2.3.0', content)
         self.assertNotIn('v2.1', content)
 
 
@@ -635,7 +636,7 @@ class TestSchemaVersion(unittest.TestCase):
 
     def test_schema_version_constant_is_22(self):
         from desktop.app import SCHEMA_VERSION
-        self.assertEqual(SCHEMA_VERSION, '2.2')
+        self.assertEqual(SCHEMA_VERSION, '2.3')
 
     def test_save_uses_v22_schema(self):
         from desktop.app import SCHEMA_VERSION, PSVSizingApp
@@ -646,7 +647,7 @@ class TestSchemaVersion(unittest.TestCase):
         window = PSVSizingApp(role="user")
         inputs, _ = window.extract_tab_data(window.tabs.currentWidget())
         inputs['__schema_version__'] = SCHEMA_VERSION
-        self.assertEqual(inputs['__schema_version__'], '2.2')
+        self.assertEqual(inputs['__schema_version__'], '2.3')
 
     def test_schema_version_backward_compatible_logic(self):
         from desktop.app import PSVSizingApp
@@ -657,7 +658,7 @@ class TestSchemaVersion(unittest.TestCase):
         window = PSVSizingApp(role="user")
         self.assertTrue(float('2.0') >= 2.0)
         self.assertTrue(float('2.1') >= 2.0)
-        self.assertTrue(float('2.2') >= 2.0)
+        self.assertTrue(float('2.3') >= 2.0)
         self.assertFalse(float('1.0') >= 2.0)
 
 
@@ -734,9 +735,9 @@ class TestUpdateCheck(unittest.TestCase):
 
     def test_parse_version_standard(self):
         from desktop.app import parse_version
-        self.assertEqual(parse_version("v2.2"), (2, 2, 0))
+        self.assertEqual(parse_version("v2.3.0"), (2, 3, 0))
         self.assertEqual(parse_version("v1.0.3"), (1, 0, 3))
-        self.assertEqual(parse_version("2.2"), (2, 2, 0))
+        self.assertEqual(parse_version("2.3"), (2, 3, 0))
         self.assertEqual(parse_version("v10.25.1"), (10, 25, 1))
 
     def test_parse_version_invalid(self):
@@ -747,22 +748,22 @@ class TestUpdateCheck(unittest.TestCase):
 
     def test_version_comparison_newer(self):
         from desktop.app import parse_version
-        self.assertTrue(parse_version("v2.3") > parse_version("v2.2"))
+        self.assertTrue(parse_version("v2.4") > parse_version("v2.3.0"))
         self.assertTrue(parse_version("v3.0") > parse_version("v2.9"))
-        self.assertTrue(parse_version("v2.2.1") > parse_version("v2.2"))
+        self.assertTrue(parse_version("v2.3.1") > parse_version("v2.3.0"))
 
     def test_version_comparison_older(self):
         from desktop.app import parse_version
-        self.assertTrue(parse_version("v2.1") < parse_version("v2.2"))
+        self.assertTrue(parse_version("v2.1") < parse_version("v2.3.0"))
         self.assertTrue(parse_version("v1.9") < parse_version("v2.0"))
 
     def test_version_comparison_equal(self):
         from desktop.app import parse_version
-        self.assertEqual(parse_version("v2.2"), parse_version("v2.2"))
+        self.assertEqual(parse_version("v2.3.0"), parse_version("v2.3.0"))
 
     def test_app_version_constant_exists(self):
         from desktop.app import APP_VERSION
-        self.assertEqual(APP_VERSION, "v2.2")
+        self.assertEqual(APP_VERSION, "v2.3.0")
 
     def test_app_version_in_title(self):
         from desktop.app import APP_VERSION, PSVSizingApp
@@ -823,7 +824,7 @@ class TestUpdateCheck(unittest.TestCase):
         window = PSVSizingApp(role="user")
         def mock_start_immediate(self):
             self.finished.emit({
-                "tag_name": "v2.2",
+                "tag_name": "v2.3.0",
                 "body": "Current release",
                 "html_url": "https://github.com/test/releases/tag/v2.2"
             })

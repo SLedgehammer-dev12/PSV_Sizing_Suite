@@ -104,13 +104,13 @@ def display_results(res, area_key='Required_Area_Final_sqin'):
     return letter
 
 
-st.set_page_config(page_title="PSV Sizing Suite v2.2", layout="wide")
+st.set_page_config(page_title="PSV Sizing Suite v2.3.0", layout="wide")
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.title("PSV Sizing Suite v2.2 - Giris")
+    st.title("PSV Sizing Suite v2.3.0 - Giris")
     col1, col2 = st.columns([1, 2])
     with col1:
         username = st.text_input("Kullanici Adi")
@@ -125,7 +125,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 st.sidebar.title("PSV Sizing Suite")
-st.sidebar.markdown("Muhendislik Hesaplama Platformu (v2.2)")
+st.sidebar.markdown("Muhendislik Hesaplama Platformu (v2.3.0)")
 
 page = st.sidebar.radio("Modül Seçimi", [
     "1. Liquid Relief (Sıvı Tahliye)",
@@ -448,6 +448,6 @@ elif page == "6. Thermal Expansion (Termal Genleşme)":
 
 else:
     st.markdown("### Hakkında")
-    st.write("PSV Sizing Suite - Gelişmiş Web Tabanlı Mühendislik Platformu v2.2")
+    st.write("PSV Sizing Suite - Gelişmiş Web Tabanlı Mühendislik Platformu v2.3.0")
     st.write("Hesaplamalar API 520 Bölüm 1 ve API 521 yönergelerine göre yapılmaktadır.")
     st.write("6 modül: Liquid Relief, Gas/Vapor Relief, Two-Phase Flashing, Fire Wetted, Fire Unwetted, Thermal Expansion")
