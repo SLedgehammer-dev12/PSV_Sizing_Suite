@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import re
 
 # Add parent directory to path so 'core' and 'desktop' can be imported
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,14 +13,27 @@ from desktop.tabs import LiquidReliefTab, GasReliefTab, TwoPhaseReliefTab
 from desktop.tabs_extra import FireWettedTab, FireUnwettedTab, ThermalExpansionTab
 from desktop.report_generator import generate_and_open_report
 from desktop.graph_window import PlotWindow
-from desktop.auth import check_login, change_password
+from desktop.auth import check_login, change_password, must_change_password, set_password_changed, get_lockout_remaining
+from desktop.workers import UpdateCheckWorker
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QDialogButtonBox, QInputDialog
+
+APP_VERSION = "v2.2"
+SCHEMA_VERSION = '2.2'
+GITHUB_RELEASES_URL = "https://api.github.com/repos/SLedgehammer-dev12/PSV_Sizing_Suite/releases/latest"
+GITHUB_RELEASES_PAGE = "https://github.com/SLedgehammer-dev12/PSV_Sizing_Suite/releases/latest"
+
+
+def parse_version(version_str):
+    match = re.search(r"v?(\d+)\.(\d+)(?:\.(\d+))?", version_str)
+    if not match:
+        return (0, 0, 0)
+    return (int(match.group(1)), int(match.group(2)), int(match.group(3) or 0))
 
 class PSVSizingApp(QMainWindow):
     def __init__(self, role="user"):
         super().__init__()
         self.role = role
-        self.setWindowTitle(f"PSV Sizing Suite - Advanced Engineering v2.1 ({self.role.upper()})")
+        self.setWindowTitle(f"PSV Sizing Suite - Advanced Engineering {APP_VERSION} ({self.role.upper()})")
         self.setMinimumSize(950, 700)
         self.init_ui()
         self.create_menus()
@@ -145,26 +159,66 @@ class PSVSizingApp(QMainWindow):
                     obj.setCurrentText(str(val))
 
     def save_state(self):
-        current_tab = self.tabs.currentWidget()
-        inputs, _ = self.extract_tab_data(current_tab)
-        
+        all_tabs_data = {}
+        tab_names = ["liquid", "gas", "twophase", "fire_wetted", "fire_unwetted", "thermal"]
+        tab_widgets = [self.tab_liquid, self.tab_gas, self.tab_twophase,
+                       self.tab_fire_wetted, self.tab_fire_unwetted, self.tab_thermal]
+
+        for name, widget in zip(tab_names, tab_widgets):
+            inputs, _ = self.extract_tab_data(widget)
+            all_tabs_data[name] = inputs
+
+        all_tabs_data['__schema_version__'] = SCHEMA_VERSION
+        all_tabs_data['__current_tab__'] = self.tabs.tabText(self.tabs.currentIndex())
+
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, "Verileri Kaydet", "", "JSON Files (*.json);;All Files (*)", options=options)
+        file_path, _ = QFileDialog.getSaveFileName(self, "Projeyi Kaydet", "", "JSON Files (*.json);;All Files (*)", options=options)
         if file_path:
             with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(inputs, f, indent=4)
-            QMessageBox.information(self, "Başarılı", "Girdi değerleri başarıyla kaydedildi!")
+                json.dump(all_tabs_data, f, indent=4)
+            QMessageBox.information(self, "Başarılı", "Tüm girdi değerleri başarıyla kaydedildi!")
 
     def load_state(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Verileri Yükle", "", "JSON Files (*.json);;All Files (*)", options=options)
+        file_path, _ = QFileDialog.getOpenFileName(self, "Projeyi Yükle", "", "JSON Files (*.json);;All Files (*)", options=options)
         if file_path:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    inputs = json.load(f)
-                current_tab = self.tabs.currentWidget()
-                self.restore_tab_data(current_tab, inputs)
-                QMessageBox.information(self, "Başarılı", "Girdi değerleri yüklendi!")
+                    data = json.load(f)
+
+                schema_ver = data.get('__schema_version__', '1.0')
+                try:
+                    schema_num = float(schema_ver)
+                except ValueError:
+                    schema_num = 1.0
+                if schema_num < 2.0:
+                    reply = QMessageBox.question(self, "Uyumluluk",
+                        f"Bu dosya v{schema_ver} formatında. Yüklenebilir ancak bazı alanlar eksik olabilir. Devam etmek istiyor musunuz?",
+                        QMessageBox.Yes | QMessageBox.No)
+                    if reply == QMessageBox.No:
+                        return
+
+                tab_names = ["liquid", "gas", "twophase", "fire_wetted", "fire_unwetted", "thermal"]
+                tab_widgets = [self.tab_liquid, self.tab_gas, self.tab_twophase,
+                               self.tab_fire_wetted, self.tab_fire_unwetted, self.tab_thermal]
+
+                if 'tabs' in data:
+                    for name, widget in zip(tab_names, tab_widgets):
+                        if name in data['tabs']:
+                            self.restore_tab_data(widget, data['tabs'][name])
+                else:
+                    for name, widget in zip(tab_names, tab_widgets):
+                        if name in data:
+                            self.restore_tab_data(widget, data[name])
+
+                current_tab_name = data.get('__current_tab__', data.get('__tab_name__'))
+                if current_tab_name:
+                    for i in range(self.tabs.count()):
+                        if self.tabs.tabText(i) == current_tab_name:
+                            self.tabs.setCurrentIndex(i)
+                            break
+
+                QMessageBox.information(self, "Başarılı", "Tüm girdi değerleri yüklendi!")
             except Exception as e:
                 QMessageBox.critical(self, "Hata", f"Dosya okunamadı: {e}")
 
@@ -203,13 +257,80 @@ class PSVSizingApp(QMainWindow):
         self.plot_win.exec_()
 
     def check_update(self):
-        QMessageBox.information(self, "Güncelleme", "PSV Sizing Suite (v2.1)\n\nProgramınız güncel.")
+        self.calc_btn_update = self.sender()
+        if self.calc_btn_update:
+            self.calc_btn_update.setEnabled(False)
+        self._update_status = QLabel("Güncelleme kontrol ediliyor...", self)
+        self._update_status.setStyleSheet("color: #7f8c8d; font-style: italic;")
+        self.statusBar().addWidget(self._update_status)
+
+        self.update_worker = UpdateCheckWorker(GITHUB_RELEASES_URL)
+        self.update_worker.finished.connect(self._on_update_check_success)
+        self.update_worker.error.connect(self._on_update_check_error)
+        self.update_worker.start()
+
+    def _on_update_check_success(self, data):
+        if hasattr(self, '_update_status'):
+            self.statusBar().removeWidget(self._update_status)
+            del self._update_status
+        if self.calc_btn_update:
+            self.calc_btn_update.setEnabled(True)
+
+        latest_tag = data.get("tag_name", "")
+        release_notes = data.get("body", "")
+        html_url = data.get("html_url", GITHUB_RELEASES_PAGE)
+
+        if not latest_tag:
+            self._show_update_error("Sürüm bilgisi alınamadı.")
+            return
+
+        current = parse_version(APP_VERSION)
+        latest = parse_version(latest_tag)
+
+        if latest > current:
+            self._show_update_available(latest_tag, release_notes, html_url)
+        else:
+            QMessageBox.information(self, "Güncelleme", f"PSV Sizing Suite ({APP_VERSION})\n\nProgramınız güncel.")
+
+    def _on_update_check_error(self, err_msg):
+        if hasattr(self, '_update_status'):
+            self.statusBar().removeWidget(self._update_status)
+            del self._update_status
+        if self.calc_btn_update:
+            self.calc_btn_update.setEnabled(True)
+        self._show_update_error(err_msg)
+
+    def _show_update_available(self, tag, notes, url):
+        notes_preview = (notes[:500] + "...") if len(notes) > 500 else notes
+        msg = (
+            f"Yeni sürüm mevcut: {tag}\n"
+            f"Mevcut sürüm: {APP_VERSION}\n\n"
+            f"Değişiklikler:\n{notes_preview}\n\n"
+            f"İndirmek için 'Evet' butonuna basın."
+        )
+        reply = QMessageBox.question(self, "Güncelleme Mevcut", msg, QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            import webbrowser
+            webbrowser.open(url)
+
+    def _show_update_error(self, reason):
+        QMessageBox.warning(
+            self, "Güncelleme Hatası",
+            f"{reason}\n\nLütfen internet bağlantınızı kontrol edin veya "
+            f"{GITHUB_RELEASES_PAGE} adresini ziyaret edin."
+        )
 
     def change_user_pw(self):
-        new_pw, ok = QInputDialog.getText(self, "Şifre Değiştir", "Yeni Kullanıcı Şifresini Girin:", QLineEdit.Password)
-        if ok and new_pw:
+        admin_pw, ok = QInputDialog.getText(self, "Admin Dogrulama", "Admin sifrenizi tekrar girin:", QLineEdit.Password)
+        if not ok or not check_login("admin", admin_pw):
+            QMessageBox.warning(self, "Hata", "Admin sifresi dogrulanamadi!")
+            return
+        new_pw, ok = QInputDialog.getText(self, "Sifre Degistir", "Yeni Kullanici Sifresini Girin (en az 8 karakter):", QLineEdit.Password)
+        if ok and new_pw and len(new_pw) >= 8:
             change_password("user", new_pw)
-            QMessageBox.information(self, "Başarılı", "Kullanıcı şifresi başarıyla değiştirildi!")
+            QMessageBox.information(self, "Basarili", "Kullanici sifresi basariyla degistirildi!")
+        elif ok:
+            QMessageBox.warning(self, "Hata", "Sifre en az 8 karakter olmalidir.")
 
 class LoginDialog(QDialog):
     def __init__(self):
@@ -243,19 +364,47 @@ class LoginDialog(QDialog):
     def attempt_login(self):
         username = self.user_input.currentText()
         password = self.pw_input.text()
-        
+
+        lockout = get_lockout_remaining(username)
+        if lockout > 0:
+            mins = lockout // 60
+            secs = lockout % 60
+            QMessageBox.warning(self, "Hesap Kilitlendi",
+                f"Cok fazla hatali giris denemesi. Lutfen {mins} dakika {secs} saniye sonra tekrar deneyin.")
+            return
+
         if check_login(username, password):
             self.role = username
-            self.accept()
+            if must_change_password(username):
+                self._prompt_password_change(username)
+            else:
+                self.accept()
         else:
-            QMessageBox.warning(self, "Hata", "Hatalı şifre! Lütfen tekrar deneyin.")
+            QMessageBox.warning(self, "Hata", "Hatali sifre! Lutfen tekrar deneyin.")
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
-    
-    login = LoginDialog()
-    if login.exec_() == QDialog.Accepted:
-        window = PSVSizingApp(role=login.role)
-        window.show()
-        sys.exit(app.exec_())
+    def _prompt_password_change(self, username):
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Sifre Degisimi Gerekli")
+        msg.setText("Guvenlik nedeniyle sifrenizi degistirmeniz gerekmektedir.")
+        msg.setInformativeText("Varsayilan sifre ile giris yapilamaz. Lutfen yeni bir sifre belirleyin.")
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+        if msg.exec_() != QMessageBox.Ok:
+            return
+
+        while True:
+            new_pw, ok = QInputDialog.getText(self, "Yeni Sifre", "Yeni sifrenizi girin (en az 8 karakter):", QLineEdit.Password)
+            if not ok:
+                return
+            if not new_pw:
+                QMessageBox.warning(self, "Hata", "Sifre bos birakilamaz.")
+                continue
+            if len(new_pw) < 8:
+                QMessageBox.warning(self, "Hata", "Sifre en az 8 karakter olmalidir.")
+                continue
+            change_password(username, new_pw)
+            set_password_changed(username)
+            QMessageBox.information(self, "Basarili", "Sifreniz basariyla degistirildi!")
+            self.accept()
+            break

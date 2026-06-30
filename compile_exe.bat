@@ -1,29 +1,25 @@
 @echo off
-:: Read version from core module
-for /f "tokens=*" %%i in ('python -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)"') do set VERSION=%%i
-if "%VERSION%"=="" set VERSION=v2.2.0
+echo =======================================================
+echo PSV SIZING SUITE v2.2 - EXE BUILD TOOL
+echo =======================================================
+echo This script creates a clean venv and builds both EXEs.
+echo Run from project root directory.
+echo =======================================================
+echo.
 
-echo =======================================================
-echo PSV SIZING SUITE %VERSION% - EXE OLUSTURMA ARACI
-echo =======================================================
-echo UYARI: Eger bu klasor yolunda (D:\Is\Calisan...) Turkce 
-echo karakterler varsa PyInstaller hata verecektir.
-echo Bu klasoru kopyalayip C:\PSV_Sizing gibi Turkce 
-echo karakter icermeyen bir yere tasiyip bu dosyayi 
-echo orada calistirmaniz tavsiye edilir.
-echo =======================================================
-pause
-
-echo Gerekli kutuphaneler yukleniyor...
+echo Installing dependencies...
 python -m venv venv_build
 call venv_build\Scripts\activate.bat
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install pyinstaller
 
-echo EXE Derleniyor...
-pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_%VERSION%_Desktop" --hidden-import "core.advanced_sizing" --add-data "vendor_data;vendor_data" "main.py"
-pyinstaller --noconsole --onedir --name "PSV_Sizing_Suite_%VERSION%_Web" --hidden-import "core.advanced_sizing" --add-data "vendor_data;vendor_data" --add-data "web_app.py;." "run_streamlit.py"
+echo.
+echo Building EXEs...
+pyinstaller --name PSV_Sizing_Suite_Desktop_v2.2_Windows --windowed --add-data "core;core" --add-data "desktop;desktop" --add-data "vendor_data;vendor_data" --hidden-import core --hidden-import core.thermo_props --hidden-import core.unit_converter --hidden-import core.vendor_catalog --hidden-import bcrypt main.py -y
 
-echo Islemler tamamlandi. Sonuclari 'dist' klasorunde bulabilirsiniz.
+pyinstaller --name PSV_Sizing_Suite_Web_v2.2_Windows --windowed --add-data "core;core" --add-data "web_app.py;." --add-data "vendor_data;vendor_data" --hidden-import core --hidden-import core.thermo_props --hidden-import core.unit_converter --hidden-import core.vendor_catalog --hidden-import bcrypt run_streamlit.py -y
+
+echo.
+echo Build complete! Output in dist\ directory.
 pause

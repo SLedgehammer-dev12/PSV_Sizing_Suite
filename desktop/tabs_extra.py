@@ -1,11 +1,14 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, 
-                             QLineEdit, QComboBox, QPushButton, QLabel, 
-                             QMessageBox, QGroupBox, QProgressBar)
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
+                             QLineEdit, QComboBox, QPushButton, QLabel,
+                             QMessageBox, QGroupBox, QProgressBar, QScrollArea, QGridLayout)
 from PyQt5.QtGui import QFont
 
-from core.unit_converter import (barg_to_psia, sqft_to_m2, m2_to_sqft, 
+from core.unit_converter import (barg_to_psia, m2_to_sqft,
                                  c_to_rankine, kcal_kg_to_btu_lb, kw_to_btu_h, kcal_h_to_btu_h)
 from desktop.workers import FireWettedWorker, FireUnwettedWorker, ThermalWorker
+from desktop.vendor_window import VendorTableWidget
+from desktop.report_generator import generate_and_open_report
+from desktop.graph_window import PlotWindow
 
 class FireWettedTab(QWidget):
     def __init__(self):
@@ -17,7 +20,6 @@ class FireWettedTab(QWidget):
         input_group = QGroupBox("Inputs (Fire Wetted)")
         form_layout = QFormLayout()
 
-        # Wetted Area
         area_layout = QHBoxLayout()
         self.area_input = QLineEdit("12.836")
         self.area_unit = QComboBox()
@@ -26,7 +28,6 @@ class FireWettedTab(QWidget):
         area_layout.addWidget(self.area_unit)
         form_layout.addRow("Wetted Area:", area_layout)
 
-        # Heat of Vaporization
         hvap_layout = QHBoxLayout()
         self.hvap_input = QLineEdit("50")
         self.hvap_unit = QComboBox()
@@ -35,7 +36,6 @@ class FireWettedTab(QWidget):
         hvap_layout.addWidget(self.hvap_unit)
         form_layout.addRow("Latent Heat of Vap.:", hvap_layout)
 
-        # Relieving Pressure
         p1_layout = QHBoxLayout()
         self.p1_input = QLineEdit("16.94")
         self.p1_unit = QComboBox()
@@ -43,15 +43,6 @@ class FireWettedTab(QWidget):
         p1_layout.addWidget(self.p1_input)
         p1_layout.addWidget(self.p1_unit)
         form_layout.addRow("Relieving Pressure (P1):", p1_layout)
-
-        # Back Pressure
-        p2_layout = QHBoxLayout()
-        self.p2_input = QLineEdit("14.7")
-        self.p2_unit = QComboBox()
-        self.p2_unit.addItems(["barg", "psia"])
-        p2_layout.addWidget(self.p2_input)
-        p2_layout.addWidget(self.p2_unit)
-        form_layout.addRow("Back Pressure (P2):", p2_layout)
 
         self.t_input = QLineEdit("564.67")
         form_layout.addRow("Gas Temp (°R):", self.t_input)
@@ -68,54 +59,112 @@ class FireWettedTab(QWidget):
         self.f_input = QLineEdit("1.0")
         form_layout.addRow("Environment Factor (F):", self.f_input)
 
+        p2_layout = QHBoxLayout()
+        self.p2_input = QLineEdit("14.7")
+        self.p2_unit = QComboBox()
+        self.p2_unit.addItems(["barg", "psia"])
+        p2_layout.addWidget(self.p2_input)
+        p2_layout.addWidget(self.p2_unit)
+        form_layout.addRow("Back Pressure (P2):", p2_layout)
+
         input_group.setLayout(form_layout)
         main_layout.addWidget(input_group)
 
+        self.btn_layout = QHBoxLayout()
+
         self.calc_btn = QPushButton("HESAPLA (CALCULATE)")
-        self.calc_btn.setMinimumHeight(40)
-        self.calc_btn.setStyleSheet("font-weight: bold; background-color: #e74c3c; color: white;")
+        self.calc_btn.setMinimumHeight(45)
+        self.calc_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #e74c3c; color: white; border-radius: 5px;")
         self.calc_btn.clicked.connect(self.run_calculation)
-        
+
+        self.pdf_btn = QPushButton("PDF ÇIKTISI (EXPORT PDF)")
+        self.pdf_btn.setMinimumHeight(45)
+        self.pdf_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #27ae60; color: white; border-radius: 5px;")
+        self.pdf_btn.clicked.connect(self.export_pdf)
+
+        self.graph_btn = QPushButton("GRAFİK (SHOW GRAPH)")
+        self.graph_btn.setMinimumHeight(45)
+        self.graph_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #8e44ad; color: white; border-radius: 5px;")
+        self.graph_btn.clicked.connect(self.show_graph)
+
+        self.btn_layout.addWidget(self.calc_btn)
+        self.btn_layout.addWidget(self.pdf_btn)
+        self.btn_layout.addWidget(self.graph_btn)
+
         self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
         self.progress.setVisible(False)
 
         main_layout.addWidget(self.progress)
-        main_layout.addWidget(self.calc_btn)
+        main_layout.addLayout(self.btn_layout)
 
         result_group = QGroupBox("Results")
-        res_layout = QFormLayout()
-        
+        result_group.setStyleSheet("QGroupBox { background-color: #f8f9fa; border: 1px solid #dcdde1; border-radius: 5px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; font-weight: bold; color: #2c3e50; }")
+        res_layout = QGridLayout()
+
         self.res_q = QLabel("-")
         self.res_w = QLabel("-")
         self.res_area = QLabel("-")
         self.res_orifice = QLabel("-")
-        
+
         res_font = QFont("Arial", 11, QFont.Bold)
         self.res_area.setFont(res_font)
         self.res_orifice.setFont(res_font)
+        self.res_area.setStyleSheet("color: #27ae60;")
+        self.res_orifice.setStyleSheet("color: #c0392b;")
 
-        res_layout.addRow("Heat Absorption (Btu/h):", self.res_q)
-        res_layout.addRow("Relief Load (lb/h):", self.res_w)
-        res_layout.addRow("Required Area:", self.res_area)
-        res_layout.addRow("Selected API Orifice:", self.res_orifice)
+        self.res_area_unit = QComboBox()
+        self.res_area_unit.addItems(["mm²", "sq.inch"])
+        self.res_area_unit.currentTextChanged.connect(self.update_result_units)
+
+        res_layout.addWidget(QLabel("Heat Absorption (Btu/h):"), 0, 0)
+        res_layout.addWidget(self.res_q, 0, 1)
+        res_layout.addWidget(QLabel("Relief Load (lb/h):"), 0, 2)
+        res_layout.addWidget(self.res_w, 0, 3)
+
+        res_layout.addWidget(QLabel("<b>Required Area:</b>"), 1, 0)
+        res_layout.addWidget(self.res_area, 1, 1)
+        res_layout.addWidget(QLabel("<b>Unit:</b>"), 1, 2)
+        res_layout.addWidget(self.res_area_unit, 1, 3)
+
+        res_layout.addWidget(QLabel("<b>Selected API Orifice:</b>"), 2, 0)
+        res_layout.addWidget(self.res_orifice, 2, 1, 1, 3)
 
         result_group.setLayout(res_layout)
+
+        vendor_group = QGroupBox("Uygun Ticari Vanalar (Vendor DB)")
+        vendor_layout = QVBoxLayout()
+        self.vendor_table_widget = VendorTableWidget()
+        vendor_layout.addWidget(self.vendor_table_widget)
+        vendor_group.setLayout(vendor_layout)
+
         main_layout.addWidget(result_group)
+        main_layout.addWidget(vendor_group)
         main_layout.addStretch()
 
-        self.setLayout(main_layout)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        container = QWidget()
+        container.setLayout(main_layout)
+        scroll.setWidget(container)
+
+        wrapper = QVBoxLayout()
+        wrapper.setContentsMargins(0, 0, 0, 0)
+        wrapper.addWidget(scroll)
+        self.setLayout(wrapper)
 
     def run_calculation(self):
         try:
             area = float(self.area_input.text())
             hvap = float(self.hvap_input.text())
             p1 = float(self.p1_input.text())
-            p2 = float(self.p2_input.text())
             t = float(self.t_input.text())
             z = float(self.z_input.text())
             mw = float(self.mw_input.text())
             k = float(self.k_input.text())
             f = float(self.f_input.text())
+            p2 = float(self.p2_input.text())
 
             if self.area_unit.currentText() == "m2":
                 area = m2_to_sqft(area)
@@ -130,30 +179,82 @@ class FireWettedTab(QWidget):
                 'a_wetted': area, 'h_vap': hvap, 'p1_psia': p1, 'p2_psia': p2,
                 't_rankine': t, 'z': z, 'mw': mw, 'k': k, 'f_factor': f
             }
+            self.last_inputs = inputs
 
             self.calc_btn.setEnabled(False)
             self.progress.setVisible(True)
             self.res_area.setText("Calculating...")
-            
+
             self.worker = FireWettedWorker(inputs)
             self.worker.finished.connect(self.on_calc_success)
             self.worker.error.connect(self.on_calc_error)
             self.worker.start()
         except ValueError:
-            QMessageBox.warning(self, "Input Error", "Invalid numbers.")
+            QMessageBox.warning(self, "Input Error", "Please enter valid numerical values.")
+        except Exception as e:
+            QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
 
     def on_calc_success(self, res):
         self.calc_btn.setEnabled(True)
         self.progress.setVisible(False)
+        self.last_res = res
+        self.update_result_units()
         self.res_q.setText(f"{res['Heat_Absorption_Btu_h']:.2f}")
         self.res_w.setText(f"{res['Relief_Load_lb_h']:.2f}")
-        self.res_area.setText(f"{res['Required_Area_sqin']:.4f} sq.inch")
-        self.res_orifice.setText(f"{res['Selected_Orifice_Letter']} ({res['Selected_Orifice_Area_sqin']} sq.inch)")
+        self.vendor_table_widget.update_valves(res['Selected_Orifice_Letter'])
+
+    def update_result_units(self):
+        if not hasattr(self, 'last_res'): return
+        res = self.last_res
+        unit = self.res_area_unit.currentText()
+        mult = 645.16 if unit == "mm²" else 1.0
+
+        req_area = res.get('Required_Area_sqin', 0) * mult
+        sel_area = res.get('Selected_Orifice_Area_sqin', 0)
+        if isinstance(sel_area, (int, float)): sel_area *= mult
+
+        self.res_area.setText(f"{req_area:.4f} {unit}")
+
+        letter = res.get('Selected_Orifice_Letter', '-')
+        if "Multiple" in str(letter):
+            self.res_orifice.setStyleSheet("color: white; background-color: #e74c3c; font-weight: bold; padding: 2px; border-radius: 3px;")
+            self.res_orifice.setText(f"DİKKAT: 'T' Orifisini aştı! Lütfen Paralel Vana Sayısını artırın.")
+        elif letter != '-':
+            self.res_orifice.setStyleSheet("color: #c0392b; font-weight: bold;")
+            self.res_orifice.setText(f"{letter} ({sel_area:.2f} {unit})")
+        else:
+            self.res_orifice.setText("-")
+
+    def export_pdf(self):
+        if not hasattr(self, 'last_res'):
+            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
+            return
+        results = {
+            "Heat Absorption (Btu/h)": self.res_q.text(),
+            "Relief Load (lb/h)": self.res_w.text(),
+            "Required Area": self.res_area.text(),
+            "Selected API Orifice": self.res_orifice.text()
+        }
+        generate_and_open_report("Fire (Wetted)", self.last_inputs, results)
+
+    def show_graph(self):
+        if not hasattr(self, 'last_res'):
+            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
+            return
+        results = {
+            "res_area": self.res_area.text(),
+            "res_orifice": self.res_orifice.text(),
+            "req_area_sqin": self.last_res.get('Required_Area_sqin', 0),
+            "sel_area_sqin": self.last_res.get('Selected_Orifice_Area_sqin', 0)
+        }
+        self.plot_win = PlotWindow(self, "Fire (Wetted)", self.last_inputs, results)
+        self.plot_win.exec_()
 
     def on_calc_error(self, err_msg):
         self.calc_btn.setEnabled(True)
         self.progress.setVisible(False)
-        QMessageBox.critical(self, "Error", err_msg)
+        self.res_area.setText("Error")
+        QMessageBox.critical(self, "Calculation Error", err_msg)
 
 
 class FireUnwettedTab(QWidget):
@@ -166,7 +267,6 @@ class FireUnwettedTab(QWidget):
         input_group = QGroupBox("Inputs (Fire Unwetted)")
         form_layout = QFormLayout()
 
-        # Exposed Area
         area_layout = QHBoxLayout()
         self.area_input = QLineEdit("44.177")
         self.area_unit = QComboBox()
@@ -175,7 +275,6 @@ class FireUnwettedTab(QWidget):
         area_layout.addWidget(self.area_unit)
         form_layout.addRow("Exposed Area:", area_layout)
 
-        # Relieving Pressure
         p1_layout = QHBoxLayout()
         self.p1_input = QLineEdit("16.94")
         self.p1_unit = QComboBox()
@@ -196,37 +295,85 @@ class FireUnwettedTab(QWidget):
         input_group.setLayout(form_layout)
         main_layout.addWidget(input_group)
 
+        self.btn_layout = QHBoxLayout()
+
         self.calc_btn = QPushButton("HESAPLA (CALCULATE)")
-        self.calc_btn.setMinimumHeight(40)
-        self.calc_btn.setStyleSheet("font-weight: bold; background-color: #d35400; color: white;")
+        self.calc_btn.setMinimumHeight(45)
+        self.calc_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #d35400; color: white; border-radius: 5px;")
         self.calc_btn.clicked.connect(self.run_calculation)
-        
+
+        self.pdf_btn = QPushButton("PDF ÇIKTISI (EXPORT PDF)")
+        self.pdf_btn.setMinimumHeight(45)
+        self.pdf_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #27ae60; color: white; border-radius: 5px;")
+        self.pdf_btn.clicked.connect(self.export_pdf)
+
+        self.graph_btn = QPushButton("GRAFİK (SHOW GRAPH)")
+        self.graph_btn.setMinimumHeight(45)
+        self.graph_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #8e44ad; color: white; border-radius: 5px;")
+        self.graph_btn.clicked.connect(self.show_graph)
+
+        self.btn_layout.addWidget(self.calc_btn)
+        self.btn_layout.addWidget(self.pdf_btn)
+        self.btn_layout.addWidget(self.graph_btn)
+
         self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
         self.progress.setVisible(False)
 
         main_layout.addWidget(self.progress)
-        main_layout.addWidget(self.calc_btn)
+        main_layout.addLayout(self.btn_layout)
 
         result_group = QGroupBox("Results")
-        res_layout = QFormLayout()
-        
+        result_group.setStyleSheet("QGroupBox { background-color: #f8f9fa; border: 1px solid #dcdde1; border-radius: 5px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; font-weight: bold; color: #2c3e50; }")
+        res_layout = QGridLayout()
+
         self.res_fprime = QLabel("-")
         self.res_area = QLabel("-")
         self.res_orifice = QLabel("-")
-        
+
         res_font = QFont("Arial", 11, QFont.Bold)
         self.res_area.setFont(res_font)
         self.res_orifice.setFont(res_font)
+        self.res_area.setStyleSheet("color: #27ae60;")
+        self.res_orifice.setStyleSheet("color: #c0392b;")
 
-        res_layout.addRow("F' Factor:", self.res_fprime)
-        res_layout.addRow("Required Area:", self.res_area)
-        res_layout.addRow("Selected API Orifice:", self.res_orifice)
+        self.res_area_unit = QComboBox()
+        self.res_area_unit.addItems(["mm²", "sq.inch"])
+        self.res_area_unit.currentTextChanged.connect(self.update_result_units)
+
+        res_layout.addWidget(QLabel("F' Factor:"), 0, 0)
+        res_layout.addWidget(self.res_fprime, 0, 1)
+        res_layout.addWidget(QLabel("<b>Required Area:</b>"), 1, 0)
+        res_layout.addWidget(self.res_area, 1, 1)
+        res_layout.addWidget(QLabel("<b>Unit:</b>"), 1, 2)
+        res_layout.addWidget(self.res_area_unit, 1, 3)
+
+        res_layout.addWidget(QLabel("<b>Selected API Orifice:</b>"), 2, 0)
+        res_layout.addWidget(self.res_orifice, 2, 1, 1, 3)
 
         result_group.setLayout(res_layout)
+
+        vendor_group = QGroupBox("Uygun Ticari Vanalar (Vendor DB)")
+        vendor_layout = QVBoxLayout()
+        self.vendor_table_widget = VendorTableWidget()
+        vendor_layout.addWidget(self.vendor_table_widget)
+        vendor_group.setLayout(vendor_layout)
+
         main_layout.addWidget(result_group)
+        main_layout.addWidget(vendor_group)
         main_layout.addStretch()
 
-        self.setLayout(main_layout)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        container = QWidget()
+        container.setLayout(main_layout)
+        scroll.setWidget(container)
+
+        wrapper = QVBoxLayout()
+        wrapper.setContentsMargins(0, 0, 0, 0)
+        wrapper.addWidget(scroll)
+        self.setLayout(wrapper)
 
     def run_calculation(self):
         try:
@@ -242,32 +389,83 @@ class FireUnwettedTab(QWidget):
                 p1 = barg_to_psia(p1)
 
             inputs = {
-                'a_exposed': area, 'p1_psia': p1, 
+                'a_exposed': area, 'p1_psia': p1,
                 't_gas': tgas, 't_wall': twall, 'k': k
             }
+            self.last_inputs = inputs
 
             self.calc_btn.setEnabled(False)
             self.progress.setVisible(True)
             self.res_area.setText("Calculating...")
-            
+
             self.worker = FireUnwettedWorker(inputs)
             self.worker.finished.connect(self.on_calc_success)
             self.worker.error.connect(self.on_calc_error)
             self.worker.start()
         except ValueError:
-            QMessageBox.warning(self, "Input Error", "Invalid numbers.")
+            QMessageBox.warning(self, "Input Error", "Please enter valid numerical values.")
+        except Exception as e:
+            QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
 
     def on_calc_success(self, res):
         self.calc_btn.setEnabled(True)
         self.progress.setVisible(False)
+        self.last_res = res
+        self.update_result_units()
         self.res_fprime.setText(f"{res['F_Prime']:.5f}")
-        self.res_area.setText(f"{res['Required_Area_sqin']:.4f} sq.inch")
-        self.res_orifice.setText(f"{res['Selected_Orifice_Letter']} ({res['Selected_Orifice_Area_sqin']} sq.inch)")
+        self.vendor_table_widget.update_valves(res['Selected_Orifice_Letter'])
+
+    def update_result_units(self):
+        if not hasattr(self, 'last_res'): return
+        res = self.last_res
+        unit = self.res_area_unit.currentText()
+        mult = 645.16 if unit == "mm²" else 1.0
+
+        req_area = res.get('Required_Area_sqin', 0) * mult
+        sel_area = res.get('Selected_Orifice_Area_sqin', 0)
+        if isinstance(sel_area, (int, float)): sel_area *= mult
+
+        self.res_area.setText(f"{req_area:.4f} {unit}")
+
+        letter = res.get('Selected_Orifice_Letter', '-')
+        if "Multiple" in str(letter):
+            self.res_orifice.setStyleSheet("color: white; background-color: #e74c3c; font-weight: bold; padding: 2px; border-radius: 3px;")
+            self.res_orifice.setText(f"DİKKAT: 'T' Orifisini aştı! Lütfen Paralel Vana Sayısını artırın.")
+        elif letter != '-':
+            self.res_orifice.setStyleSheet("color: #c0392b; font-weight: bold;")
+            self.res_orifice.setText(f"{letter} ({sel_area:.2f} {unit})")
+        else:
+            self.res_orifice.setText("-")
+
+    def export_pdf(self):
+        if not hasattr(self, 'last_res'):
+            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
+            return
+        results = {
+            "F' Factor": self.res_fprime.text(),
+            "Required Area": self.res_area.text(),
+            "Selected API Orifice": self.res_orifice.text()
+        }
+        generate_and_open_report("Fire (Unwetted)", self.last_inputs, results)
+
+    def show_graph(self):
+        if not hasattr(self, 'last_res'):
+            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
+            return
+        results = {
+            "res_area": self.res_area.text(),
+            "res_orifice": self.res_orifice.text(),
+            "req_area_sqin": self.last_res.get('Required_Area_sqin', 0),
+            "sel_area_sqin": self.last_res.get('Selected_Orifice_Area_sqin', 0)
+        }
+        self.plot_win = PlotWindow(self, "Fire (Unwetted)", self.last_inputs, results)
+        self.plot_win.exec_()
 
     def on_calc_error(self, err_msg):
         self.calc_btn.setEnabled(True)
         self.progress.setVisible(False)
-        QMessageBox.critical(self, "Error", err_msg)
+        self.res_area.setText("Error")
+        QMessageBox.critical(self, "Calculation Error", err_msg)
 
 
 class ThermalExpansionTab(QWidget):
@@ -280,7 +478,6 @@ class ThermalExpansionTab(QWidget):
         input_group = QGroupBox("Inputs (Hydraulic Expansion)")
         form_layout = QFormLayout()
 
-        # Heat Transfer
         h_layout = QHBoxLayout()
         self.h_input = QLineEdit("2100")
         self.h_unit = QComboBox()
@@ -301,7 +498,6 @@ class ThermalExpansionTab(QWidget):
         self.mu_input = QLineEdit("51.0")
         form_layout.addRow("Viscosity (cP):", self.mu_input)
 
-        # Relieving Pressure
         p1_layout = QHBoxLayout()
         self.p1_input = QLineEdit("16.94")
         self.p1_unit = QComboBox()
@@ -318,48 +514,88 @@ class ThermalExpansionTab(QWidget):
         p2_layout.addWidget(self.p2_unit)
         form_layout.addRow("Back Pressure (P2):", p2_layout)
 
-        # Valve configuration
-        self.num_valves_input = QLineEdit("1")
-        form_layout.addRow("Number of Parallel Valves:", self.num_valves_input)
-
-        self.valve_type_combo = QComboBox()
-        self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
-        form_layout.addRow("Valve Type:", self.valve_type_combo)
-
         input_group.setLayout(form_layout)
         main_layout.addWidget(input_group)
-        
+
+        self.btn_layout = QHBoxLayout()
+
         self.calc_btn = QPushButton("HESAPLA (CALCULATE)")
-        self.calc_btn.setMinimumHeight(40)
-        self.calc_btn.setStyleSheet("font-weight: bold; background-color: #2980b9; color: white;")
+        self.calc_btn.setMinimumHeight(45)
+        self.calc_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #2980b9; color: white; border-radius: 5px;")
         self.calc_btn.clicked.connect(self.run_calculation)
-        
+
+        self.pdf_btn = QPushButton("PDF ÇIKTISI (EXPORT PDF)")
+        self.pdf_btn.setMinimumHeight(45)
+        self.pdf_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #27ae60; color: white; border-radius: 5px;")
+        self.pdf_btn.clicked.connect(self.export_pdf)
+
+        self.graph_btn = QPushButton("GRAFİK (SHOW GRAPH)")
+        self.graph_btn.setMinimumHeight(45)
+        self.graph_btn.setStyleSheet("font-weight: bold; font-size: 14px; background-color: #8e44ad; color: white; border-radius: 5px;")
+        self.graph_btn.clicked.connect(self.show_graph)
+
+        self.btn_layout.addWidget(self.calc_btn)
+        self.btn_layout.addWidget(self.pdf_btn)
+        self.btn_layout.addWidget(self.graph_btn)
+
         self.progress = QProgressBar()
+        self.progress.setRange(0, 0)
         self.progress.setVisible(False)
-        
+
         main_layout.addWidget(self.progress)
-        main_layout.addWidget(self.calc_btn)
-        
+        main_layout.addLayout(self.btn_layout)
+
         result_group = QGroupBox("Results")
-        res_layout = QFormLayout()
-        
+        result_group.setStyleSheet("QGroupBox { background-color: #f8f9fa; border: 1px solid #dcdde1; border-radius: 5px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px 0 3px; font-weight: bold; color: #2c3e50; }")
+        res_layout = QGridLayout()
+
         self.res_q = QLabel("-")
         self.res_area = QLabel("-")
         self.res_orifice = QLabel("-")
-        
+
         res_font = QFont("Arial", 11, QFont.Bold)
         self.res_area.setFont(res_font)
         self.res_orifice.setFont(res_font)
-        
-        res_layout.addRow("Relief Load (US GPM):", self.res_q)
-        res_layout.addRow("Required Area:", self.res_area)
-        res_layout.addRow("Selected API Orifice:", self.res_orifice)
-        
+        self.res_area.setStyleSheet("color: #27ae60;")
+        self.res_orifice.setStyleSheet("color: #c0392b;")
+
+        self.res_area_unit = QComboBox()
+        self.res_area_unit.addItems(["mm²", "sq.inch"])
+        self.res_area_unit.currentTextChanged.connect(self.update_result_units)
+
+        res_layout.addWidget(QLabel("Relief Load (US GPM):"), 0, 0)
+        res_layout.addWidget(self.res_q, 0, 1)
+        res_layout.addWidget(QLabel("<b>Required Area:</b>"), 1, 0)
+        res_layout.addWidget(self.res_area, 1, 1)
+        res_layout.addWidget(QLabel("<b>Unit:</b>"), 1, 2)
+        res_layout.addWidget(self.res_area_unit, 1, 3)
+
+        res_layout.addWidget(QLabel("<b>Selected API Orifice:</b>"), 2, 0)
+        res_layout.addWidget(self.res_orifice, 2, 1, 1, 3)
+
         result_group.setLayout(res_layout)
+
+        vendor_group = QGroupBox("Uygun Ticari Vanalar (Vendor DB)")
+        vendor_layout = QVBoxLayout()
+        self.vendor_table_widget = VendorTableWidget()
+        vendor_layout.addWidget(self.vendor_table_widget)
+        vendor_group.setLayout(vendor_layout)
+
         main_layout.addWidget(result_group)
+        main_layout.addWidget(vendor_group)
         main_layout.addStretch()
-        
-        self.setLayout(main_layout)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        container = QWidget()
+        container.setLayout(main_layout)
+        scroll.setWidget(container)
+
+        wrapper = QVBoxLayout()
+        wrapper.setContentsMargins(0, 0, 0, 0)
+        wrapper.addWidget(scroll)
+        self.setLayout(wrapper)
 
     def run_calculation(self):
         try:
@@ -383,30 +619,79 @@ class ThermalExpansionTab(QWidget):
 
             inputs = {
                 'h_btu': h, 'b': b, 'g': g, 'c': c, 'mu_cp': mu,
-                'p1_psia': p1, 'p2_psia': p2,
-                'num_valves': int(self.num_valves_input.text()),
-                'valve_type': self.valve_type_combo.currentText(),
+                'p1_psia': p1, 'p2_psia': p2
             }
+            self.last_inputs = inputs
 
             self.calc_btn.setEnabled(False)
             self.progress.setVisible(True)
             self.res_area.setText("Calculating...")
-            
+
             self.worker = ThermalWorker(inputs)
             self.worker.finished.connect(self.on_calc_success)
             self.worker.error.connect(self.on_calc_error)
             self.worker.start()
         except ValueError:
-            QMessageBox.warning(self, "Input Error", "Invalid numbers.")
+            QMessageBox.warning(self, "Input Error", "Please enter valid numerical values.")
+        except Exception as e:
+            QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
 
     def on_calc_success(self, res):
         self.calc_btn.setEnabled(True)
         self.progress.setVisible(False)
+        self.last_res = res
+        self.update_result_units()
         self.res_q.setText(f"{res['Relief_Load_gpm']:.3f} gpm")
-        self.res_area.setText(f"{res['Required_Area_Final_sqin']:.4f} sq.inch")
-        self.res_orifice.setText(f"{res['Selected_Orifice_Letter']} ({res['Selected_Orifice_Area_sqin']} sq.inch)")
+        self.vendor_table_widget.update_valves(res['Selected_Orifice_Letter'])
+
+    def update_result_units(self):
+        if not hasattr(self, 'last_res'): return
+        res = self.last_res
+        unit = self.res_area_unit.currentText()
+        mult = 645.16 if unit == "mm²" else 1.0
+
+        req_area = res.get('Required_Area_Final_sqin', res.get('Required_Area_sqin', 0)) * mult
+        sel_area = res.get('Selected_Orifice_Area_sqin', 0)
+        if isinstance(sel_area, (int, float)): sel_area *= mult
+
+        self.res_area.setText(f"{req_area:.4f} {unit}")
+
+        letter = res.get('Selected_Orifice_Letter', '-')
+        if "Multiple" in str(letter):
+            self.res_orifice.setStyleSheet("color: white; background-color: #e74c3c; font-weight: bold; padding: 2px; border-radius: 3px;")
+            self.res_orifice.setText(f"DİKKAT: 'T' Orifisini aştı! Lütfen Paralel Vana Sayısını artırın.")
+        elif letter != '-':
+            self.res_orifice.setStyleSheet("color: #c0392b; font-weight: bold;")
+            self.res_orifice.setText(f"{letter} ({sel_area:.2f} {unit})")
+        else:
+            self.res_orifice.setText("-")
+
+    def export_pdf(self):
+        if not hasattr(self, 'last_res'):
+            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
+            return
+        results = {
+            "Relief Load (US GPM)": self.res_q.text(),
+            "Required Area": self.res_area.text(),
+            "Selected API Orifice": self.res_orifice.text()
+        }
+        generate_and_open_report("Thermal Expansion", self.last_inputs, results)
+
+    def show_graph(self):
+        if not hasattr(self, 'last_res'):
+            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
+            return
+        results = {
+            "res_area": self.res_area.text(),
+            "res_orifice": self.res_orifice.text(),
+            "req_area_sqin": self.last_res.get('Required_Area_Final_sqin', self.last_res.get('Required_Area_sqin', 0)),
+            "sel_area_sqin": self.last_res.get('Selected_Orifice_Area_sqin', 0)
+        }
+        self.plot_win = PlotWindow(self, "Thermal Expansion", self.last_inputs, results)
+        self.plot_win.exec_()
 
     def on_calc_error(self, err_msg):
         self.calc_btn.setEnabled(True)
         self.progress.setVisible(False)
-        QMessageBox.critical(self, "Error", err_msg)
+        self.res_area.setText("Error")
+        QMessageBox.critical(self, "Calculation Error", err_msg)

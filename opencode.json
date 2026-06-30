@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/deepseek-v4-pro",
+  "instructions": ["AGENTS.md"],
+
+  "agent": {
+    "psv-core": {
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-pro",
+      "description": "Core PSV engineering calculation expert. Analyzes liquid_relief, gas_relief, two_phase, fire_scenarios, thermal_expansion, thermo_props, valve_selection, validation, unit_converter, constants, blowby, vendor_catalog modules. Validates API 520/521 formula correctness, unit conversions, edge cases, and numerical robustness."
+    },
+    "psv-desktop": {
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-pro",
+      "description": "Desktop application (PyQt5) expert. Analyzes app.py, tabs.py, tabs_extra.py, workers.py, auth.py, report_generator.py, graph_window.py, vendor_window.py. Focuses on UI thread safety, signal/slot correctness, auth flow, save/load logic, and PyInstaller build integrity."
+    },
+    "psv-auditor": {
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-pro",
+      "description": "Security and code quality auditor for PSV Sizing Suite. Finds auth vulnerabilities, XSS, dead code, duplication, missing validation, brittle tests, hardcoded secrets, build issues, and documentation gaps. Produces structured severity-ranked reports."
+    }
+  },
+
+  "permission": {
+    "edit": "ask",
+    "bash": {
+      "git *": "ask",
+      "pytest *": "allow",
+      "python -m pytest *": "allow",
+      "pyinstaller *": "allow",
+      "gh release *": "ask",
+      "*": "ask"
+    }
+  }
+}

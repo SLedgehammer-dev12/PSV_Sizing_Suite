@@ -21,7 +21,15 @@ API_ORIFICE_AREAS = {
 def select_orifice(required_area_sq_in):
     """
     Selects the next largest standard API orifice area.
+    Raises ValueError if input is NaN, inf, or negative.
     """
+    if not isinstance(required_area_sq_in, (int, float)):
+        raise ValueError(f"Required area must be a number (got {type(required_area_sq_in).__name__})")
+    if math.isnan(required_area_sq_in) or math.isinf(required_area_sq_in):
+        raise ValueError(f"Required area is invalid: {required_area_sq_in}")
+    if required_area_sq_in < 0:
+        raise ValueError(f"Required area must be non-negative (got {required_area_sq_in})")
+
     selected_letter = None
     selected_area = None
     

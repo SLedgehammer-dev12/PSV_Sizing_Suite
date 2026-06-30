@@ -1,28 +1,7 @@
-# PSV Sizing Suite v2.1
-
-# Core
-CoolProp
-numpy
-matplotlib
-pandas
-
-# Desktop UI
-PyQt5
-
-# Web API (Phase 6)
-fastapi>=0.109.0
-uvicorn>=0.25.0
-pydantic>=2.0.0
-
-# Development
-pytest>=8.0
-pytest-cov>=5.0
-
-# Optional (enhanced features)
-# pint>=0.23         # Units management (automatic fallback)
-# weasyprint>=60.0   # PDF report generation
-# thermo>=0.2.0      # Advanced thermo properties
-# fluids>=1.0.0      # Pipe flow calculations
-
-# Frontend (separate npm install)
-# See frontend/package.json for React dependencies
+PyQt5>=5.15,<6.0
+CoolProp>=6.4,<7.0
+numpy>=1.26,<2.0
+matplotlib>=3.8,<4.0
+streamlit>=1.40,<2.0
+pandas>=2.0,<4.0
+bcrypt>=4.1,<6.0

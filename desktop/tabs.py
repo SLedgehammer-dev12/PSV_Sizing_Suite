@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QFo
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
-from core.unit_converter import (barg_to_psia, m3_h_to_gpm, kg_h_to_lb_h, c_to_rankine, m3_kg_to_ft3_lb,
+from core.unit_converter import (barg_to_psia, bara_to_psia, m3_h_to_gpm, kg_h_to_lb_h, c_to_rankine, m3_kg_to_ft3_lb,
                                  kg_s_to_lb_h, actual_m3_h_to_lb_h, sm3_h_to_lb_h, nm3_h_to_lb_h)
 from desktop.workers import LiquidCalcWorker, GasCalcWorker, TwoPhaseCalcWorker
 from core.thermo_props import calculate_mixture_properties, get_coolprop_fluids
@@ -190,6 +190,8 @@ class LiquidReliefTab(QWidget):
             self.worker.start()
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Please enter valid numerical values.")
+        except Exception as e:
+            QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
 
     def on_calc_success(self, res):
         self.calc_btn.setEnabled(True)
@@ -318,7 +320,7 @@ class GasReliefTab(QWidget):
         t_layout.addWidget(self.t_unit)
 
         self.z_input = QLineEdit("0.85")
-        self.z_input.setPlaceholderText("Auto-calc if comp given")
+        self.z_input.setPlaceholderText("Auto or manual")
         self.mw_input = QLineEdit("21")
         
         k_layout = QHBoxLayout()
@@ -488,6 +490,8 @@ class GasReliefTab(QWidget):
 
     def run_calculation(self):
         try:
+            comp = self.get_composition()
+
             flow = float(self.flow_input.text())
             p1_raw = float(self.p1_input.text())
             p2_raw = float(self.p2_input.text())
@@ -497,20 +501,21 @@ class GasReliefTab(QWidget):
             p2 = barg_to_psia(p2_raw) if self.p2_unit.currentText() == "barg" else p2_raw
             t = c_to_rankine(t_raw) if self.t_unit.currentText() == "°C" else t_raw
 
-            comp = self.get_composition()
             if comp:
+                fraction_type = "mass" if "Mass" in self.frac_type_combo.currentText() else "mole"
+                z, mw, k = calculate_mixture_properties(comp, t, p1, fraction_type=fraction_type)
+                self.z_input.setText(f"{z:.4f}")
+                self.mw_input.setText(f"{mw:.2f}")
+                self.k_input.setText(f"{k:.4f}")
+            else:
                 try:
-                    fraction_type = "mass" if "Mass" in self.frac_type_combo.currentText() else "mole"
-                    z, mw, k = calculate_mixture_properties(comp, t, p1, fraction_type=fraction_type)
-                    self.z_input.setText(f"{z:.4f}")
-                    self.mw_input.setText(f"{mw:.2f}")
-                    self.k_input.setText(f"{k:.4f}")
-                except Exception as e:
-                    QMessageBox.warning(self, "CoolProp Error", f"Could not calculate properties for mixture: {e}\nFalling back to manual inputs.")
-
-            z = float(self.z_input.text())
-            mw = float(self.mw_input.text())
-            k = float(self.k_input.text())
+                    z = float(self.z_input.text())
+                    mw = float(self.mw_input.text())
+                    k = float(self.k_input.text())
+                except ValueError:
+                    QMessageBox.warning(self, "Input Error",
+                        "Gaz kompozisyonu boş olduğundan manuel Z, MW ve k değerleri gereklidir.")
+                    return
 
             if self.flow_unit.currentText() == "kg/h":
                 flow_lb_h = kg_h_to_lb_h(flow)
@@ -549,6 +554,8 @@ class GasReliefTab(QWidget):
             self.worker.start()
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Please enter valid numerical values.")
+        except Exception as e:
+            QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
 
     def on_calc_success(self, res):
         self.calc_btn.setEnabled(True)
@@ -776,7 +783,7 @@ class TwoPhaseReliefTab(QWidget):
                 flow = kg_h_to_lb_h(flow)
             
             if self.p0_unit.currentText() == "bara":
-                p0 = p0 * 14.50377
+                p0 = bara_to_psia(p0)
                 
             if self.pback_unit.currentText() == "barg":
                 pback = barg_to_psia(pback)
@@ -804,6 +811,8 @@ class TwoPhaseReliefTab(QWidget):
             self.worker.start()
         except ValueError:
             QMessageBox.warning(self, "Input Error", "Please enter valid numerical values.")
+        except Exception as e:
+            QMessageBox.critical(self, "Calculation Error", f"Unexpected error: {str(e)}")
 
     def on_calc_success(self, res):
         self.calc_btn.setEnabled(True)
