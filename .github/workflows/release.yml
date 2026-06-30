@@ -91,6 +91,9 @@ jobs:
             --hidden-import core.piping \
             --hidden-import core.valve_types \
             --hidden-import core.advanced_sizing \
+            --hidden-import pydantic \
+            --hidden-import email \
+            --hidden-import importlib.metadata \
             --exclude-module PyQt5.QtSvg \
             --exclude-module PyQt5.QtSql \
             --exclude-module PyQt5.QtQml \

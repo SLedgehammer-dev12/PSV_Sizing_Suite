@@ -38,6 +38,10 @@ hidden_imports = [
     'matplotlib.figure', 'matplotlib.pyplot',
     # Scientific
     'numpy', 'CoolProp', 'CoolProp.CoolProp',
+    # Pydantic + dependencies (needed for core/models.py)
+    'pydantic', 'email', 'email.mime.text', 'email.mime.multipart',
+    'email.parser', 'email.header', 'email.utils', 'email.message',
+    'email.policy', 'importlib.metadata',
 ]
 
 excludes = [
@@ -46,7 +50,7 @@ excludes = [
     'PyQt5.QtWebEngine', 'PyQt5.QtWebSockets',
     'PyQt5.QtBluetooth', 'PyQt5.QtPositioning',
     'PyQt5.QtMultimedia', 'PyQt5.QtSensors',
-    'unittest', 'email',
+    'unittest',
     'xml', 'xmlrpc', 'pydoc',
     'ensurepip', 'turtle', 'sqlite3',
     'scipy', 'sympy', 'pandas.io',
