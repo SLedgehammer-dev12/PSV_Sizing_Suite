@@ -54,6 +54,7 @@ pyinstaller --noconsole \
     --hidden-import desktop.report_generator \
     --hidden-import core.kb_coefficient \
     --hidden-import core.units \
+    --hidden-import core.report \
     --hidden-import core.piping \
     --hidden-import core.valve_types \
     --hidden-import core.advanced_sizing \
@@ -66,10 +67,29 @@ pyinstaller --noconsole \
     --hidden-import core.fire_scenarios \
     --hidden-import core.thermal_expansion \
     --hidden-import core.blowby \
+    --hidden-import core \
     --hidden-import desktop.app \
+    --hidden-import PyQt5 \
+    --hidden-import PyQt5.QtCore \
+    --hidden-import PyQt5.QtGui \
+    --hidden-import PyQt5.QtWidgets \
     --hidden-import PyQt5.QtSvg \
+    --hidden-import matplotlib \
+    --hidden-import matplotlib.backends.backend_qt5agg \
+    --hidden-import matplotlib.figure \
+    --hidden-import matplotlib.pyplot \
+    --hidden-import numpy \
+    --hidden-import CoolProp \
+    --hidden-import CoolProp.CoolProp \
     --hidden-import pydantic \
     --hidden-import email \
+    --hidden-import email.mime.text \
+    --hidden-import email.mime.multipart \
+    --hidden-import email.parser \
+    --hidden-import email.header \
+    --hidden-import email.utils \
+    --hidden-import email.message \
+    --hidden-import email.policy \
     --hidden-import importlib.metadata \
     --exclude-module PyQt5.QtSql \
     --exclude-module PyQt5.QtQml \

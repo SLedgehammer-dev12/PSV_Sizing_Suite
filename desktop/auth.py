@@ -34,11 +34,11 @@ def hash_password(password):
 
 def verify_password(password, stored_hash):
     if stored_hash.startswith("$pbkdf2$"):
-        _, salt, h = stored_hash.split("$", 3)
+        _, _, salt, h = stored_hash.split("$", 3)
         dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 200000)
         return dk.hex() == h
     elif stored_hash.startswith("$sha256$"):
-        _, salt, h = stored_hash.split("$", 3)
+        _, _, salt, h = stored_hash.split("$", 3)
         recomputed = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
         return recomputed == h
     elif HAS_BCRYPT:
