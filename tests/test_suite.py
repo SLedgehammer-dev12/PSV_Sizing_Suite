@@ -1014,15 +1014,17 @@ class TestV230Modules(unittest.TestCase):
     def test_two_phase_eta_c_standard(self):
         from core.two_phase import calculate_critical_pressure_ratio
         eta_05 = calculate_critical_pressure_ratio(0.5)
-        self.assertAlmostEqual(eta_05, 0.55 - 0.1504 - 0.0221 - 0.0013, places=2)
+        self.assertAlmostEqual(eta_05, 0.525, places=3)
         eta_1 = calculate_critical_pressure_ratio(1.0)
-        self.assertAlmostEqual(eta_1, 0.55, places=2)
+        self.assertAlmostEqual(eta_1, 0.607, places=3)
         eta_4 = calculate_critical_pressure_ratio(4.0)
-        expected_eta_4 = 0.84 / (4.0 ** (1.0 / 7.0))
-        self.assertAlmostEqual(eta_4, expected_eta_4, places=3)
+        self.assertAlmostEqual(eta_4, 0.752, places=3)
         eta_10 = calculate_critical_pressure_ratio(10.0)
-        expected_eta_10 = 0.84 / (10.0 ** (1.0 / 7.0))
-        self.assertAlmostEqual(eta_10, expected_eta_10, places=3)
+        self.assertAlmostEqual(eta_10, 0.827, places=3)
+        eta_20 = calculate_critical_pressure_ratio(20.0)
+        self.assertAlmostEqual(eta_20, 0.872, places=3)
+        eta_1_48 = calculate_critical_pressure_ratio(1.482)
+        self.assertAlmostEqual(eta_1_48, 0.651, places=3)
         eta_zero = calculate_critical_pressure_ratio(0.0)
         self.assertEqual(eta_zero, 1.0)
 

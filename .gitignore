@@ -22,3 +22,6 @@ auth.json
 # OS
 .DS_Store
 Thumbs.db
+
+# API Standards PDFs (copyrighted, not for distribution)
+*.pdf

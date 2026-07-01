@@ -4,7 +4,7 @@ from .validation import validate_liquid_inputs
 from .constants import (
     LIQUID_FORMULA_CONSTANT, REYNOLDS_CONSTANT,
     REYNOLDS_UPPER_BOUND, REYNOLDS_LOWER_BOUND,
-    KV_UPPER, KV_LOWER, KV_COEFF_A, KV_COEFF_B, KV_COEFF_C,
+    KV_UPPER, KV_LOWER, KV_REYNOLDS_COEFF,
 )
 
 
@@ -19,7 +19,7 @@ def calculate_kv(re):
     if re <= REYNOLDS_LOWER_BOUND:
         return KV_LOWER
 
-    kv = KV_UPPER / (KV_COEFF_A + (KV_COEFF_B / math.sqrt(re)) + (KV_COEFF_C / re))
+    kv = (1.0 + KV_REYNOLDS_COEFF / re) ** (-0.5)
     return min(max(kv, KV_LOWER), KV_UPPER)
 
 

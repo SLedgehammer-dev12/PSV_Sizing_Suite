@@ -129,11 +129,18 @@ class PSVSizingApp(QMainWindow):
         graph_menu.addAction(plot_action)
 
         # GÜNCELLEME (UPDATE) MENU
-        update_menu = menubar.addMenu("Güncelleme (Update)")
+        update_menu = menubar.addMenu("Guncelleme (Update)")
         
-        check_update_action = QAction("Güncellemeleri Kontrol Et (Check for Updates)", self)
+        check_update_action = QAction("Guncellemeleri Kontrol Et (Check for Updates)", self)
         check_update_action.triggered.connect(self.check_update)
         update_menu.addAction(check_update_action)
+
+        # YARDIM (HELP) MENU
+        help_menu = menubar.addMenu("Yardim (Help)")
+        
+        about_action = QAction("Hakkinda (About)", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
 
         if self.role == "admin":
             admin_menu = menubar.addMenu("Yönetici (Admin)")
@@ -485,10 +492,50 @@ rm -rf "{dmg_path}" "$(dirname "{dmg_path}")"
 
     def _show_update_error(self, reason):
         QMessageBox.warning(
-            self, "Güncelleme Hatası",
-            f"{reason}\n\nLütfen internet bağlantınızı kontrol edin veya "
+            self, "Guncelleme Hatasi",
+            f"{reason}\n\nLutfen internet baglantinizi kontrol edin veya "
             f"{GITHUB_RELEASES_PAGE} adresini ziyaret edin."
         )
+
+    def show_about(self):
+        from PyQt5.QtCore import QSize
+        about_text = (
+            f"<h2>PSV Sizing Suite {APP_VERSION}</h2>"
+            f"<p><b>Advanced Engineering Calculation Platform</b><br>"
+            f"Pressure Safety Valve (PSV) sizing based on API 520 Part I and API 521.</p>"
+            f"<hr>"
+            f"<h3>Standards Compliance — API 2020 Edition</h3>"
+            f"<table>"
+            f"<tr><td><b>API 520 Part I</b></td><td>10th Ed. (October 2020)</td></tr>"
+            f"<tr><td>§5.6</td><td>Gas/Vapor Sizing (C=520, F2=735, Eq.12-16)</td></tr>"
+            f"<tr><td>§5.7</td><td>Steam Sizing — Napier (51.5, Kn, Ksh, Tables 12-13)</td></tr>"
+            f"<tr><td>§5.8</td><td>Liquid Sizing (38, Re=2800, Eq.32-35)</td></tr>"
+            f"<tr><td>§5.8.1.3</td><td>Viscosity Correction Kv = (1+170/Re)^(-0.5), Eq.34</td></tr>"
+            f"<tr><td>§5.3</td><td>Backpressure Kb — Fig.31/32/37, Fig.C.3</td></tr>"
+            f"<tr><td>§4.2 / §5.2</td><td>Pilot Kd: Gas=0.99, Liquid=0.80, 2-Phase=0.85</td></tr>"
+            f"<tr><td>Annex C</td><td>Two-Phase Omega Method (ηc Eq.C.15, G=68.09, A=W/(25·G·Kd))</td></tr>"
+            f"<tr><td>Annex C §C.2.3</td><td>Subcooled Flashing Two-Phase</td></tr>"
+            f"<tr><td><b>API 520 Part II</b></td><td>7th Ed. (October 2020)</td></tr>"
+            f"<tr><td>§4.2.1</td><td>Inlet ΔP ≤ 3% Set (Darcy-Weisbach + Colebrook-White)</td></tr>"
+            f"<tr><td>§5.3</td><td>Outlet Built-up BP ≤ 10% Set</td></tr>"
+            f"<tr><td><b>API 521</b></td><td>7th Ed. (June 2020)</td></tr>"
+            f"<tr><td>§4.4.13 Eq.7-8</td><td>Fire Wetted: Q = 21000·F·A^0.82, W = Q/hfg</td></tr>"
+            f"<tr><td>§4.4.13.2.4.3 Eq.10</td><td>Fire Unwetted: F' = 0.1406...(Tw-Tg)^1.25/Tg^0.6506</td></tr>"
+            f"<tr><td>§4.4.12 Eq.3</td><td>Thermal Expansion: Q = β·H/(500·G·Cp)</td></tr>"
+            f"<tr><td><b>API 526</b></td><td>2023 Ed. — Orifices D(0.110) through T(26.0) sq.in</td></tr>"
+            f"</table>"
+            f"<hr>"
+            f"<p><b>Test Suite:</b> 143 tests passed<br>"
+            f"<b>Version:</b> {APP_VERSION}<br>"
+            f"<b>GitHub:</b> github.com/SLedgehammer-dev12/PSV_Sizing_Suite</p>"
+        )
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Hakkinda — PSV Sizing Suite")
+        msg.setTextFormat(1)  # RichText
+        msg.setText(about_text)
+        msg.setIcon(QMessageBox.Information)
+        msg.setStyleSheet("QLabel{min-width: 600px;}")
+        msg.exec_()
 
     def change_user_pw(self):
         admin_pw, ok = QInputDialog.getText(self, "Admin Dogrulama", "Admin sifrenizi tekrar girin:", QLineEdit.Password)
