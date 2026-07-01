@@ -836,6 +836,80 @@ class TestUpdateCheck(unittest.TestCase):
                 mock_info.assert_called_once()
 
 
+class TestAutoUpdate(unittest.TestCase):
+
+    def test_select_asset_windows_managed(self):
+        from desktop.app import select_asset
+        assets = [
+            {"name": "PSV_Sizing_Suite_Setup_v2.3.0.exe", "size": 1000000},
+            {"name": "PSV_Sizing_Suite_Desktop_v2.3.0_Windows.zip", "size": 2000000},
+            {"name": "PSV_Sizing_Suite_v2.3.0.dmg", "size": 3000000},
+        ]
+        result = select_asset(assets, {"os": "Windows", "frozen": True, "is_managed": True})
+        self.assertIsNotNone(result)
+        self.assertIn("Setup_", result["name"])
+
+    def test_select_asset_windows_portable(self):
+        from desktop.app import select_asset
+        assets = [
+            {"name": "PSV_Sizing_Suite_Setup_v2.3.0.exe", "size": 1000000},
+            {"name": "PSV_Sizing_Suite_Desktop_v2.3.0_Windows.zip", "size": 2000000},
+            {"name": "PSV_Sizing_Suite_v2.3.0.dmg", "size": 3000000},
+        ]
+        result = select_asset(assets, {"os": "Windows", "frozen": True, "is_managed": False})
+        self.assertIsNotNone(result)
+        self.assertIn("Desktop_", result["name"])
+
+    def test_select_asset_macos(self):
+        from desktop.app import select_asset
+        assets = [
+            {"name": "PSV_Sizing_Suite_Setup_v2.3.0.exe", "size": 1000000},
+            {"name": "PSV_Sizing_Suite_v2.3.0.dmg", "size": 3000000},
+        ]
+        result = select_asset(assets, {"os": "Darwin", "frozen": True, "is_managed": False})
+        self.assertIsNotNone(result)
+        self.assertTrue(result["name"].endswith(".dmg"))
+
+    def test_select_asset_no_match(self):
+        from desktop.app import select_asset
+        result = select_asset([], {"os": "Windows", "frozen": True, "is_managed": True})
+        self.assertIsNone(result)
+
+    def test_select_asset_returns_none_for_unknown_os(self):
+        from desktop.app import select_asset
+        assets = [{"name": "PSV_Sizing_Suite_v2.3.0.dmg", "size": 1000000}]
+        result = select_asset(assets, {"os": "Linux", "frozen": True, "is_managed": False})
+        self.assertIsNone(result)
+
+    def test_get_platform_info_not_frozen(self):
+        from desktop.app import get_platform_info
+        original_frozen = getattr(sys, 'frozen', False)
+        try:
+            if hasattr(sys, 'frozen'):
+                del sys.frozen
+            info = get_platform_info()
+            self.assertFalse(info["frozen"])
+        finally:
+            if original_frozen:
+                sys.frozen = original_frozen
+
+    def test_update_download_worker_missing_url(self):
+        from desktop.workers import UpdateDownloadWorker
+        worker = UpdateDownloadWorker("https://invalid.url/file.zip", "sha256:abc123")
+        error_signals = []
+        def on_error(msg):
+            error_signals.append(msg)
+        worker.error.connect(on_error)
+        worker.run()
+        self.assertGreater(len(error_signals), 0, "Worker should emit error for invalid URL")
+
+    def test_parse_version_stable(self):
+        from desktop.app import parse_version
+        self.assertEqual(parse_version("v2.3.0"), (2, 3, 0))
+        self.assertEqual(parse_version("v1.0.3"), (1, 0, 3))
+        self.assertEqual(parse_version("2.3"), (2, 3, 0))
+
+
 class TestV230Modules(unittest.TestCase):
 
     def test_kb_conventional_returns_one(self):

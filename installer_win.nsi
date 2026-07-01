@@ -22,12 +22,39 @@ RequestExecutionLevel admin
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
 
+; ---------- Silent Install Support ----------
+Function .onInit
+  ${GetOptions} $CMDLINE "/S" $R0
+  IfErrors +2
+    SetSilent silent
+FunctionEnd
+
+Function skip_if_silent
+  ${If} ${Silent}
+    Abort
+  ${EndIf}
+FunctionEnd
+
+Function un.onInit
+  ${GetOptions} $CMDLINE "/S" $R0
+  IfErrors +2
+    SetSilent silent
+FunctionEnd
+
+Function un.skip_if_silent
+  ${If} ${Silent}
+    Abort
+  ${EndIf}
+FunctionEnd
+
 ; ---------- Interface Settings ----------
 !define MUI_ABORTWARNING
 !define MUI_ICON "assets\icon.ico"
 !define MUI_UNICON "assets\icon.ico"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "assets\banner.bmp"
 !define MUI_HEADERIMAGE
+!define MUI_PAGE_CUSTOMFUNCTION_PRE skip_if_silent
+!define MUI_UNPAGE_CUSTOMFUNCTION_PRE un.skip_if_silent
 
 ; ---------- Pages ----------
 !insertmacro MUI_PAGE_WELCOME

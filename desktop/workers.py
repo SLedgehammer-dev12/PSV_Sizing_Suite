@@ -1,3 +1,11 @@
+import os
+import hashlib
+import json
+import urllib.request
+import urllib.error
+import ssl
+import tempfile
+
 from PyQt5.QtCore import QThread, pyqtSignal
 from core.liquid_relief import calculate_liquid_relief_area
 from core.gas_relief import calculate_gas_relief_area
@@ -5,10 +13,6 @@ from core.two_phase import calculate_two_phase_area, calculate_omega_flashing
 from core.fire_scenarios import calculate_fire_wetted_load, calculate_fire_unwetted_area
 from core.thermal_expansion import calculate_thermal_expansion_load
 from core.valve_selection import select_orifice
-import json
-import urllib.request
-import urllib.error
-import ssl
 
 
 class UpdateCheckWorker(QThread):
@@ -39,6 +43,69 @@ class UpdateCheckWorker(QThread):
             self.error.emit("GitHub API yanıtı okunamadı.")
         except Exception as e:
             self.error.emit(f"Güncelleme kontrolü sırasında hata: {str(e)}")
+
+
+class UpdateDownloadWorker(QThread):
+    progress = pyqtSignal(int, int, str)
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, url, expected_sha256=None, dest_dir=None):
+        super().__init__()
+        self.url = url
+        self.expected_sha256 = expected_sha256
+        self.dest_dir = dest_dir
+        self._cancelled = False
+
+    def cancel(self):
+        self._cancelled = True
+
+    def run(self):
+        try:
+            filename = self.url.rstrip('/').split('/')[-1]
+            dest = self.dest_dir or os.path.join(tempfile.gettempdir(), 'PSV_Sizing_Suite_Update')
+            os.makedirs(dest, exist_ok=True)
+            tmp_path = os.path.join(dest, filename)
+
+            ctx = ssl.create_default_context()
+            req = urllib.request.Request(self.url)
+            with urllib.request.urlopen(req, timeout=60, context=ctx) as response:
+                total = int(response.headers.get('Content-Length', 0))
+                sha256 = hashlib.sha256()
+                downloaded = 0
+                chunk_size = 8192
+
+                with open(tmp_path, 'wb') as f:
+                    while True:
+                        if self._cancelled:
+                            os.remove(tmp_path)
+                            self.error.emit("Indirme iptal edildi.")
+                            return
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        sha256.update(chunk)
+                        downloaded += len(chunk)
+                        self.progress.emit(downloaded, total, filename)
+
+            if self.expected_sha256:
+                actual = sha256.hexdigest()
+                prefix = "sha256:"
+                expected = self.expected_sha256[len(prefix):] if self.expected_sha256.startswith(prefix) else self.expected_sha256
+                if actual != expected:
+                    os.remove(tmp_path)
+                    self.error.emit(f"SHA256 uyusmazligi: beklenen {expected}, alinan {actual}")
+                    return
+
+            self.finished.emit(tmp_path)
+
+        except urllib.error.HTTPError as e:
+            self.error.emit(f"Indirme hatasi: HTTP {e.code} {e.reason}")
+        except urllib.error.URLError:
+            self.error.emit("Indirme basarisiz: Internet baglantisi kontrol edilemedi.")
+        except Exception as e:
+            self.error.emit(f"Indirme sirasinda hata: {str(e)}")
 
 
 class LiquidCalcWorker(QThread):

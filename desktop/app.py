@@ -2,20 +2,26 @@ import sys
 import os
 import json
 import re
+import platform
+import subprocess
+import shutil
+import time
+import webbrowser
 
-# Add parent directory to path so 'core' and 'desktop' can be imported
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QAction, 
-                             QFileDialog, QMessageBox, QLineEdit, QComboBox, QLabel)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QAction,
+                             QFileDialog, QMessageBox, QLineEdit, QComboBox, QLabel,
+                             QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
+                             QDialogButtonBox, QInputDialog, QProgressBar, QPushButton)
+from PyQt5.QtCore import Qt
 
 from desktop.tabs import LiquidReliefTab, GasReliefTab, TwoPhaseReliefTab
 from desktop.tabs_extra import FireWettedTab, FireUnwettedTab, ThermalExpansionTab
 from desktop.report_generator import generate_and_open_report
 from desktop.graph_window import PlotWindow
 from desktop.auth import check_login, change_password, must_change_password, set_password_changed, get_lockout_remaining
-from desktop.workers import UpdateCheckWorker
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QDialogButtonBox, QInputDialog
+from desktop.workers import UpdateCheckWorker, UpdateDownloadWorker
 from core import __version_tag__
 
 APP_VERSION = __version_tag__
@@ -29,6 +35,35 @@ def parse_version(version_str):
     if not match:
         return (0, 0, 0)
     return (int(match.group(1)), int(match.group(2)), int(match.group(3) or 0))
+
+
+def get_platform_info():
+    system = platform.system()
+    frozen = getattr(sys, 'frozen', False)
+    is_managed = False
+    if frozen:
+        exe_dir = os.path.dirname(sys.executable)
+        if "Program Files" in exe_dir:
+            is_managed = True
+    return {"os": system, "frozen": frozen, "is_managed": is_managed}
+
+
+def select_asset(assets, platform_info):
+    if not assets:
+        return None
+    os_name = platform_info["os"]
+    is_managed = platform_info["is_managed"]
+    for asset in assets:
+        name = asset.get("name", "")
+        if os_name == "Windows":
+            if is_managed and "Setup_" in name and name.endswith(".exe"):
+                return asset
+            if not is_managed and "Desktop_" in name and name.endswith(".zip"):
+                return asset
+        elif os_name == "Darwin" and name.endswith(".dmg"):
+            return asset
+    return None
+
 
 class PSVSizingApp(QMainWindow):
     def __init__(self, role="user"):
@@ -288,6 +323,7 @@ class PSVSizingApp(QMainWindow):
         latest_tag = data.get("tag_name", "")
         release_notes = data.get("body", "")
         html_url = data.get("html_url", GITHUB_RELEASES_PAGE)
+        assets = data.get("assets", [])
 
         if not latest_tag:
             self._show_update_error("Sürüm bilgisi alınamadı.")
@@ -297,7 +333,7 @@ class PSVSizingApp(QMainWindow):
         latest = parse_version(latest_tag)
 
         if latest > current:
-            self._show_update_available(latest_tag, release_notes, html_url)
+            self._show_update_available(latest_tag, release_notes, html_url, assets)
         else:
             QMessageBox.information(self, "Güncelleme", f"PSV Sizing Suite ({APP_VERSION})\n\nProgramınız güncel.")
 
@@ -309,18 +345,143 @@ class PSVSizingApp(QMainWindow):
             self.calc_btn_update.setEnabled(True)
         self._show_update_error(err_msg)
 
-    def _show_update_available(self, tag, notes, url):
-        notes_preview = (notes[:500] + "...") if len(notes) > 500 else notes
+    def _show_update_available(self, tag, notes, url, assets):
+        notes_preview = (notes[:300] + "...") if len(notes) > 300 else notes
+        asset = select_asset(assets, get_platform_info())
+        download_text = ""
+        if asset:
+            size_mb = asset.get("size", 0) // 1048576
+            download_text = f"\nDosya: {asset.get('name', '')} ({size_mb} MB)"
         msg = (
-            f"Yeni sürüm mevcut: {tag}\n"
-            f"Mevcut sürüm: {APP_VERSION}\n\n"
-            f"Değişiklikler:\n{notes_preview}\n\n"
-            f"İndirmek için 'Evet' butonuna basın."
+            f"Yeni surum mevcut: {tag}\n"
+            f"Mevcut surum: {APP_VERSION}\n\n"
+            f"Degisiklikler:\n{notes_preview}\n\n"
+            f"Indirilip kurulsun mu?{download_text}"
         )
-        reply = QMessageBox.question(self, "Güncelleme Mevcut", msg, QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, "Guncelleme Mevcut", msg, QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            import webbrowser
-            webbrowser.open(url)
+            if not asset:
+                webbrowser.open(url)
+                return
+            dialog = DownloadDialog(tag, asset, self)
+            dialog.start_download()
+            if dialog.exec_() == QDialog.Accepted and dialog.downloaded_path:
+                self._install_downloaded_update(dialog.downloaded_path, asset.get("name", ""))
+
+    def _install_downloaded_update(self, file_path, asset_name):
+        system = platform.system()
+        info = get_platform_info()
+        reply = QMessageBox.question(
+            self, "Kurulum",
+            "Kurulum baslatilacak. Program kapatilacak.\nDevam etmek istiyor musunuz?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        backup_dir = None
+        if info["frozen"]:
+            backup_dir = self._backup_current_version()
+
+        if system == "Windows":
+            if info["is_managed"] and asset_name.endswith(".exe"):
+                self._install_windows_managed(file_path)
+            else:
+                self._install_windows_portable(file_path)
+        elif system == "Darwin":
+            self._install_macos(file_path)
+        else:
+            QMessageBox.warning(self, "Hata", f"Bu isletim sistemi icin otomatik kurulum desteklenmiyor: {system}")
+            if backup_dir:
+                self._show_rollback_option(backup_dir)
+
+    def _backup_current_version(self):
+        exe_path = sys.executable
+        exe_dir = os.path.dirname(exe_path)
+        backup_root = os.path.join(
+            os.environ.get('APPDATA', os.path.expanduser('~')),
+            'PSV Sizing Suite', 'backups'
+        )
+        os.makedirs(backup_root, exist_ok=True)
+        ts = int(time.time())
+        backup_dir = os.path.join(backup_root, f'{APP_VERSION}_{ts}')
+        try:
+            shutil.copytree(exe_dir, backup_dir,
+                            ignore=shutil.ignore_patterns('backups', '__pycache__'))
+            return backup_dir
+        except Exception:
+            return None
+
+    def _install_windows_managed(self, setup_path):
+        try:
+            subprocess.Popen([setup_path, "/S"], shell=True)
+            QApplication.quit()
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", f"Kurulum baslatilamadi: {e}")
+
+    def _install_windows_portable(self, zip_path):
+        exe_dir = os.path.dirname(sys.executable)
+        batch_path = os.path.join(exe_dir, "update_psv.bat")
+        batch_content = f"""@echo off
+title PSV Sizing Suite - Guncelleme
+echo Guncelleme uygulaniyor, lutfen bekleyin...
+timeout /t 3 /nobreak >nul
+powershell -Command "Expand-Archive -Path '{zip_path}' -DestinationPath '%~dp0' -Force"
+start "" "%~dp0PSV_Sizing_Suite_v2.3.0.exe"
+del "%~f0"
+"""
+        try:
+            with open(batch_path, "w") as f:
+                f.write(batch_content)
+            subprocess.Popen(["cmd", "/c", "start", "", batch_path],
+                             shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            QApplication.quit()
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", f"Guncelleme baslatilamadi: {e}")
+
+    def _install_macos(self, dmg_path):
+        app_name = "PSV_Sizing_Suite_v2.3.0"
+        script = f"""#!/bin/bash
+sleep 3
+hdiutil attach "{dmg_path}" -nobrowse -quiet
+cp -R "/Volumes/{app_name}/{app_name}.app" /Applications/ 2>/dev/null
+if [ $? -ne 0 ]; then
+    osascript -e 'do shell script "cp -R \\"/Volumes/{app_name}/{app_name}.app\\" /Applications/" with administrator privileges'
+fi
+hdiutil detach "/Volumes/{app_name}" -quiet
+open /Applications/{app_name}.app
+rm -rf "{dmg_path}" "$(dirname "{dmg_path}")"
+"""
+        script_path = "/tmp/update_psv.sh"
+        try:
+            with open(script_path, "w") as f:
+                f.write(script)
+            os.chmod(script_path, 0o755)
+            subprocess.Popen(["bash", script_path],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            QApplication.quit()
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", f"Guncelleme baslatilamadi: {e}")
+
+    def _show_rollback_option(self, backup_dir):
+        reply = QMessageBox.question(
+            self, "Geri Yukleme",
+            "Kurulum basarisiz. Eski surume donulsun mu?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply == QMessageBox.Yes and backup_dir and os.path.exists(backup_dir):
+            try:
+                exe_dir = os.path.dirname(sys.executable)
+                for item in os.listdir(backup_dir):
+                    src = os.path.join(backup_dir, item)
+                    dst = os.path.join(exe_dir, item)
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dst, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(src, dst)
+                QMessageBox.information(self, "Basarili", "Eski surume geri donuldu.")
+            except Exception:
+                QMessageBox.warning(self, "Hata", "Geri yukleme basarisiz. Manuel olarak tekrar kurun.")
 
     def _show_update_error(self, reason):
         QMessageBox.warning(
@@ -417,3 +578,66 @@ class LoginDialog(QDialog):
             QMessageBox.information(self, "Basarili", "Sifreniz basariyla degistirildi!")
             self.accept()
             break
+
+
+class DownloadDialog(QDialog):
+    def __init__(self, tag, asset, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Guncelleme Indiriliyor")
+        self.setMinimumWidth(450)
+        self.asset = asset
+        self.downloaded_path = None
+        self.worker = None
+
+        layout = QVBoxLayout(self)
+
+        info = QLabel(f"Yeni surum: {tag}\nDosya: {asset.get('name', '')}\nBoyut: {asset.get('size', 0) // 1048576} MB")
+        layout.addWidget(info)
+
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 100)
+        layout.addWidget(self.progress)
+
+        self.status_label = QLabel("Hazir")
+        layout.addWidget(self.status_label)
+
+        btn_layout = QHBoxLayout()
+        self.cancel_btn = QPushButton("Iptal")
+        self.cancel_btn.clicked.connect(self._cancel)
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.cancel_btn)
+        layout.addLayout(btn_layout)
+
+    def start_download(self):
+        self.status_label.setText("Indiriliyor...")
+        self.cancel_btn.setEnabled(True)
+        self.worker = UpdateDownloadWorker(
+            self.asset["browser_download_url"],
+            self.asset.get("digest")
+        )
+        self.worker.progress.connect(self._on_progress)
+        self.worker.finished.connect(self._on_finished)
+        self.worker.error.connect(self._on_error)
+        self.worker.start()
+
+    def _on_progress(self, current, total, filename):
+        if total > 0:
+            pct = int(current * 100 / total)
+            self.progress.setValue(pct)
+            self.status_label.setText(f"Indiriliyor... {current // 1048576}.{current % 1048576 * 10 // 1048576}/{total // 1048576} MB")
+        else:
+            self.status_label.setText(f"Indiriliyor... {current // 1024} KB")
+
+    def _on_finished(self, path):
+        self.status_label.setText("SHA256 dogrulandi. Kurulum hazir.")
+        self.downloaded_path = path
+        self.accept()
+
+    def _on_error(self, msg):
+        self.status_label.setText(f"Hata: {msg}")
+        self.cancel_btn.setText("Kapat")
+
+    def _cancel(self):
+        if self.worker:
+            self.worker.cancel()
+        self.reject()
