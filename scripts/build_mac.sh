@@ -67,10 +67,10 @@ pyinstaller --noconsole \
     --hidden-import core.thermal_expansion \
     --hidden-import core.blowby \
     --hidden-import desktop.app \
+    --hidden-import PyQt5.QtSvg \
     --hidden-import pydantic \
     --hidden-import email \
     --hidden-import importlib.metadata \
-    --exclude-module PyQt5.QtSvg \
     --exclude-module PyQt5.QtSql \
     --exclude-module PyQt5.QtQml \
     --exclude-module PyQt5.QtNetwork \
