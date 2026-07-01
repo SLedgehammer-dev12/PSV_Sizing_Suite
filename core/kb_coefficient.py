@@ -71,16 +71,18 @@ def get_kb(
     set_pressure_psig: float,
     valve_type: str = "conventional",
     overpressure_pct: float = 10.0,
+    atm_psia: float = 14.6959,
 ) -> float:
     """
-    Calculate back pressure correction factor Kb per API 520 Part I.
+    Calculate back pressure correction factor Kb per API 520 Part I Figure 31.
 
     Parameters
     ----------
     back_pressure_psia : Total back pressure at relieving conditions (psia)
     set_pressure_psig : Set pressure (psig)
-    valve_type : "conventional" or "balanced_bellows"
+    valve_type : "conventional", "balanced_bellows", or "pilot"
     overpressure_pct : Percent overpressure (10 or 25)
+    atm_psia : Site atmospheric pressure (default sea level 14.6959 psia)
 
     Returns
     -------
@@ -89,7 +91,7 @@ def get_kb(
     if set_pressure_psig <= 0:
         return 1.0
 
-    bp_gauge = max(back_pressure_psia - 14.6959, 0.0)
+    bp_gauge = max(back_pressure_psia - atm_psia, 0.0)
     bp_pct = (bp_gauge / set_pressure_psig) * 100.0
 
     if valve_type in ("conventional", "pilot"):

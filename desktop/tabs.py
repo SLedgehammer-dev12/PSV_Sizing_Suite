@@ -173,6 +173,13 @@ class GasReliefTab(BaseCalcTab):
         set_p_layout.addWidget(self.set_p_input)
         set_p_layout.addWidget(self.set_p_unit)
 
+        self.mawp_input = QLineEdit("16.0")
+        self.mawp_unit = QComboBox()
+        self.mawp_unit.addItems(["barg", "psig"])
+        mawp_layout = QHBoxLayout()
+        mawp_layout.addWidget(self.mawp_input)
+        mawp_layout.addWidget(self.mawp_unit)
+
         self.atm_input = QLineEdit("1.01325")
         self.atm_unit = QComboBox()
         self.atm_unit.addItems(["bara", "psia"])
@@ -189,6 +196,13 @@ class GasReliefTab(BaseCalcTab):
         self.p2_unit.addItems(["barg", "psia"])
         p2_layout.addWidget(self.p2_input)
         p2_layout.addWidget(self.p2_unit)
+
+        self.sup_bp_input = QLineEdit("0.0")
+        self.sup_bp_unit = QComboBox()
+        self.sup_bp_unit.addItems(["barg", "psig"])
+        sup_bp_layout = QHBoxLayout()
+        sup_bp_layout.addWidget(self.sup_bp_input)
+        sup_bp_layout.addWidget(self.sup_bp_unit)
 
         t_layout = QHBoxLayout()
         self.t_input = QLineEdit("35")
@@ -211,6 +225,9 @@ class GasReliefTab(BaseCalcTab):
         self.p1_display = QLabel("— psia")
         self.p1_display.setStyleSheet("font-weight: bold; color: #2c3e50;")
 
+        self.bp_ratio_display = QLabel("— %")
+        self.bp_ratio_display.setStyleSheet("font-weight: bold; color: #e67e22;")
+
         grid.addWidget(QLabel("Flow Rate:"), 0, 0)
         grid.addLayout(flow_layout, 0, 1)
         grid.addWidget(QLabel("Set Pressure (Pset):"), 0, 2)
@@ -221,28 +238,35 @@ class GasReliefTab(BaseCalcTab):
         grid.addWidget(QLabel("Overpressure %:"), 1, 2)
         grid.addWidget(self.op_input, 1, 3)
 
-        grid.addWidget(QLabel("Total Back Pressure (P2):"), 2, 0)
-        grid.addLayout(p2_layout, 2, 1)
+        grid.addWidget(QLabel("MAWP (Design Pressure):"), 2, 0)
+        grid.addLayout(mawp_layout, 2, 1)
         grid.addWidget(QLabel("Relieving Temp (T):"), 2, 2)
         grid.addLayout(t_layout, 2, 3)
 
-        grid.addWidget(QLabel("Compressibility (Z):"), 3, 0)
-        grid.addWidget(self.z_input, 3, 1)
-        grid.addWidget(QLabel("Molecular Weight (MW):"), 3, 2)
-        grid.addWidget(self.mw_input, 3, 3)
+        grid.addWidget(QLabel("Superimposed Back Pressure:"), 3, 0)
+        grid.addLayout(sup_bp_layout, 3, 1)
+        grid.addWidget(QLabel("Total Back Pressure (P2):"), 3, 2)
+        grid.addLayout(p2_layout, 3, 3)
 
-        grid.addWidget(QLabel("Specific Heat Ratio (k):"), 4, 0)
-        grid.addLayout(k_layout, 4, 1)
-        grid.addWidget(QLabel("Valve Type:"), 4, 2)
+        grid.addWidget(QLabel("Compressibility (Z):"), 4, 0)
+        grid.addWidget(self.z_input, 4, 1)
+        grid.addWidget(QLabel("Molecular Weight (MW):"), 4, 2)
+        grid.addWidget(self.mw_input, 4, 3)
+
+        grid.addWidget(QLabel("Specific Heat Ratio (k):"), 5, 0)
+        grid.addLayout(k_layout, 5, 1)
+        grid.addWidget(QLabel("Valve Type:"), 5, 2)
         self.valve_type_combo = QComboBox()
         self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
         grid.addWidget(self.valve_type_combo, 4, 3)
 
-        grid.addWidget(QLabel("Number of Parallel Valves:"), 5, 0)
-        grid.addWidget(self.num_valves_input, 5, 1)
+        grid.addWidget(QLabel("Number of Parallel Valves:"), 6, 0)
+        grid.addWidget(self.num_valves_input, 6, 1)
 
-        grid.addWidget(QLabel("Relieving P1 (auto-calc):"), 6, 0)
-        grid.addWidget(self.p1_display, 6, 1, 1, 3)
+        grid.addWidget(QLabel("Relieving P1 (auto-calc):"), 7, 0)
+        grid.addWidget(self.p1_display, 7, 1)
+        grid.addWidget(QLabel("BP Ratio % (P2/Pset):"), 7, 2)
+        grid.addWidget(self.bp_ratio_display, 7, 3)
 
         input_group.setLayout(grid)
         self.main_layout.insertWidget(1, input_group)
@@ -326,9 +350,11 @@ class GasReliefTab(BaseCalcTab):
 
             flow = float(self.flow_input.text())
             set_p_raw = float(self.set_p_input.text())
+            mawp_raw = float(self.mawp_input.text())
             atm_raw = float(self.atm_input.text())
             op_pct = float(self.op_input.text())
             p2_raw = float(self.p2_input.text())
+            sup_bp_raw = float(self.sup_bp_input.text())
             t_raw = float(self.t_input.text())
 
             set_p_unit = self.set_p_unit.currentText()
@@ -336,12 +362,21 @@ class GasReliefTab(BaseCalcTab):
 
             atm_psia = bara_to_psia(atm_raw) if atm_unit == "bara" else atm_raw
             set_psig = set_p_raw if set_p_unit == "psig" else set_p_raw
-            p1 = set_psig * (1.0 + op_pct / 100.0) + atm_psia
 
+            if set_p_raw > mawp_raw:
+                QMessageBox.warning(self, "Set Pressure > MAWP",
+                    f"Set Pressure ({set_p_raw} {set_p_unit}) exceeds "
+                    f"MAWP ({mawp_raw} barg). Please verify.")
+
+            p1 = set_psig * (1.0 + op_pct / 100.0) + atm_psia
             self.p1_display.setText(f"{p1:.2f} psia (Set={set_psig:.2f} {set_p_unit}, "
                                     f"OP={op_pct:.1f}%, Atm={atm_raw:.4f} {atm_unit})")
 
             p2 = barg_to_psia(p2_raw, atm_psia) if self.p2_unit.currentText() == "barg" else p2_raw
+
+            bp_ratio = max((p2 - atm_psia), 0.0) / max(set_psig, 0.001) * 100.0
+            self.bp_ratio_display.setText(f"{bp_ratio:.1f}% (P2={p2:.2f} psia)")
+
             t = c_to_rankine(t_raw) if self.t_unit.currentText() == "°C" else t_raw
 
             if comp:
@@ -385,6 +420,7 @@ class GasReliefTab(BaseCalcTab):
                 'valve_type': self.valve_type_combo.currentText(),
                 'set_pressure_psig': sp_psig,
                 'overpressure_pct': op_pct,
+                'atm_psia': atm_psia,
             }
             self.last_inputs = inputs
 

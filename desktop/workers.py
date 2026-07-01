@@ -172,8 +172,9 @@ class GasCalcWorker(QThread):
                 )
             else:
                 set_psig = set_pressure_psig or self.inputs.get('set_pressure_psig_from_p1')
+                atm_psia = self.inputs.get('atm_psia', 14.6959)
                 kb = get_kb(self.inputs['p2_psia'], set_psig or 100,
-                           valve_type, overpressure_pct)
+                           valve_type, overpressure_pct, atm_psia)
                 res = calculate_gas_relief_area(
                     w_lb_h=self.inputs['w_lb_h'],
                     p1_psia=self.inputs['p1_psia'],
@@ -244,6 +245,7 @@ class FireWettedWorker(QThread):
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             else:
+                atm_psia = self.inputs.get('atm_psia', 14.6959)
                 res = calculate_gas_relief_area(
                     w_lb_h=w_lb_h,
                     p1_psia=self.inputs['p1_psia'],
@@ -254,7 +256,7 @@ class FireWettedWorker(QThread):
                     k=self.inputs['k'],
                     kd=KD_GAS,
                     kb=get_kb(self.inputs.get('p2_psia', 14.7), self.inputs.get('set_pressure_psig', 100),
-                             valve_type, self.inputs.get('overpressure_pct', 10.0)),
+                             valve_type, self.inputs.get('overpressure_pct', 10.0), atm_psia),
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             res['Relief_Load_lb_h'] = w_lb_h
