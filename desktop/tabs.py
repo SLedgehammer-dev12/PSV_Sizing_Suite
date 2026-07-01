@@ -69,10 +69,10 @@ class LiquidReliefTab(BaseCalcTab):
     def _add_result_widgets(self, layout):
         self.res_re = QLabel("-")
         self.res_kv = QLabel("-")
-        layout.addWidget(QLabel("Reynolds Number (Re):"), 2, 0)
-        layout.addWidget(self.res_re, 2, 1)
-        layout.addWidget(QLabel("Viscosity Corr. (Kv):"), 2, 2)
-        layout.addWidget(self.res_kv, 2, 3)
+        layout.addWidget(QLabel("Reynolds Number (Re):"), 0, 0)
+        layout.addWidget(self.res_re, 0, 1)
+        layout.addWidget(QLabel("Viscosity Corr. (Kv):"), 0, 2)
+        layout.addWidget(self.res_kv, 0, 3)
 
     def _update_extra_results(self, res):
         self.res_re.setText(f"{res['Reynolds_Number']:.2f}")
@@ -166,12 +166,22 @@ class GasReliefTab(BaseCalcTab):
         flow_layout.addWidget(self.flow_input)
         flow_layout.addWidget(self.flow_unit)
 
-        p1_layout = QHBoxLayout()
-        self.p1_input = QLineEdit("15.4")
-        self.p1_unit = QComboBox()
-        self.p1_unit.addItems(["barg", "psia"])
-        p1_layout.addWidget(self.p1_input)
-        p1_layout.addWidget(self.p1_unit)
+        self.set_p_input = QLineEdit("15.4")
+        self.set_p_unit = QComboBox()
+        self.set_p_unit.addItems(["barg", "psig"])
+        set_p_layout = QHBoxLayout()
+        set_p_layout.addWidget(self.set_p_input)
+        set_p_layout.addWidget(self.set_p_unit)
+
+        self.atm_input = QLineEdit("1.01325")
+        self.atm_unit = QComboBox()
+        self.atm_unit.addItems(["bara", "psia"])
+        atm_layout = QHBoxLayout()
+        atm_layout.addWidget(self.atm_input)
+        atm_layout.addWidget(self.atm_unit)
+
+        self.op_input = QLineEdit("10.0")
+        self.op_input.setToolTip("Overpressure % — auto-set from num valves (10% single, 16% multiple)")
 
         p2_layout = QHBoxLayout()
         self.p2_input = QLineEdit("1.2")
@@ -190,46 +200,68 @@ class GasReliefTab(BaseCalcTab):
         self.z_input = QLineEdit("0.85")
         self.z_input.setPlaceholderText("Auto or manual")
         self.mw_input = QLineEdit("21")
-        
+
         k_layout = QHBoxLayout()
         self.k_input = QLineEdit("1.3")
         k_layout.addWidget(self.k_input)
 
         self.num_valves_input = QLineEdit("1")
+        self.num_valves_input.textChanged.connect(self._update_overpressure)
+
+        self.p1_display = QLabel("— psia")
+        self.p1_display.setStyleSheet("font-weight: bold; color: #2c3e50;")
 
         grid.addWidget(QLabel("Flow Rate:"), 0, 0)
         grid.addLayout(flow_layout, 0, 1)
-        grid.addWidget(QLabel("Relieving Pressure (P1):"), 0, 2)
-        grid.addLayout(p1_layout, 0, 3)
-        grid.addWidget(QLabel("Total Back Pressure (P2):"), 1, 0)
-        grid.addLayout(p2_layout, 1, 1)
-        grid.addWidget(QLabel("Relieving Temp (T):"), 1, 2)
-        grid.addLayout(t_layout, 1, 3)
-        grid.addWidget(QLabel("Compressibility (Z):"), 2, 0)
-        grid.addWidget(self.z_input, 2, 1)
-        grid.addWidget(QLabel("Molecular Weight (MW):"), 2, 2)
-        grid.addWidget(self.mw_input, 2, 3)
-        grid.addWidget(QLabel("Specific Heat Ratio (k):"), 3, 0)
-        grid.addLayout(k_layout, 3, 1)
+        grid.addWidget(QLabel("Set Pressure (Pset):"), 0, 2)
+        grid.addLayout(set_p_layout, 0, 3)
 
+        grid.addWidget(QLabel("Atmospheric Pressure:"), 1, 0)
+        grid.addLayout(atm_layout, 1, 1)
+        grid.addWidget(QLabel("Overpressure %:"), 1, 2)
+        grid.addWidget(self.op_input, 1, 3)
+
+        grid.addWidget(QLabel("Total Back Pressure (P2):"), 2, 0)
+        grid.addLayout(p2_layout, 2, 1)
+        grid.addWidget(QLabel("Relieving Temp (T):"), 2, 2)
+        grid.addLayout(t_layout, 2, 3)
+
+        grid.addWidget(QLabel("Compressibility (Z):"), 3, 0)
+        grid.addWidget(self.z_input, 3, 1)
+        grid.addWidget(QLabel("Molecular Weight (MW):"), 3, 2)
+        grid.addWidget(self.mw_input, 3, 3)
+
+        grid.addWidget(QLabel("Specific Heat Ratio (k):"), 4, 0)
+        grid.addLayout(k_layout, 4, 1)
+        grid.addWidget(QLabel("Valve Type:"), 4, 2)
         self.valve_type_combo = QComboBox()
         self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
-        grid.addWidget(QLabel("Valve Type:"), 4, 0)
-        grid.addWidget(self.valve_type_combo, 4, 1)
-        grid.addWidget(QLabel("Number of Parallel Valves:"), 4, 2)
-        grid.addWidget(self.num_valves_input, 4, 3)
+        grid.addWidget(self.valve_type_combo, 4, 3)
+
+        grid.addWidget(QLabel("Number of Parallel Valves:"), 5, 0)
+        grid.addWidget(self.num_valves_input, 5, 1)
+
+        grid.addWidget(QLabel("Relieving P1 (auto-calc):"), 6, 0)
+        grid.addWidget(self.p1_display, 6, 1, 1, 3)
 
         input_group.setLayout(grid)
         self.main_layout.insertWidget(1, input_group)
 
+    def _update_overpressure(self):
+        try:
+            n = int(self.num_valves_input.text())
+        except ValueError:
+            return
+        self.op_input.setText("10.0" if n == 1 else "16.0")
+
     def _area_row(self):
-        return 2
+        return 1
 
     def _add_result_widgets(self, layout):
         self.res_flow_type = QLabel("-")
         self.res_flow_type.setStyleSheet("color: #8e44ad; font-weight: bold;")
-        layout.addWidget(QLabel("Flow Regime:"), 2, 0)
-        layout.addWidget(self.res_flow_type, 2, 1, 1, 3)
+        layout.addWidget(QLabel("Flow Regime:"), 0, 0)
+        layout.addWidget(self.res_flow_type, 0, 1, 1, 3)
 
     def _update_extra_results(self, res):
         self.res_flow_type.setText(res['Flow_Type'])
@@ -293,12 +325,23 @@ class GasReliefTab(BaseCalcTab):
             comp = self.get_composition()
 
             flow = float(self.flow_input.text())
-            p1_raw = float(self.p1_input.text())
+            set_p_raw = float(self.set_p_input.text())
+            atm_raw = float(self.atm_input.text())
+            op_pct = float(self.op_input.text())
             p2_raw = float(self.p2_input.text())
             t_raw = float(self.t_input.text())
-            
-            p1 = barg_to_psia(p1_raw) if self.p1_unit.currentText() == "barg" else p1_raw
-            p2 = barg_to_psia(p2_raw) if self.p2_unit.currentText() == "barg" else p2_raw
+
+            set_p_unit = self.set_p_unit.currentText()
+            atm_unit = self.atm_unit.currentText()
+
+            atm_psia = bara_to_psia(atm_raw) if atm_unit == "bara" else atm_raw
+            set_psig = set_p_raw if set_p_unit == "psig" else set_p_raw
+            p1 = set_psig * (1.0 + op_pct / 100.0) + atm_psia
+
+            self.p1_display.setText(f"{p1:.2f} psia (Set={set_psig:.2f} {set_p_unit}, "
+                                    f"OP={op_pct:.1f}%, Atm={atm_raw:.4f} {atm_unit})")
+
+            p2 = barg_to_psia(p2_raw, atm_psia) if self.p2_unit.currentText() == "barg" else p2_raw
             t = c_to_rankine(t_raw) if self.t_unit.currentText() == "°C" else t_raw
 
             if comp:
@@ -334,13 +377,14 @@ class GasReliefTab(BaseCalcTab):
             if num_valves < 1:
                 num_valves = 1
 
-            sp_psig = (p1 - 14.6959) / (1.0 + 10.0 / 100.0)
+            sp_psig = set_psig
             inputs = {
                 'w_lb_h': flow_lb_h, 'p1_psia': p1, 'p2_psia': p2,
                 't_rankine': t, 'z': z, 'mw': mw, 'k': k,
                 'num_valves': num_valves,
                 'valve_type': self.valve_type_combo.currentText(),
                 'set_pressure_psig': sp_psig,
+                'overpressure_pct': op_pct,
             }
             self.last_inputs = inputs
 
@@ -422,16 +466,19 @@ class TwoPhaseReliefTab(BaseCalcTab):
         input_group.setLayout(grid)
         self.main_layout.insertWidget(0, input_group)
 
+    def _area_row(self):
+        return 2
+
     def _add_result_widgets(self, layout):
         self.res_omega = QLabel("-")
         self.res_hc = QLabel("-")
         self.res_g = QLabel("-")
-        layout.addWidget(QLabel("Omega Parameter (w):"), 2, 0)
-        layout.addWidget(self.res_omega, 2, 1)
-        layout.addWidget(QLabel("Critical Pressure Ratio (hc):"), 2, 2)
-        layout.addWidget(self.res_hc, 2, 3)
-        layout.addWidget(QLabel("Mass Flux (G) [lb/s/ft2]:"), 3, 0)
-        layout.addWidget(self.res_g, 3, 1, 1, 3)
+        layout.addWidget(QLabel("Omega Parameter (w):"), 0, 0)
+        layout.addWidget(self.res_omega, 0, 1)
+        layout.addWidget(QLabel("Critical Pressure Ratio (hc):"), 0, 2)
+        layout.addWidget(self.res_hc, 0, 3)
+        layout.addWidget(QLabel("Mass Flux (G) [lb/s/ft2]:"), 1, 0)
+        layout.addWidget(self.res_g, 1, 1, 1, 3)
 
     def _update_extra_results(self, res):
         self.res_omega.setText(f"{res['Omega']:.5f}")

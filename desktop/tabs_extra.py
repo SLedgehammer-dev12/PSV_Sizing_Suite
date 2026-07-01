@@ -139,6 +139,9 @@ class FireUnwettedTab(BaseCalcTab):
     def __init__(self):
         super().__init__("Fire (Unwetted)", calc_button_color="#d35400")
 
+    def _area_row(self):
+        return 1
+
     def init_inputs(self):
         input_group = QGroupBox("Inputs (Fire Unwetted)")
         form_layout = QFormLayout()

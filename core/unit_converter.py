@@ -13,14 +13,18 @@ ATM_PSIA = ATMOSPHERIC_PSIA
 PSI_PER_BAR = PSIA_PER_BAR
 R_PSIA_FT3_LBMOL_R = R_PER_BARA
 
-def barg_to_psia(barg):
-    return (barg * PSIA_PER_BAR) + ATMOSPHERIC_PSIA
+def barg_to_psia(barg, atm_psia=None):
+    if atm_psia is None:
+        atm_psia = ATMOSPHERIC_PSIA
+    return (barg * PSIA_PER_BAR) + atm_psia
 
 def bara_to_psia(bara):
     return bara * PSIA_PER_BAR
 
-def psia_to_barg(psia):
-    return (psia - ATMOSPHERIC_PSIA) / PSIA_PER_BAR
+def psia_to_barg(psia, atm_psia=None):
+    if atm_psia is None:
+        atm_psia = ATMOSPHERIC_PSIA
+    return (psia - atm_psia) / PSIA_PER_BAR
 
 def psia_to_bara(psia):
     return psia / PSIA_PER_BAR
