@@ -29,7 +29,7 @@ def _load_catalog():
         logger.error("Vendor catalog read error: %s", e)
         _catalog_cache = {"models": []}
 
-def get_vendor_valves(api_letter):
+def get_vendor_valves(api_letter, valve_type=None):
     if not api_letter or api_letter == "-":
         return []
 
@@ -39,6 +39,15 @@ def get_vendor_valves(api_letter):
     matching_valves = []
     for model in _catalog_cache.get("models", []):
         if model.get("api526_equivalent") == api_letter or model.get("orifice_letter") == api_letter:
+            if valve_type:
+                model_design = model.get("design_type", "").lower()
+                vt = valve_type.lower()
+                if vt == "conventional" and "conventional" not in model_design and "spring" not in model_design:
+                    continue
+                if vt == "balanced_bellows" and "balanced" not in model_design and "bellows" not in model_design:
+                    continue
+                if vt == "pilot" and "pilot" not in model_design:
+                    continue
             matching_valves.append(model)
 
     return matching_valves

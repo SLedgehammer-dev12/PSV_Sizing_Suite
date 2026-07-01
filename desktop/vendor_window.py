@@ -63,9 +63,9 @@ class VendorTableWidget(QWidget):
         if reply == QMessageBox.Yes:
             webbrowser.open(website)
 
-    def update_valves(self, api_letter):
+    def update_valves(self, api_letter, valve_type=None):
         api_letter = api_letter.split('(')[0].strip() if api_letter else "-"
-        self.current_valves = get_vendor_valves(api_letter)
+        self.current_valves = get_vendor_valves(api_letter, valve_type)
         self.table.setRowCount(len(self.current_valves))
         for row, v in enumerate(self.current_valves):
             self.table.setItem(row, 0, QTableWidgetItem(str(v.get("manufacturer", ""))))

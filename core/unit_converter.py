@@ -104,3 +104,35 @@ def nm3_h_to_lb_h(nm3_h, mw):
     rho_norm_lb_ft3 = (STANDARD_PRESSURE_PSIA * mw) / (1.0 * R_PER_BARA * NORMAL_TEMP_RANKINE)
     ft3_h = nm3_h * CUBIC_FEET_PER_M3
     return ft3_h * rho_norm_lb_ft3
+
+
+def rankine_to_c(t_rankine):
+    return (t_rankine - RANKINE_OFFSET) / FAHRENHEIT_RATIO
+
+
+def ft3_lb_to_m3_kg(v_ft3_lb):
+    return v_ft3_lb / M3KG_TO_FT3LB
+
+
+def btu_lb_to_kcal_kg(h_btu_lb):
+    return h_btu_lb / KCAL_KG_TO_BTU_LB
+
+
+def btu_h_to_kw(q_btu_h):
+    return q_btu_h / KW_TO_BTUH
+
+
+def btu_h_to_kcal_h(q_btu_h):
+    return q_btu_h / KCALH_TO_BTUH
+
+
+def sqin_to_mm2(a_sqin):
+    return a_sqin * 645.16
+
+
+def rankine_to_f(t_rankine):
+    return t_rankine - 459.67
+
+
+def sqft_to_m2(a_sqft):
+    return a_sqft / SQFT_PER_M2

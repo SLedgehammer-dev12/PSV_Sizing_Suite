@@ -151,7 +151,10 @@ class BaseCalcTab(QWidget):
         self.last_res = res
         self.update_result_units()
         self._update_extra_results(res)
-        self.vendor_table_widget.update_valves(res['Selected_Orifice_Letter'])
+        self.vendor_table_widget.update_valves(
+            res['Selected_Orifice_Letter'],
+            self.last_inputs.get('valve_type') if hasattr(self, 'last_inputs') else None
+        )
 
     def _update_extra_results(self, res):
         """Override in subclass to update extra result labels."""
@@ -188,10 +191,11 @@ class BaseCalcTab(QWidget):
 
     def export_report(self):
         if not hasattr(self, 'last_res') or self.last_res is None:
-            QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
+            QMessageBox.warning(self, "Uyarı", "Lutfen once HESAPLA butonuna basin.")
             return
+        unit_system = "SI" if self.res_area_unit.currentText() == "mm²" else "USC"
         results = self._get_export_results()
-        generate_and_open_report(self.tab_name, self.last_inputs, results)
+        generate_and_open_report(self.tab_name, self.last_inputs, results, unit_system)
 
     def _get_export_results(self):
         """Override in subclass to return result dict for PDF export."""

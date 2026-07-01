@@ -62,6 +62,10 @@ class FireWettedTab(BaseCalcTab):
         p2_layout.addWidget(self.p2_unit)
         form_layout.addRow("Back Pressure (P2):", p2_layout)
 
+        self.valve_type_combo = QComboBox()
+        self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
+        form_layout.addRow("Valve Type:", self.valve_type_combo)
+
         input_group.setLayout(form_layout)
         self.main_layout.insertWidget(0, input_group)
 
@@ -111,7 +115,8 @@ class FireWettedTab(BaseCalcTab):
 
             inputs = {
                 'a_wetted': area, 'h_vap': hvap, 'p1_psia': p1, 'p2_psia': p2,
-                't_rankine': t, 'z': z, 'mw': mw, 'k': k, 'f_factor': f
+                't_rankine': t, 'z': z, 'mw': mw, 'k': k, 'f_factor': f,
+                'valve_type': self.valve_type_combo.currentText()
             }
             self.last_inputs = inputs
 
@@ -260,6 +265,10 @@ class ThermalExpansionTab(BaseCalcTab):
         p2_layout.addWidget(self.p2_unit)
         form_layout.addRow("Back Pressure (P2):", p2_layout)
 
+        self.valve_type_combo = QComboBox()
+        self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
+        form_layout.addRow("Valve Type:", self.valve_type_combo)
+
         input_group.setLayout(form_layout)
         self.main_layout.insertWidget(0, input_group)
 
@@ -301,7 +310,8 @@ class ThermalExpansionTab(BaseCalcTab):
 
             inputs = {
                 'h_btu': h, 'b': b, 'g': g, 'c': c, 'mu_cp': mu,
-                'p1_psia': p1, 'p2_psia': p2
+                'p1_psia': p1, 'p2_psia': p2,
+                'valve_type': self.valve_type_combo.currentText()
             }
             self.last_inputs = inputs
 

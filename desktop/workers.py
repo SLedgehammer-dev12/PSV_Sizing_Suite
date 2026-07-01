@@ -13,6 +13,8 @@ from core.two_phase import calculate_two_phase_area, calculate_omega_flashing
 from core.fire_scenarios import calculate_fire_wetted_load, calculate_fire_unwetted_area
 from core.thermal_expansion import calculate_thermal_expansion_load
 from core.valve_selection import select_orifice
+from core.valve_types import calculate_pilot_gas_area, calculate_pilot_liquid_area, KD_GAS, KD_LIQUID, KD_TWO_PHASE
+from core.kb_coefficient import get_kb
 
 
 class UpdateCheckWorker(QThread):
@@ -118,15 +120,27 @@ class LiquidCalcWorker(QThread):
 
     def run(self):
         try:
-    
-            res = calculate_liquid_relief_area(
-                q_gpm=self.inputs['q_gpm'],
-                p1_psia=self.inputs['p1_psia'],
-                p2_psia=self.inputs['p2_psia'],
-                g=self.inputs['g'],
-                mu_cp=self.inputs['mu_cp'],
-                num_valves=self.inputs.get('num_valves', 1)
-            )
+            valve_type = self.inputs.get('valve_type', 'conventional')
+
+            if valve_type == 'pilot':
+                res = calculate_pilot_liquid_area(
+                    q_gpm=self.inputs['q_gpm'],
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs['p2_psia'],
+                    g=self.inputs['g'],
+                    mu_cp=self.inputs['mu_cp'],
+                    num_valves=self.inputs.get('num_valves', 1)
+                )
+            else:
+                res = calculate_liquid_relief_area(
+                    q_gpm=self.inputs['q_gpm'],
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs['p2_psia'],
+                    g=self.inputs['g'],
+                    mu_cp=self.inputs['mu_cp'],
+                    kd=KD_LIQUID,
+                    num_valves=self.inputs.get('num_valves', 1)
+                )
             self.finished.emit(res)
         except Exception as e:
             self.error.emit(str(e))
@@ -141,17 +155,37 @@ class GasCalcWorker(QThread):
 
     def run(self):
         try:
-    
-            res = calculate_gas_relief_area(
-                w_lb_h=self.inputs['w_lb_h'],
-                p1_psia=self.inputs['p1_psia'],
-                p2_psia=self.inputs['p2_psia'],
-                t_rankine=self.inputs['t_rankine'],
-                z=self.inputs['z'],
-                mw=self.inputs['mw'],
-                k=self.inputs['k'],
-                num_valves=self.inputs.get('num_valves', 1)
-            )
+            valve_type = self.inputs.get('valve_type', 'conventional')
+            overpressure_pct = self.inputs.get('overpressure_pct', 10.0)
+            set_pressure_psig = self.inputs.get('set_pressure_psig', None)
+
+            if valve_type == 'pilot':
+                res = calculate_pilot_gas_area(
+                    w_lb_h=self.inputs['w_lb_h'],
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs['p2_psia'],
+                    t_rankine=self.inputs['t_rankine'],
+                    z=self.inputs['z'],
+                    mw=self.inputs['mw'],
+                    k=self.inputs['k'],
+                    num_valves=self.inputs.get('num_valves', 1)
+                )
+            else:
+                set_psig = set_pressure_psig or self.inputs.get('set_pressure_psig_from_p1')
+                kb = get_kb(self.inputs['p2_psia'], set_psig or 100,
+                           valve_type, overpressure_pct)
+                res = calculate_gas_relief_area(
+                    w_lb_h=self.inputs['w_lb_h'],
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs['p2_psia'],
+                    t_rankine=self.inputs['t_rankine'],
+                    z=self.inputs['z'],
+                    mw=self.inputs['mw'],
+                    k=self.inputs['k'],
+                    kd=KD_GAS,
+                    kb=kb,
+                    num_valves=self.inputs.get('num_valves', 1)
+                )
             self.finished.emit(res)
         except Exception as e:
             self.error.emit(str(e))
@@ -197,17 +231,32 @@ class FireWettedWorker(QThread):
                 f_factor=self.inputs['f_factor'],
                 heat_of_vap_btu_lb=self.inputs['h_vap']
             )
-            # Use gas relief to calculate area for the vaporized load
-            res = calculate_gas_relief_area(
-                w_lb_h=w_lb_h,
-                p1_psia=self.inputs['p1_psia'],
-                p2_psia=self.inputs.get('p2_psia', 14.7),
-                t_rankine=self.inputs['t_rankine'],
-                z=self.inputs['z'],
-                mw=self.inputs['mw'],
-                k=self.inputs['k'],
-                num_valves=self.inputs.get('num_valves', 1)
-            )
+            valve_type = self.inputs.get('valve_type', 'conventional')
+            if valve_type == 'pilot':
+                res = calculate_pilot_gas_area(
+                    w_lb_h=w_lb_h,
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs.get('p2_psia', 14.7),
+                    t_rankine=self.inputs['t_rankine'],
+                    z=self.inputs['z'],
+                    mw=self.inputs['mw'],
+                    k=self.inputs['k'],
+                    num_valves=self.inputs.get('num_valves', 1)
+                )
+            else:
+                res = calculate_gas_relief_area(
+                    w_lb_h=w_lb_h,
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs.get('p2_psia', 14.7),
+                    t_rankine=self.inputs['t_rankine'],
+                    z=self.inputs['z'],
+                    mw=self.inputs['mw'],
+                    k=self.inputs['k'],
+                    kd=KD_GAS,
+                    kb=get_kb(self.inputs.get('p2_psia', 14.7), self.inputs.get('set_pressure_psig', 100),
+                             valve_type, self.inputs.get('overpressure_pct', 10.0)),
+                    num_valves=self.inputs.get('num_valves', 1)
+                )
             res['Relief_Load_lb_h'] = w_lb_h
             res['Heat_Absorption_Btu_h'] = q_btu_h
             self.finished.emit(res)
@@ -260,13 +309,24 @@ class ThermalWorker(QThread):
                 g_specific_gravity=self.inputs['g'],
                 c_specific_heat=self.inputs['c']
             )
-            res = calculate_liquid_relief_area(
-                q_gpm=q_gpm,
-                p1_psia=self.inputs['p1_psia'],
-                p2_psia=self.inputs['p2_psia'],
-                g=self.inputs['g'],
-                mu_cp=self.inputs['mu_cp']
-            )
+            valve_type = self.inputs.get('valve_type', 'conventional')
+            if valve_type == 'pilot':
+                res = calculate_pilot_liquid_area(
+                    q_gpm=q_gpm,
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs['p2_psia'],
+                    g=self.inputs['g'],
+                    mu_cp=self.inputs['mu_cp']
+                )
+            else:
+                res = calculate_liquid_relief_area(
+                    q_gpm=q_gpm,
+                    p1_psia=self.inputs['p1_psia'],
+                    p2_psia=self.inputs['p2_psia'],
+                    g=self.inputs['g'],
+                    mu_cp=self.inputs['mu_cp'],
+                    kd=KD_LIQUID
+                )
             res['Relief_Load_gpm'] = q_gpm
             self.finished.emit(res)
         except Exception as e:
@@ -274,7 +334,7 @@ class ThermalWorker(QThread):
 
 
 class GraphCalcWorker(QThread):
-    finished = pyqtSignal(list, float, float)
+    finished = pyqtSignal(list, list, float)
     error = pyqtSignal(str)
 
     def __init__(self, tab_name, inputs):

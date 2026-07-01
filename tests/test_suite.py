@@ -556,8 +556,7 @@ class TestVersionConsistency(unittest.TestCase):
     def test_report_generator_version_is_v22(self):
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'desktop', 'report_generator.py'), 'r', encoding='utf-8') as f:
             content = f.read()
-        self.assertIn('v2.3.0', content)
-        self.assertNotIn('v2.1', content)
+        self.assertIn('__version_tag__', content)
 
 
 class TestGasCompositionRequirement(unittest.TestCase):
@@ -765,7 +764,7 @@ class TestUpdateCheck(unittest.TestCase):
 
     def test_app_version_constant_exists(self):
         from desktop.app import APP_VERSION
-        self.assertEqual(APP_VERSION, "v2.3.0")
+        self.assertEqual(APP_VERSION, "v2.3.1")
 
     def test_app_version_in_title(self):
         from desktop.app import APP_VERSION, PSVSizingApp
@@ -981,8 +980,8 @@ class TestV230Modules(unittest.TestCase):
 
     def test_core_version_is_v230(self):
         from core import __version__, __version_tag__
-        self.assertEqual(__version__, "2.3.0")
-        self.assertEqual(__version_tag__, "v2.3.0")
+        self.assertEqual(__version__, "2.3.1")
+        self.assertEqual(__version_tag__, "v2.3.1")
 
     def test_liquid_relief_multivalve(self):
         from core.liquid_relief import calculate_liquid_relief_area
@@ -1047,6 +1046,80 @@ class TestV230Modules(unittest.TestCase):
         self.assertIsNotNone(tab.res_orifice)
         self.assertIsNotNone(tab.vendor_table_widget)
         self.assertEqual(tab.calc_btn.text(), "HESAPLA (CALCULATE)")
+
+
+class TestV231Improvements(unittest.TestCase):
+
+    def test_graph_worker_signal_accepts_list(self):
+        from desktop.workers import GraphCalcWorker
+        worker = GraphCalcWorker("Liquid", {
+            'q_gpm': 60, 'p1_psia': 100, 'p2_psia': 10,
+            'g': 1.0, 'mu_cp': 1.0, 'num_valves': 1
+        })
+        result = []
+        def mock_finished(p, a, b):
+            result.append('ok')
+        worker.finished.connect(mock_finished)
+        worker.run()
+        self.assertEqual(result, ['ok'])
+
+    def test_vendor_valve_type_filter(self):
+        from core.vendor_catalog import get_vendor_valves
+        result = get_vendor_valves("D", "pilot")
+        for v in result:
+            self.assertIn("pilot", v.get("design_type", "").lower())
+
+    def test_reverse_converters_roundtrip(self):
+        from core.unit_converter import rankine_to_c, ft3_lb_to_m3_kg, sqin_to_mm2, sqft_to_m2
+        from core.unit_converter import c_to_rankine, m3_kg_to_ft3_lb, m2_to_sqft
+        self.assertAlmostEqual(rankine_to_c(c_to_rankine(100)), 100, places=3)
+        self.assertAlmostEqual(ft3_lb_to_m3_kg(m3_kg_to_ft3_lb(0.1)), 0.1, places=4)
+        self.assertAlmostEqual(sqin_to_mm2(1.0), 645.16, places=2)
+        self.assertAlmostEqual(sqft_to_m2(m2_to_sqft(10)), 10, places=3)
+
+    def test_valve_type_affects_kd(self):
+        from core.valve_types import KD_GAS, KD_LIQUID, KD_TWO_PHASE
+        self.assertEqual(KD_GAS, 0.99)
+        self.assertEqual(KD_LIQUID, 0.80)
+        self.assertEqual(KD_TWO_PHASE, 0.85)
+
+    def test_pilot_liquid_worker_routes(self):
+        from desktop.workers import LiquidCalcWorker
+        worker = LiquidCalcWorker({
+            'q_gpm': 60, 'p1_psia': 100, 'p2_psia': 10,
+            'g': 1.0, 'mu_cp': 1.0, 'num_valves': 1,
+            'valve_type': 'pilot'
+        })
+        def mock_finished(res):
+            self.assertIn('Kd', res)
+            self.assertEqual(res['Kd'], 0.80)
+        worker.finished.connect(mock_finished)
+        worker.run()
+
+    def test_pilot_gas_worker_routes(self):
+        from desktop.workers import GasCalcWorker
+        worker = GasCalcWorker({
+            'w_lb_h': 10000, 'p1_psia': 500, 'p2_psia': 14.7,
+            't_rankine': 600, 'z': 0.9, 'mw': 28, 'k': 1.4,
+            'num_valves': 1, 'valve_type': 'pilot'
+        })
+        def mock_finished(res):
+            self.assertIn('Kd', res)
+            self.assertEqual(res['Kd'], 0.99)
+        worker.finished.connect(mock_finished)
+        worker.run()
+
+    def test_report_generator_accepts_unit_system(self):
+        from desktop.report_generator import generate_and_open_report
+        import inspect
+        sig = inspect.signature(generate_and_open_report)
+        self.assertIn('unit_system', sig.parameters)
+
+    def test_get_vendor_valves_accepts_valve_type(self):
+        from core.vendor_catalog import get_vendor_valves
+        import inspect
+        sig = inspect.signature(get_vendor_valves)
+        self.assertIn('valve_type', sig.parameters)
 
 
 if __name__ == "__main__":
