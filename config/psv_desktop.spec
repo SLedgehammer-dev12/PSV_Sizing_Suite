@@ -36,6 +36,8 @@ hidden_imports = [
     # Plotting
     'matplotlib', 'matplotlib.backends.backend_qt5agg',
     'matplotlib.figure', 'matplotlib.pyplot',
+    # matplotlib Qt5Agg backend needs QtSvg
+    'PyQt5.QtSvg',
     # Scientific
     'numpy', 'CoolProp', 'CoolProp.CoolProp',
     # Pydantic + dependencies (needed for core/models.py)
@@ -45,7 +47,7 @@ hidden_imports = [
 ]
 
 excludes = [
-    'PyQt5.QtSvg', 'PyQt5.QtNetwork', 'PyQt5.QtQml',
+    'PyQt5.QtNetwork', 'PyQt5.QtQml',
     'PyQt5.QtSql', 'PyQt5.QtTest', 'PyQt5.QtXml',
     'PyQt5.QtWebEngine', 'PyQt5.QtWebSockets',
     'PyQt5.QtBluetooth', 'PyQt5.QtPositioning',
