@@ -54,7 +54,6 @@ pyinstaller --noconsole \
     --hidden-import desktop.report_generator \
     --hidden-import core.kb_coefficient \
     --hidden-import core.units \
-    --hidden-import core.report \
     --hidden-import core.piping \
     --hidden-import core.valve_types \
     --hidden-import core.advanced_sizing \
