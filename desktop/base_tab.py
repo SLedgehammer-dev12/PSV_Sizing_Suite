@@ -5,7 +5,6 @@ from PyQt5.QtGui import QFont
 
 from desktop.vendor_window import VendorTableWidget
 from desktop.report_generator import generate_and_open_report
-from desktop.graph_window import PlotWindow
 
 
 class BaseCalcTab(QWidget):
@@ -208,6 +207,7 @@ class BaseCalcTab(QWidget):
         if not hasattr(self, 'last_res') or self.last_res is None:
             QMessageBox.warning(self, "Uyarı", "Lütfen önce HESAPLA butonuna basın.")
             return
+        from desktop.graph_window import PlotWindow
         results = self._get_graph_results()
         self.plot_win = PlotWindow(self, self.tab_name, self.last_inputs, results)
         self.plot_win.exec_()

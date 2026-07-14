@@ -19,7 +19,6 @@ from PyQt5.QtCore import Qt
 from desktop.tabs import LiquidReliefTab, GasReliefTab, TwoPhaseReliefTab
 from desktop.tabs_extra import FireWettedTab, FireUnwettedTab, ThermalExpansionTab
 from desktop.report_generator import generate_and_open_report
-from desktop.graph_window import PlotWindow
 from desktop.auth import check_login, change_password, must_change_password, set_password_changed, get_lockout_remaining
 from desktop.workers import UpdateCheckWorker, UpdateDownloadWorker
 from core import __version_tag__
@@ -304,6 +303,7 @@ class PSVSizingApp(QMainWindow):
             QMessageBox.warning(self, "Uyarı", "Lütfen grafik oluşturmadan önce HESAPLA butonuna basarak sonuçları elde edin.")
             return
 
+        from desktop.graph_window import PlotWindow
         self.plot_win = PlotWindow(self, current_tab_name, current_tab.last_inputs, results)
         self.plot_win.exec_()
 
