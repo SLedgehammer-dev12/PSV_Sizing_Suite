@@ -103,6 +103,10 @@ if [ ! -d "dist/${APPNAME}.app" ]; then
 fi
 echo "  ✓ .app bundle created"
 
+# Remove quarantine flag from the app bundle
+xattr -cr "dist/${APPNAME}.app" 2>/dev/null || true
+echo "  ✓ Quarantine flag removed"
+
 # ---------- Code Sign (optional) ----------
 echo "[5/6] Code signing..."
 if security find-identity -v -p basic 2>/dev/null | grep -q "Developer ID"; then
