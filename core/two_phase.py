@@ -20,10 +20,8 @@ def calculate_critical_pressure_ratio(omega):
     if omega <= 0:
         return 1.0
 
-    term1 = 1.0446 / (omega ** 0.5)
-    term2 = 0.0093431 / (omega ** 0.56261)
-    base = 1.0 + term1 - term2
-    power = -(0.70356 - 0.014685 * math.log(omega))
+    base = 1.0 + (1.0446 - 0.0093431 * math.sqrt(omega)) * omega ** (-0.56261)
+    power = -0.70356 + 0.014685 * math.log(omega)
     return base ** power
 
 
@@ -50,7 +48,8 @@ def calculate_two_phase_area(w_lb_h, p0_psia, p_back_psia, v0_ft3_lb, omega, kd=
         g_flux = TWO_PHASE_CRITICAL_CONSTANT * eta_c * math.sqrt(p0_psia / (v0_ft3_lb * omega))
     else:
         eta = p_back_psia / p0_psia
-        term_sqrt1 = math.sqrt(p0_psia / (v0_ft3_lb * omega))
+        # API 520 Annex C subcritical mass flux (no 1/sqrt(omega) factor here).
+        term_sqrt1 = math.sqrt(p0_psia / v0_ft3_lb)
 
         inner = -2.0 * (omega * math.log(eta) + (omega - 1.0) * (1.0 - eta))
         if inner < 0:
@@ -65,7 +64,7 @@ def calculate_two_phase_area(w_lb_h, p0_psia, p_back_psia, v0_ft3_lb, omega, kd=
         if denominator <= 0:
             raise ValueError("Subcritical two-phase flow calculation failed: denominator is zero or negative.")
 
-        g_flux = (68.09 * term_sqrt1 * term_sqrt2) / denominator
+        g_flux = (TWO_PHASE_CRITICAL_CONSTANT * term_sqrt1 * term_sqrt2) / denominator
 
     if g_flux <= 0:
         raise ValueError("Mass flux calculation resulted in zero or negative value.")
@@ -75,6 +74,8 @@ def calculate_two_phase_area(w_lb_h, p0_psia, p_back_psia, v0_ft3_lb, omega, kd=
     a_req_per_valve = a_req / num_valves
 
     letter, selected_area = select_orifice(a_req_per_valve)
+    loading_pct = (a_req_per_valve / selected_area * 100.0
+                   if isinstance(selected_area, (int, float)) else None)
 
     return {
         'Omega': omega,
@@ -85,5 +86,7 @@ def calculate_two_phase_area(w_lb_h, p0_psia, p_back_psia, v0_ft3_lb, omega, kd=
         'Required_Area_sqin': a_req_per_valve,
         'Selected_Orifice_Letter': letter,
         'Selected_Orifice_Area_sqin': selected_area,
+        'Orifice_Loading_Pct': loading_pct,
+        'Kd': kd,
         'Num_Valves': num_valves
     }

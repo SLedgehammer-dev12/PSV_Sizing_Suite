@@ -14,6 +14,7 @@ class LiquidReliefInput(BaseModel):
     mu_cp: float = Field(default=1.0, gt=0, description="Viscosity (cP)")
     kd: float = Field(default=0.65, ge=0.1, le=1.0, description="Discharge coefficient")
     kw: float = Field(default=1.0, ge=0.1, le=1.0, description="Back pressure capacity correction")
+    kc: float = Field(default=1.0, ge=0.1, le=1.0, description="Combination correction factor (rupture disk)")
     num_valves: int = Field(default=1, ge=1, le=100, description="Number of parallel valves")
     valve_type: Literal["conventional", "balanced_bellows", "pilot"] = Field(default="conventional", description="Valve type")
     overpressure_pct: float = Field(default=10.0, ge=1.0, le=50.0, description="Percent overpressure")

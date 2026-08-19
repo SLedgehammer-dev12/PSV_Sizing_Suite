@@ -13,6 +13,9 @@ import math
 from typing import Dict, Optional, Union
 from .valve_selection import select_orifice
 from .kb_coefficient import get_kb
+from .constants import (
+    LIQUID_FORMULA_CONSTANT, GAS_SUBCRITICAL_CONSTANT, ATMOSPHERIC_PSIA,
+)
 
 
 # API 520 Table 13 — Pilot-operated discharge coefficients
@@ -49,7 +52,7 @@ def calculate_pilot_gas_area(
         if set_pressure_psig:
             sp = set_pressure_psig
         else:
-            p1_gauge = max(p1_psia - 14.6959, 0.0)
+            p1_gauge = max(p1_psia - ATMOSPHERIC_PSIA, 0.0)
             sp = p1_gauge / (1.0 + overpressure_pct / 100.0)
         kb = get_kb(p2_psia, sp, "conventional", overpressure_pct)
 
@@ -61,7 +64,7 @@ def calculate_pilot_gas_area(
         r = p2_psia / p1_psia
         f2 = calculate_f2_coefficient(k, r)
         term_sqrt = math.sqrt((z * t_rankine) / (mw * p1_psia * (p1_psia - p2_psia)))
-        a_req = (w_lb_h / (735.0 * f2 * KD_GAS * kb * kc)) * term_sqrt
+        a_req = (w_lb_h / (GAS_SUBCRITICAL_CONSTANT * f2 * KD_GAS * kb * kc)) * term_sqrt
 
     a_req_per_valve = a_req / num_valves
     letter, selected_area = select_orifice(a_req_per_valve)
@@ -96,7 +99,7 @@ def calculate_pilot_liquid_area(
     if delta_p <= 0:
         raise ValueError("Relieving pressure must be greater than back pressure.")
 
-    a_req_no_visc = (q_gpm / (38.0 * KD_LIQUID * kw * 1.0)) * math.sqrt(g / delta_p)
+    a_req_no_visc = (q_gpm / (LIQUID_FORMULA_CONSTANT * KD_LIQUID * kw * 1.0)) * math.sqrt(g / delta_p)
     a_req_no_visc_per_valve = a_req_no_visc / num_valves
 
     letter, selected_area = _select(a_req_no_visc_per_valve)
@@ -104,7 +107,7 @@ def calculate_pilot_liquid_area(
     if isinstance(selected_area, float):
         re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, selected_area)
         kv = calculate_kv(re)
-        a_req_final = (q_gpm / (38.0 * KD_LIQUID * kw * kv)) * math.sqrt(g / delta_p)
+        a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * KD_LIQUID * kw * kv)) * math.sqrt(g / delta_p)
         a_req_final_per_valve = a_req_final / num_valves
         final_letter, final_selected_area = _select(a_req_final_per_valve)
 
@@ -112,7 +115,7 @@ def calculate_pilot_liquid_area(
             if isinstance(final_selected_area, float):
                 re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, final_selected_area)
                 kv = calculate_kv(re)
-                a_req_final = (q_gpm / (38.0 * KD_LIQUID * kw * kv)) * math.sqrt(g / delta_p)
+                a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * KD_LIQUID * kw * kv)) * math.sqrt(g / delta_p)
                 a_req_final_per_valve = a_req_final / num_valves
                 new_letter, new_selected_area = _select(a_req_final_per_valve)
                 if new_letter == final_letter:

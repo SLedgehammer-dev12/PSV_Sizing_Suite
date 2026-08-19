@@ -216,16 +216,23 @@ class TestEdgeCases(unittest.TestCase):
 
     def test_kv_at_high_reynolds(self):
         kv = calculate_kv(50000)
-        self.assertEqual(kv, 1.0)
+        self.assertGreater(kv, 0.99)
+        self.assertLessEqual(kv, 1.0)
 
     def test_kv_at_low_reynolds(self):
-        kv = calculate_kv(5)
-        self.assertEqual(kv, 0.1)
+        kv = calculate_kv(40)
+        self.assertAlmostEqual(kv, 0.357, places=3)
 
     def test_kv_at_medium_reynolds(self):
         kv = calculate_kv(1000)
-        self.assertGreater(kv, 0.1)
-        self.assertLess(kv, 1.0)
+        self.assertAlmostEqual(kv, 0.913, places=3)
+
+    def test_kv_api520_standard_values(self):
+        # API 520 Part I Eq.34 spot checks
+        self.assertAlmostEqual(calculate_kv(100), 0.6157, places=3)
+        self.assertAlmostEqual(calculate_kv(10000), 0.9779, places=3)
+        self.assertEqual(calculate_kv(float('inf')), 1.0)
+        self.assertEqual(calculate_kv(0), 1.0)
 
     def test_select_orifice_smallest(self):
         letter, area = select_orifice(0.05)
@@ -1012,18 +1019,19 @@ class TestV230Modules(unittest.TestCase):
 
     def test_two_phase_eta_c_standard(self):
         from core.two_phase import calculate_critical_pressure_ratio
+        # API 520 Part I 10th ed. Annex C Eq. C.15 (verified against DIERS implicit solution)
         eta_05 = calculate_critical_pressure_ratio(0.5)
-        self.assertAlmostEqual(eta_05, 0.525, places=3)
+        self.assertAlmostEqual(eta_05, 0.5151, places=3)
         eta_1 = calculate_critical_pressure_ratio(1.0)
-        self.assertAlmostEqual(eta_1, 0.607, places=3)
+        self.assertAlmostEqual(eta_1, 0.6066, places=3)
         eta_4 = calculate_critical_pressure_ratio(4.0)
-        self.assertAlmostEqual(eta_4, 0.752, places=3)
+        self.assertAlmostEqual(eta_4, 0.7685, places=3)
         eta_10 = calculate_critical_pressure_ratio(10.0)
-        self.assertAlmostEqual(eta_10, 0.827, places=3)
+        self.assertAlmostEqual(eta_10, 0.8485, places=3)
         eta_20 = calculate_critical_pressure_ratio(20.0)
-        self.assertAlmostEqual(eta_20, 0.872, places=3)
+        self.assertAlmostEqual(eta_20, 0.8936, places=3)
         eta_1_48 = calculate_critical_pressure_ratio(1.482)
-        self.assertAlmostEqual(eta_1_48, 0.651, places=3)
+        self.assertAlmostEqual(eta_1_48, 0.6564, places=3)
         eta_zero = calculate_critical_pressure_ratio(0.0)
         self.assertEqual(eta_zero, 1.0)
 
@@ -1120,6 +1128,77 @@ class TestV231Improvements(unittest.TestCase):
         import inspect
         sig = inspect.signature(get_vendor_valves)
         self.assertIn('valve_type', sig.parameters)
+
+
+class TestEngineeringFixes(unittest.TestCase):
+
+    def test_two_phase_subcritical_mass_flux_standard(self):
+        import math
+        from core.two_phase import calculate_two_phase_area, calculate_omega_flashing
+        v0, v9 = 0.01, 0.015
+        omega = calculate_omega_flashing(v0, v9)
+        p0, pback = 100.0, 95.0
+        res = calculate_two_phase_area(w_lb_h=10000, p0_psia=p0, p_back_psia=pback, v0_ft3_lb=v0, omega=omega)
+        eta = pback / p0
+        inner = -2.0 * (omega * math.log(eta) + (omega - 1.0) * (1.0 - eta))
+        denom = (omega / eta) + 1.0 - omega
+        expected = 68.09 * math.sqrt(p0 / v0) * math.sqrt(inner) / denom
+        self.assertAlmostEqual(res['Mass_Flux_G_lb_s_ft2'], expected, places=3)
+
+    def test_gas_subcritical_kb_not_applied(self):
+        from core.gas_relief import calculate_gas_relief_area
+        r1 = calculate_gas_relief_area(10000, 500, 450, 600, 0.9, 28, 1.4, kb=1.0)
+        r2 = calculate_gas_relief_area(10000, 500, 450, 600, 0.9, 28, 1.4, kb=0.7)
+        self.assertEqual(r1['Required_Area_sqin'], r2['Required_Area_sqin'])
+
+    def test_liquid_relief_kc(self):
+        from core.liquid_relief import calculate_liquid_relief_area
+        r1 = calculate_liquid_relief_area(60, 100, 10, 1.0, 1.0, kc=1.0)
+        r2 = calculate_liquid_relief_area(60, 100, 10, 1.0, 1.0, kc=0.9)
+        self.assertGreater(r2['Required_Area_Final_sqin'], r1['Required_Area_Final_sqin'])
+
+    def test_barg_to_psig(self):
+        from core.unit_converter import barg_to_psig, psig_to_barg
+        self.assertAlmostEqual(barg_to_psig(1.0), 14.50377, places=4)
+        self.assertAlmostEqual(psig_to_barg(14.50377), 1.0, places=4)
+
+    def test_conventional_liquid_worker_uses_065(self):
+        from desktop.workers import LiquidCalcWorker
+        worker = LiquidCalcWorker({'q_gpm': 60, 'p1_psia': 100, 'p2_psia': 10,
+                                   'g': 1.0, 'mu_cp': 1.0, 'num_valves': 1,
+                                   'valve_type': 'conventional'})
+        res = {}
+        worker.finished.connect(lambda r: res.update(r))
+        worker.run()
+        self.assertEqual(res['Kd'], 0.65)
+
+    def test_conventional_gas_worker_uses_0975(self):
+        from desktop.workers import GasCalcWorker
+        worker = GasCalcWorker({'w_lb_h': 10000, 'p1_psia': 500, 'p2_psia': 14.7,
+                                't_rankine': 600, 'z': 0.9, 'mw': 28, 'k': 1.4,
+                                'num_valves': 1, 'valve_type': 'conventional'})
+        res = {}
+        worker.finished.connect(lambda r: res.update(r))
+        worker.run()
+        self.assertEqual(res['Kd'], 0.975)
+
+    def test_fire_wetted_inadequate_drainage(self):
+        from core.fire_scenarios import calculate_fire_wetted_load
+        w1, q1 = calculate_fire_wetted_load(100, 1.0, 100, adequate_drainage=True)
+        w2, q2 = calculate_fire_wetted_load(100, 1.0, 100, adequate_drainage=False)
+        self.assertAlmostEqual(q2 / q1, 34500.0 / 21000.0, places=3)
+
+    def test_env_factors(self):
+        from core.fire_scenarios import ENV_FACTORS, get_env_factor
+        self.assertEqual(get_env_factor("Bare vessel (no insulation)"), 1.0)
+        self.assertGreater(len(ENV_FACTORS), 5)
+
+    def test_api_main_importable(self):
+        import importlib
+        try:
+            importlib.import_module("api.main")
+        except Exception as e:
+            self.fail(f"api.main failed to import: {e}")
 
 
 if __name__ == "__main__":

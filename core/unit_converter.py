@@ -32,6 +32,12 @@ def psia_to_bara(psia):
 def bara_to_barg(bara):
     return bara - ATMOSPHERIC_PSIA / PSIA_PER_BAR
 
+def barg_to_psig(barg):
+    return barg * PSIA_PER_BAR
+
+def psig_to_barg(psig):
+    return psig / PSIA_PER_BAR
+
 def kg_h_to_lb_h(kg_h):
     return kg_h * KG_TO_LB
 

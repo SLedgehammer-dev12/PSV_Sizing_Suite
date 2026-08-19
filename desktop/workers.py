@@ -13,8 +13,9 @@ from core.two_phase import calculate_two_phase_area, calculate_omega_flashing
 from core.fire_scenarios import calculate_fire_wetted_load, calculate_fire_unwetted_area
 from core.thermal_expansion import calculate_thermal_expansion_load
 from core.valve_selection import select_orifice
-from core.valve_types import calculate_pilot_gas_area, calculate_pilot_liquid_area, KD_GAS, KD_LIQUID, KD_TWO_PHASE
+from core.valve_types import calculate_pilot_gas_area, calculate_pilot_liquid_area
 from core.kb_coefficient import get_kb
+from core.constants import PRELIM_KD_GAS, PRELIM_KD_LIQUID, ATMOSPHERIC_PSIA
 
 
 class UpdateCheckWorker(QThread):
@@ -138,7 +139,7 @@ class LiquidCalcWorker(QThread):
                     p2_psia=self.inputs['p2_psia'],
                     g=self.inputs['g'],
                     mu_cp=self.inputs['mu_cp'],
-                    kd=KD_LIQUID,
+                    kd=PRELIM_KD_LIQUID,
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             self.finished.emit(res)
@@ -157,7 +158,6 @@ class GasCalcWorker(QThread):
         try:
             valve_type = self.inputs.get('valve_type', 'conventional')
             overpressure_pct = self.inputs.get('overpressure_pct', 10.0)
-            set_pressure_psig = self.inputs.get('set_pressure_psig', None)
 
             if valve_type == 'pilot':
                 res = calculate_pilot_gas_area(
@@ -171,9 +171,13 @@ class GasCalcWorker(QThread):
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             else:
-                set_psig = set_pressure_psig or self.inputs.get('set_pressure_psig_from_p1')
-                atm_psia = self.inputs.get('atm_psia', 14.6959)
-                kb = get_kb(self.inputs['p2_psia'], set_psig or 100,
+                set_psig = self.inputs.get('set_pressure_psig')
+                atm_psia = self.inputs.get('atm_psia', ATMOSPHERIC_PSIA)
+                if not set_psig or set_psig <= 0:
+                    overpressure_pct = self.inputs.get('overpressure_pct', 10.0)
+                    p1_gauge = max(self.inputs['p1_psia'] - atm_psia, 0.0)
+                    set_psig = p1_gauge / (1.0 + overpressure_pct / 100.0)
+                kb = get_kb(self.inputs['p2_psia'], set_psig,
                            valve_type, overpressure_pct, atm_psia)
                 res = calculate_gas_relief_area(
                     w_lb_h=self.inputs['w_lb_h'],
@@ -183,7 +187,7 @@ class GasCalcWorker(QThread):
                     z=self.inputs['z'],
                     mw=self.inputs['mw'],
                     k=self.inputs['k'],
-                    kd=KD_GAS,
+                    kd=PRELIM_KD_GAS,
                     kb=kb,
                     num_valves=self.inputs.get('num_valves', 1)
                 )
@@ -237,7 +241,7 @@ class FireWettedWorker(QThread):
                 res = calculate_pilot_gas_area(
                     w_lb_h=w_lb_h,
                     p1_psia=self.inputs['p1_psia'],
-                    p2_psia=self.inputs.get('p2_psia', 14.7),
+                    p2_psia=self.inputs.get('p2_psia', ATMOSPHERIC_PSIA),
                     t_rankine=self.inputs['t_rankine'],
                     z=self.inputs['z'],
                     mw=self.inputs['mw'],
@@ -245,18 +249,23 @@ class FireWettedWorker(QThread):
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             else:
-                atm_psia = self.inputs.get('atm_psia', 14.6959)
+                atm_psia = self.inputs.get('atm_psia', ATMOSPHERIC_PSIA)
+                p2_psia = self.inputs.get('p2_psia', ATMOSPHERIC_PSIA)
+                overpressure_pct = self.inputs.get('overpressure_pct', 10.0)
+                set_psig = self.inputs.get('set_pressure_psig')
+                if not set_psig or set_psig <= 0:
+                    p1_gauge = max(self.inputs['p1_psia'] - atm_psia, 0.0)
+                    set_psig = p1_gauge / (1.0 + overpressure_pct / 100.0)
                 res = calculate_gas_relief_area(
                     w_lb_h=w_lb_h,
                     p1_psia=self.inputs['p1_psia'],
-                    p2_psia=self.inputs.get('p2_psia', 14.7),
+                    p2_psia=p2_psia,
                     t_rankine=self.inputs['t_rankine'],
                     z=self.inputs['z'],
                     mw=self.inputs['mw'],
                     k=self.inputs['k'],
-                    kd=KD_GAS,
-                    kb=get_kb(self.inputs.get('p2_psia', 14.7), self.inputs.get('set_pressure_psig', 100),
-                             valve_type, self.inputs.get('overpressure_pct', 10.0), atm_psia),
+                    kd=PRELIM_KD_GAS,
+                    kb=get_kb(p2_psia, set_psig, valve_type, overpressure_pct, atm_psia),
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             res['Relief_Load_lb_h'] = w_lb_h
@@ -327,7 +336,7 @@ class ThermalWorker(QThread):
                     p2_psia=self.inputs['p2_psia'],
                     g=self.inputs['g'],
                     mu_cp=self.inputs['mu_cp'],
-                    kd=KD_LIQUID
+                    kd=PRELIM_KD_LIQUID
                 )
             res['Relief_Load_gpm'] = q_gpm
             self.finished.emit(res)

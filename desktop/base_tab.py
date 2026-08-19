@@ -5,6 +5,7 @@ from PyQt5.QtGui import QFont
 
 from desktop.vendor_window import VendorTableWidget
 from desktop.report_generator import generate_and_open_report
+from core.unit_converter import sqin_to_mm2
 
 
 class BaseCalcTab(QWidget):
@@ -82,6 +83,7 @@ class BaseCalcTab(QWidget):
 
         self.res_area = QLabel("-")
         self.res_orifice = QLabel("-")
+        self.res_loading = QLabel("-")
 
         res_font = QFont("Arial", 11, QFont.Bold)
         self.res_area.setFont(res_font)
@@ -102,6 +104,9 @@ class BaseCalcTab(QWidget):
 
         res_layout.addWidget(QLabel("<b>Selected API Orifice:</b>"), self._area_row() + 1, 0)
         res_layout.addWidget(self.res_orifice, self._area_row() + 1, 1, 1, 3)
+
+        res_layout.addWidget(QLabel("<b>Orifice Loading:</b>"), self._area_row() + 2, 0)
+        res_layout.addWidget(self.res_loading, self._area_row() + 2, 1, 1, 3)
 
         result_group.setLayout(res_layout)
         self.main_layout.addWidget(result_group)
@@ -164,7 +169,7 @@ class BaseCalcTab(QWidget):
             return
         res = self.last_res
         unit = self.res_area_unit.currentText()
-        mult = 645.16 if unit == "mm²" else 1.0
+        mult = sqin_to_mm2(1.0) if unit == "mm²" else 1.0
 
         req_area = res.get('Required_Area_Final_sqin', res.get('Required_Area_sqin', 0)) * mult
         sel_area = res.get('Selected_Orifice_Area_sqin', 0)
@@ -172,6 +177,12 @@ class BaseCalcTab(QWidget):
             sel_area *= mult
 
         self.res_area.setText(f"{req_area:.4f} {unit}")
+
+        loading = res.get('Orifice_Loading_Pct')
+        if isinstance(loading, (int, float)):
+            self.res_loading.setText(f"{loading:.1f}% of selected orifice area")
+        else:
+            self.res_loading.setText("-")
 
         letter = res.get('Selected_Orifice_Letter', '-')
         if "Multiple" in str(letter):
@@ -200,7 +211,8 @@ class BaseCalcTab(QWidget):
         """Override in subclass to return result dict for PDF export."""
         return {
             "Required Area": self.res_area.text(),
-            "Selected API Orifice": self.res_orifice.text()
+            "Selected API Orifice": self.res_orifice.text(),
+            "Orifice Loading": self.res_loading.text()
         }
 
     def show_graph(self):

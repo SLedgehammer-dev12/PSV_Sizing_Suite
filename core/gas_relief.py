@@ -66,11 +66,15 @@ def calculate_gas_relief_area(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k, kd=
         if f2 <= 0:
             raise ValueError("Subcritical flow calculation failed: F2 coefficient is zero or negative.")
         c = None
+        # API 520 subcritical equation: Kb does NOT appear (back pressure is
+        # already accounted for by F2). Including Kb here would be non-standard.
         term_sqrt = math.sqrt((z * t_rankine) / (mw * p1_psia * (p1_psia - p2_psia)))
-        a_req = (w_lb_h / (GAS_SUBCRITICAL_CONSTANT * f2 * kd * kb * kc)) * term_sqrt
+        a_req = (w_lb_h / (GAS_SUBCRITICAL_CONSTANT * f2 * kd * kc)) * term_sqrt
 
     a_req_per_valve = a_req / num_valves
     letter, selected_area = select_orifice(a_req_per_valve)
+    loading_pct = (a_req_per_valve / selected_area * 100.0
+                   if isinstance(selected_area, (int, float)) else None)
 
     return {
         'Flow_Type': flow_type,
@@ -80,5 +84,9 @@ def calculate_gas_relief_area(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k, kd=
         'Required_Area_sqin': a_req_per_valve,
         'Selected_Orifice_Letter': letter,
         'Selected_Orifice_Area_sqin': selected_area,
+        'Orifice_Loading_Pct': loading_pct,
+        'Kd': kd,
+        'Kb': kb,
+        'Kc': kc,
         'Num_Valves': num_valves
     }

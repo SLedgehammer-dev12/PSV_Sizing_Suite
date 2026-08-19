@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout,
                               QTableWidget, QTableWidgetItem, QHeaderView)
 
 from core.unit_converter import (barg_to_psia, bara_to_psia, m3_h_to_gpm, kg_h_to_lb_h, c_to_rankine, m3_kg_to_ft3_lb,
-                                 kg_s_to_lb_h, actual_m3_h_to_lb_h, sm3_h_to_lb_h, nm3_h_to_lb_h)
+                                 kg_s_to_lb_h, actual_m3_h_to_lb_h, sm3_h_to_lb_h, nm3_h_to_lb_h, barg_to_psig, psig_to_barg)
 from desktop.workers import LiquidCalcWorker, GasCalcWorker, TwoPhaseCalcWorker
 from core.thermo_props import calculate_mixture_properties, get_coolprop_fluids
 from desktop.base_tab import BaseCalcTab
@@ -166,7 +166,7 @@ class GasReliefTab(BaseCalcTab):
         flow_layout.addWidget(self.flow_input)
         flow_layout.addWidget(self.flow_unit)
 
-        self.set_p_input = QLineEdit("15.4")
+        self.set_p_input = QLineEdit("14.0")
         self.set_p_unit = QComboBox()
         self.set_p_unit.addItems(["barg", "psig"])
         set_p_layout = QHBoxLayout()
@@ -358,15 +358,17 @@ class GasReliefTab(BaseCalcTab):
             t_raw = float(self.t_input.text())
 
             set_p_unit = self.set_p_unit.currentText()
+            mawp_unit = self.mawp_unit.currentText()
             atm_unit = self.atm_unit.currentText()
 
             atm_psia = bara_to_psia(atm_raw) if atm_unit == "bara" else atm_raw
-            set_psig = set_p_raw if set_p_unit == "psig" else set_p_raw
+            set_psig = set_p_raw if set_p_unit == "psig" else barg_to_psig(set_p_raw)
+            mawp_psig = mawp_raw if mawp_unit == "psig" else barg_to_psig(mawp_raw)
 
-            if set_p_raw > mawp_raw:
+            if set_psig > mawp_psig:
                 QMessageBox.warning(self, "Set Pressure > MAWP",
-                    f"Set Pressure ({set_p_raw} {set_p_unit}) exceeds "
-                    f"MAWP ({mawp_raw} barg). Please verify.")
+                    f"Set Pressure ({set_psig:.2f} psig) exceeds "
+                    f"MAWP ({mawp_psig:.2f} psig). Please verify.")
 
             p1 = set_psig * (1.0 + op_pct / 100.0) + atm_psia
             self.p1_display.setText(f"{p1:.2f} psia (Set={set_psig:.2f} {set_p_unit}, "

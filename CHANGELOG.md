@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.3.1 — Mühendislik Doğruluk Düzeltmeleri
+
+### 🔧 Standart Uyum Düzeltmeleri (API 520/521)
+- Sıvı tahliye ön boyutlandırma Kd = 0.65 (önceden yanlışlıkla pilot Kd'si 0.80 kullanılıyordu → alan ~%19 eksik)
+- Gaz tahliye ön boyutlandırma Kd = 0.975 (önceden 0.99 → alan ~%1.5 eksik)
+- Gaz sekmesi barg→psig dönüşümü eklendi (P1 hesaplaması düzeltildi)
+- İki-faz kritik basınç oranı (ηc) — API 520 Annex C Eq.C.15 ile hizalı (DIERS örtük çözümüyle doğrulandı)
+- İki-faz subkritik kütle akısı (G) — fazladan 1/√ω faktörü kaldırıldı
+- Sıvı viskozite düzeltmesi Kv = (0.9935 + 2.878/Re^0.5 + 342.75/Re^1.5)^-1 (API 520 Eq.34)
+- Gaz subkritik denkleminden Kb kaldırıldı (API 520'de Kb yalnız kritik akışta)
+- Sıvı formülüne Kc (patlama diski düzeltme) parametresi eklendi
+- Napier buhar Kn eşiği 1500 psia (önceden 1500 psig); buhar kritik oranı düzeltildi
+- Yangın (wetted): yetersiz drenaj/firefighting durumu için 34500 katsayısı (`adequate_drainage`)
+
+### 🛠️ Bakım / Profesyonellik
+- `api/main.py` bozuk import/imzalar düzeltildi (artık import edilebilir ve çalışır)
+- Hardcode sabitler `core.constants`'a taşındı (735.0, 38.0, 645.16, 14.6959)
+- `R_PER_BARA` → `R_PSIA_FT3_LBMOL_R` (geriye dönük alias korundu)
+- Sonuçlara "Orifice Loading %" ve Kd/Kc eklendi; PDF raporuna standart referans bölümü eklendi
+- Fire environment faktörleri (`ENV_FACTORS`, `get_env_factor`, `calculate_heat_absorption`) eklendi
+- README/AGENTS/About sürüm ve test sayısı tutarlı hale getirildi (161 test)
+
 ## v2.3.0 (2026-06-05)
 
 ### ✨ Yeni Özellikler (v2.2.0 → v2.3.0)

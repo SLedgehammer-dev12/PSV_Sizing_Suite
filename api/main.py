@@ -24,13 +24,13 @@ from core.gas_relief import calculate_gas_relief_area
 from core.two_phase import (
     calculate_two_phase_area,
     calculate_omega_flashing,
-    calculate_omega_subcooled,
 )
 from core.fire_scenarios import (
     calculate_fire_wetted_load,
     calculate_fire_unwetted_area,
     calculate_heat_absorption,
     get_env_factor,
+    ENV_FACTORS,
 )
 from core.thermal_expansion import calculate_thermal_expansion_load
 from core.blowby import calculate_blowby_flowrate
@@ -106,9 +106,8 @@ async def liquid_relief(req: LiquidReliefRequest):
             mu_cp=req.mu_cp,
             kd=req.kd,
             kw=req.kw,
+            kc=req.kc,
             num_valves=req.num_valves,
-            valve_type=req.valve_type,
-            overpressure_pct=req.overpressure_pct,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -117,6 +116,11 @@ async def liquid_relief(req: LiquidReliefRequest):
 @app.post("/api/v1/gas-relief")
 async def gas_relief(req: GasReliefRequest):
     try:
+        kb = req.kb
+        if kb is None and req.set_pressure_psig:
+            kb = get_kb(req.p2_psia, req.set_pressure_psig, req.valve_type, req.overpressure_pct)
+        if kb is None:
+            kb = 1.0
         return calculate_gas_relief_area(
             w_lb_h=req.w_lb_h,
             p1_psia=req.p1_psia,
@@ -126,11 +130,9 @@ async def gas_relief(req: GasReliefRequest):
             mw=req.mw,
             k=req.k,
             kd=req.kd,
-            kb=req.kb,
+            kb=kb,
             kc=req.kc,
             num_valves=req.num_valves,
-            valve_type=req.valve_type,
-            set_pressure_psig=req.set_pressure_psig,
         )
     except (ValueError, ZeroDivisionError) as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -154,9 +156,6 @@ async def two_phase(req: TwoPhaseRequest):
             omega=omega,
             kd=req.kd,
             num_valves=req.num_valves,
-            valve_type=req.valve_type,
-            set_pressure_psig=req.set_pressure_psig,
-            overpressure_pct=req.overpressure_pct,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -169,6 +168,7 @@ async def fire_wetted(req: FireWettedRequest):
             a_wetted_sqft=req.a_wetted_sqft,
             f_factor=req.f_factor,
             heat_of_vap_btu_lb=req.heat_of_vap_btu_lb,
+            adequate_drainage=req.adequate_drainage,
         )
 
         gas_res = calculate_gas_relief_area(
@@ -198,7 +198,6 @@ async def fire_unwetted(req: FireUnwettedRequest):
             t_wall_rankine=req.t_wall_rankine,
             k=req.k,
             kd=req.kd,
-            alpha=req.alpha,
         )
         from core.valve_selection import select_orifice as _select
         letter, selected_area = _select(a_req)

@@ -1,4 +1,4 @@
-# PSV Sizing Suite v2.3.0
+# PSV Sizing Suite v2.3.1
 
 Pressure Safety Valve sizing hesaplama platformu — API Standard 520 (Part I) & API Standard 521 uyumlu.
 
@@ -64,7 +64,7 @@ docker run -p 8501:8501 psv-sizing
 | macOS | macOS Sonoma 14+ (Apple Silicon / Intel) |
 | RAM | 512 MB |
 | Disk | 200 MB |
-| Python (geliştirme) | 3.10+ |
+| Python (geliştirme) | 3.12+ |
 
 ## Geliştirme
 

@@ -178,8 +178,8 @@ def calculate_napier_steam_area(
     kc: Combination correction factor for rupture disk (typically 1.0)
     num_valves: Number of parallel valves
     """
-    # High pressure correction factor Kn
-    if p1_psia > 1514.7:
+    # High pressure correction factor Kn (API 520: valid for 1500 < P1 <= 3200 psia)
+    if p1_psia > 1500.0:
         kn = (0.1906 * p1_psia - 1000.0) / (0.2292 * p1_psia - 1061.0)
     else:
         kn = 1.0
@@ -210,6 +210,10 @@ def calculate_napier_steam_area(
     a_req_mm2 = a_req_per_valve * 645.16
     selected_area_mm2 = selected_area * 645.16
     
+    # Critical pressure ratio for saturated steam (k ~= 1.3).
+    k_steam = 1.3
+    p_critical_ratio = (2.0 / (k_steam + 1.0)) ** (k_steam / (k_steam - 1.0))
+
     return {
         'Required_Area_sqin': a_req_per_valve,
         'Required_Area_mm2': a_req_mm2,
@@ -221,7 +225,7 @@ def calculate_napier_steam_area(
         'Kb': kb,
         'Kc': kc,
         'Num_Valves': num_valves,
-        'Flow_Type': "CRITICAL" if p2_psia <= 0.5 * p1_psia else "SUBCRITICAL",  # standard choke limit
+        'Flow_Type': "CRITICAL" if p2_psia <= p_critical_ratio * p1_psia else "SUBCRITICAL",
     }
 
 

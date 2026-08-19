@@ -4,17 +4,24 @@
 # --- API 520 Liquid Relief ---
 LIQUID_FORMULA_CONSTANT = 38.0
 REYNOLDS_CONSTANT = 2800.0
-REYNOLDS_UPPER_BOUND = 10000
-REYNOLDS_LOWER_BOUND = 80
-KV_UPPER = 1.0
-KV_LOWER = 0.1
-KV_REYNOLDS_COEFF = 170.0
+# API 520 Part I (9th/10th ed.) viscosity correction factor:
+#   Kv = (KV_A + KV_B/Re^0.5 + KV_C/Re^1.5)^-1
+KV_A = 0.9935
+KV_B = 2.878
+KV_C = 342.75
+KV_REYNOLDS_MIN = 40.0
 
 # --- API 520 Gas Relief ---
 GAS_FORMULA_CONSTANT = 520.0
 GAS_SUBCRITICAL_CONSTANT = 735.0
 GAS_DEFAULT_C_COEFF = 315
 K_NEAR_ONE_THRESHOLD = 0.001
+
+# --- API 520 Preliminary (effective) Discharge Coefficients ---
+# Used for preliminary sizing of spring-loaded (conventional/balanced) PRVs.
+PRELIM_KD_GAS = 0.975
+PRELIM_KD_LIQUID = 0.65
+PRELIM_KD_TWO_PHASE = 0.85
 
 # --- API 520 Two-Phase ---
 TWO_PHASE_CRITICAL_CONSTANT = 68.09
@@ -48,7 +55,10 @@ LBFT3_PER_KGM3 = 0.062428
 KPA_PER_PSIA = 0.1450377
 SECONDS_PER_HOUR = 3600.0
 CUBIC_FEET_PER_M3 = 35.31467
-R_PER_BARA = 10.7316
+# Universal gas constant: 10.7316 psia.ft3/(lbmol.degR)
+R_PSIA_FT3_LBMOL_R = 10.7316
+# Backward-compatible alias (historically misnamed "per bara").
+R_PER_BARA = R_PSIA_FT3_LBMOL_R
 STANDARD_TEMP_RANKINE = 519.67
 NORMAL_TEMP_RANKINE = 491.67
 STANDARD_PRESSURE_PSIA = 14.696

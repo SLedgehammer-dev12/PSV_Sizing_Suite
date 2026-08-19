@@ -251,7 +251,7 @@ elif page == "3. Two-Phase Flashing (İki Fazlı)":
         p0_unit = st.selectbox("P0 Unit", ["psia", "bara"], key="tp_p0")
         if p0_unit == "bara":
             p0_bara = st.number_input("Relieving Pressure P0 (bara)", value=9.39, format="%.2f")
-            p0_psia = p0_bara * 14.50377
+            p0_psia = bara_to_psia(p0_bara)
         else:
             p0_psia = st.number_input("Relieving Pressure P0 (psia)", value=136.14, format="%.2f")
 

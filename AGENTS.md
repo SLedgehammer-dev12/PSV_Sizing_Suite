@@ -5,7 +5,7 @@ Advanced engineering calculation platform for Pressure Safety Valve (PSV) sizing
 
 ## Repository
 - **GitHub**: https://github.com/SLedgehammer-dev12/PSV_Sizing_Suite
-- **Current version**: v2.3.0
+- **Current version**: v2.3.1
 
 ## Codebase Conventions
 
@@ -28,7 +28,7 @@ releases/       Build artifacts (ZIP files)
 
 ### Testing
 - Run: `python -m pytest tests/test_suite.py -v`
-- Must be 100/100 passing before any build
+- Must be 161/161 passing before any build
 - Smoke tests cover full calculation flows
 - Auth tests use temporary auth.json
 
