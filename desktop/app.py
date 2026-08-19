@@ -525,7 +525,7 @@ rm -rf "{dmg_path}" "$(dirname "{dmg_path}")"
             f"<tr><td><b>API 526</b></td><td>2023 Ed. — Orifices D(0.110) through T(26.0) sq.in</td></tr>"
             f"</table>"
             f"<hr>"
-            f"<p><b>Test Suite:</b> 171 tests passed<br>"
+            f"<p><b>Test Suite:</b> 185 tests passed<br>"
             f"<b>Version:</b> {APP_VERSION}<br>"
             f"<b>GitHub:</b> github.com/SLedgehammer-dev12/PSV_Sizing_Suite</p>"
         )

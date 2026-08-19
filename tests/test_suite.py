@@ -1281,5 +1281,131 @@ class TestNewModules(unittest.TestCase):
         self.assertAlmostEqual(res['Kc'], 0.9)
 
 
+class TestCalculationScenarios(unittest.TestCase):
+    """Regression tests from the 13-scenario verification run (v2.3.2)."""
+
+    def test_s01_liquid_turbulent_water(self):
+        import math
+        res = calculate_liquid_relief_area(q_gpm=500, p1_psia=150, p2_psia=50,
+                                           g=1.0, mu_cp=1.0, kd=0.65, num_valves=1)
+        expected = (500 / (38 * 0.65)) * math.sqrt(1.0 / 100)
+        self.assertAlmostEqual(res['Required_Area_No_Visc_sqin'], expected, places=4)
+        self.assertGreater(res['Reynolds_Number'], 800000)
+        self.assertEqual(res['Kv'], 1.0)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'L')
+        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 70.953, places=2)
+
+    def test_s02_liquid_viscous_kv(self):
+        res = calculate_liquid_relief_area(q_gpm=200, p1_psia=300, p2_psia=14.7,
+                                           g=0.9, mu_cp=500.0, kd=0.65, num_valves=1)
+        self.assertAlmostEqual(res['Kv'], 0.9292, places=3)
+        self.assertAlmostEqual(res['Required_Area_Final_sqin'], 0.4895, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'G')
+        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 97.307, places=2)
+
+    def test_s03_gas_critical_n2(self):
+        c = calculate_c_coefficient(1.4)
+        self.assertAlmostEqual(c, 356.06, places=1)
+        res = calculate_gas_relief_area(w_lb_h=50000, p1_psia=500, p2_psia=14.7,
+                                        t_rankine=660, z=1.0, mw=28, k=1.4,
+                                        kd=0.975, num_valves=1)
+        self.assertEqual(res['Flow_Type'], 'CRITICAL')
+        self.assertAlmostEqual(res['Critical_Pressure_psia'], 264.141, places=2)
+        self.assertAlmostEqual(res['Required_Area_sqin'], 1.3985, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'K')
+        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 76.089, places=2)
+
+    def test_s04_gas_subcritical_f2(self):
+        res = calculate_gas_relief_area(w_lb_h=50000, p1_psia=500, p2_psia=400,
+                                        t_rankine=660, z=1.0, mw=28, k=1.4,
+                                        kd=0.975, kb=0.83, kc=1.0, num_valves=1)
+        self.assertEqual(res['Flow_Type'], 'SUBCRITICAL')
+        self.assertAlmostEqual(res['F2_Coefficient'], 0.8865, places=3)
+        self.assertAlmostEqual(res['Required_Area_sqin'], 1.7089, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'K')
+
+    def test_s04b_subcritical_kb_independent(self):
+        """API 520: in subcritical flow Kb must NOT affect the area (F2 handles back pressure)."""
+        kwargs = dict(w_lb_h=50000, p1_psia=500, p2_psia=400, t_rankine=660,
+                      z=1.0, mw=28, k=1.4, kd=0.975, kc=1.0, num_valves=1)
+        r_no_kb = calculate_gas_relief_area(**kwargs, kb=1.0)
+        r_with_kb = calculate_gas_relief_area(**kwargs, kb=0.83)
+        self.assertAlmostEqual(r_no_kb['Required_Area_sqin'],
+                               r_with_kb['Required_Area_sqin'], places=9)
+
+    def test_s05_balanced_bellows_kb(self):
+        from core.kb_coefficient import get_kb
+        kb = get_kb(back_pressure_psia=500, set_pressure_psig=985,
+                    valve_type="balanced_bellows", overpressure_pct=10)
+        self.assertAlmostEqual(kb, 0.8358, places=3)
+        res = calculate_gas_relief_area(w_lb_h=30000, p1_psia=1100, p2_psia=500,
+                                        t_rankine=620, z=0.9, mw=29, k=1.3,
+                                        kd=0.975, kb=kb, kc=1.0, num_valves=1)
+        self.assertEqual(res['Flow_Type'], 'CRITICAL')
+        self.assertAlmostEqual(res['Required_Area_sqin'], 0.4231, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'G')
+        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 84.110, places=2)
+
+    def test_s06_two_phase_critical(self):
+        res = calculate_two_phase_area(w_lb_h=20000, p0_psia=300, p_back_psia=14.7,
+                                       v0_ft3_lb=0.05, omega=5.0, kd=0.85, num_valves=1)
+        self.assertAlmostEqual(res['Critical_Pressure_Ratio_hc'], 0.7902, places=3)
+        self.assertAlmostEqual(res['Critical_Pressure_psia'], 237.051, places=2)
+        self.assertEqual(res['Flow_Type'], 'CRITICAL')
+        self.assertAlmostEqual(res['Mass_Flux_G_lb_s_ft2'], 1863.777, places=2)
+        self.assertAlmostEqual(res['Required_Area_sqin'], 0.5050, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'H')
+
+    def test_s07_two_phase_subcritical(self):
+        res = calculate_two_phase_area(w_lb_h=20000, p0_psia=300, p_back_psia=260,
+                                       v0_ft3_lb=0.05, omega=5.0, kd=0.85, num_valves=1)
+        self.assertEqual(res['Flow_Type'], 'SUBCRITICAL')
+        self.assertLess(res['Mass_Flux_G_lb_s_ft2'], 1863.8)
+        self.assertAlmostEqual(res['Required_Area_sqin'], 0.5230, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'H')
+
+    def test_s08_fire_wetted_no_drainage(self):
+        from core.fire_scenarios import calculate_heat_absorption
+        w_lb_h, q_btu_h = calculate_fire_wetted_load(1500, 0.3, 150.0,
+                                                     adequate_drainage=False)
+        self.assertAlmostEqual(q_btu_h, 4162317.0, delta=1.0)
+        self.assertAlmostEqual(w_lb_h, 27749.0, delta=1.0)
+        q_drained = calculate_heat_absorption(1500, 0.3, adequate_drainage=True)
+        self.assertAlmostEqual(q_drained / q_btu_h, 21000.0 / 34500.0, places=4)
+
+    def test_s09_fire_unwetted_gas(self):
+        a_req, fprime = calculate_fire_unwetted_area(200, 250, 600, 1100, 1.3)
+        self.assertAlmostEqual(fprime, 0.0153, places=4)
+        self.assertAlmostEqual(a_req, 0.1936, places=3)
+
+    def test_s10_thermal_expansion(self):
+        q = calculate_thermal_expansion_load(0.0008, 10000, 0.6, 0.5)
+        self.assertAlmostEqual(q, 0.0533, places=4)
+
+    def test_s11_steam_napier_superheat_kn(self):
+        from core.advanced_sizing import calculate_napier_steam_area
+        res = calculate_napier_steam_area(w_lb_h=60000, p1_psia=2500, p2_psia=14.7,
+                                          t_rankine=1459.67, kd=0.975, num_valves=1)
+        self.assertAlmostEqual(res['Kn'], 1.0727, places=3)
+        self.assertLess(res['Ksh'], 1.0)
+        self.assertAlmostEqual(res['Required_Area_sqin'], 0.6021, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'H')
+
+    def test_s12_reaction_force_and_noise(self):
+        from core.reaction_force import calculate_gas_reaction_force
+        from core.noise import calculate_noise_level
+        F = calculate_gas_reaction_force(50000, 1.4, 660, 28, 14.7, 1.838)
+        self.assertAlmostEqual(F['Total_Reaction_Force_lbf'], 4224.0, delta=1.0)
+        self.assertLess(F['Pressure_Term_lbf'], 0.05)
+        N = calculate_noise_level(50000, 1.4, 28, 660, 100)
+        self.assertAlmostEqual(N['Sound_Pressure_Level_dB'], 139.2, places=1)
+        self.assertAlmostEqual(N['Sonic_Velocity_fps'], 1281.0, delta=2.0)
+
+    def test_s13_blowby(self):
+        from core.blowby import calculate_blowby_flowrate
+        bb = calculate_blowby_flowrate(5000, 120, 85)
+        self.assertAlmostEqual(bb, 7058.8235, places=3)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

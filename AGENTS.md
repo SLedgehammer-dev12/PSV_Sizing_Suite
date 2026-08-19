@@ -20,7 +20,7 @@ Advanced engineering calculation platform for Pressure Safety Valve (PSV) sizing
 ```
 core/           Engineering calculation engine (API 520/521 formulas)
 desktop/        PyQt5 desktop application (tabs, workers, auth, reports)
-tests/          Pytest test suite (100 tests in test_suite.py)
+tests/          Pytest test suite (185 tests in test_suite.py)
 vendor_data/    PSV vendor catalog JSON
 scripts/        Utility scripts (moved from root)
 releases/       Build artifacts (ZIP files)
@@ -28,7 +28,7 @@ releases/       Build artifacts (ZIP files)
 
 ### Testing
 - Run: `python -m pytest tests/test_suite.py -v`
-- Must be 161/161 passing before any build
+- Must be 185/185 passing before any build
 - Smoke tests cover full calculation flows
 - Auth tests use temporary auth.json
 
