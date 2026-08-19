@@ -22,6 +22,15 @@
 - Fire environment faktörleri (`ENV_FACTORS`, `get_env_factor`, `calculate_heat_absorption`) eklendi
 - README/AGENTS/About sürüm ve test sayısı tutarlı hale getirildi (161 test)
 
+### 🆕 Yeni Modüller / Özellikler
+- Reaksiyon kuvveti (`core/reaction_force.py`) — API 520 Part II, gaz + sıvı
+- Tahliye gürültü hesabı (`core/noise.py`) — API 521 basitleştirilmiş metodoloji
+- Backpressure çalışma limiti uyarıları (konvansiyonel >%50, balanced bellows >%60) ve Kb kırpma notu
+- Patlama diski Kc seçeneği (Liquid + Gas sekmeleri ve worker'lar)
+- Vendor DB temizliği (`scripts/clean_vendor_db.py`): 24 geçersiz kayıt silindi, Google arama placeholder'ları resmi URL'lerle değiştirildi
+- Vendor tasarım tipi filtrelemesi sağlamlaştırıldı (çoklu kategori eşleme)
+- CI: Windows + macOS (Apple Silicon/arm64) build'leri; Windows build'inde UPX kaldırıldı ve VERSIONINFO eklendi (AV false-positive azaltma)
+
 ## v2.3.0 (2026-06-05)
 
 ### ✨ Yeni Özellikler (v2.2.0 → v2.3.0)
