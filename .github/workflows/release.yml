@@ -2,8 +2,12 @@ name: Release Build
 
 on:
   push:
+    branches:
+      - master
+      - main
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -30,7 +34,19 @@ jobs:
 
       - name: Build executable using PyInstaller
         run: |
-          pyinstaller config/psv_desktop.spec
+          pyinstaller config/psv_desktop.spec --noconfirm
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          $folder = Get-ChildItem -Path dist -Directory | Where-Object { $_.Name -like "PSV_Sizing_Suite_*" } | Select-Object -First 1
+          if ($folder) {
+            $zip = "dist/PSV_Sizing_Suite_Desktop_$($folder.Name)_Windows.zip"
+            Compress-Archive -Path $folder.FullName -DestinationPath $zip -Force
+            Write-Host "Created $zip"
+          } else {
+            Write-Error "No build output folder found in dist/"
+          }
 
       - name: Install NSIS
         run: |
@@ -42,16 +58,18 @@ jobs:
           & "C:\Program Files (x86)\NSIS\makensis.exe" "/DVERSION=$version" installer_win.nsi
 
       - name: Upload Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.exe
-            dist/*.dmg
+            dist/*.zip
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-macos:
-    name: Build macOS DMG
+    name: Build macOS DMG (Apple Silicon)
     runs-on: macos-14
     steps:
       - name: Checkout Code
@@ -69,7 +87,7 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build .app bundle
+      - name: Build .app bundle (arm64)
         run: |
           VERSION=$(python3 -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)")
           pyinstaller --noconsole \
@@ -78,6 +96,7 @@ jobs:
             --add-data "vendor_data:vendor_data" \
             --osx-bundle-identifier "com.psv.sizing-suite" \
             --target-architecture arm64 \
+            --noupx \
             --hidden-import desktop.auth \
             --hidden-import desktop.tabs \
             --hidden-import desktop.tabs_extra \
@@ -112,10 +131,30 @@ jobs:
               "dist/PSV_Sizing_Suite_${VERSION}.dmg"
           fi
 
+      # Optional: code sign with a Developer ID cert (requires secrets configured).
+      - name: Code sign .app (optional)
+        if: env.APPLE_DEVELOPER_ID != ''
+        env:
+          APPLE_DEVELOPER_ID: ${{ secrets.APPLE_DEVELOPER_ID }}
+          APPLE_CERT_B64: ${{ secrets.APPLE_CERT_B64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          VERSION=$(python3 -c "import sys; sys.path.insert(0,'.'); from core import __version_tag__; print(__version_tag__)")
+          APP="dist/PSV_Sizing_Suite_${VERSION}.app"
+          echo "$APPLE_CERT_B64" | base64 --decode > /tmp/dev_id.p12
+          security create-keychain -p temp build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p temp build.keychain
+          security import /tmp/dev_id.p12 -k build.keychain -P "$APPLE_CERT_PASSWORD" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k temp build.keychain
+          codesign --deep --force --options runtime --sign "$APPLE_DEVELOPER_ID" "$APP"
+
       - name: Upload Release Assets
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.dmg
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

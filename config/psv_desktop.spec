@@ -2,15 +2,21 @@
 """
 PSV Sizing Suite — PyInstaller spec
 Platforms: Windows, macOS, Linux
+
+Antivirus/antimalware consideration:
+- UPX is DISABLED: UPX-packed executables trigger false positives.
+- A Windows VERSIONINFO resource with real product metadata is embedded,
+  which reduces SmartScreen/AV heuristic flags.
+- onedir layout (not onefile) is used: less likely to be flagged.
 """
-import sys, os, re as _re
+import sys, os, re as _re, tempfile
 
 block_cipher = None
 
 # Read version from core/__init__.py without importing
 # SPECPATH (spec file directory, e.g. PROJECT/config/) is injected by PyInstaller
 _ver_file = os.path.join(SPECPATH, '..', 'core', '__init__.py')
-VERSION = 'v2.3.0'
+VERSION = 'v2.3.1'
 if os.path.exists(_ver_file):
     for _line in open(_ver_file):
         if '__version__ ' in _line and '=' in _line:
@@ -18,6 +24,54 @@ if os.path.exists(_ver_file):
             if len(_parts) == 2:
                 VERSION = 'v' + _parts[1].strip().strip('"\'')
             break
+
+_VERSION_INFO_PATH = None
+def _build_version_info(version):
+    """Generate a Windows VERSIONINFO resource file from the project version."""
+    global _VERSION_INFO_PATH
+    nums = _re.findall(r'\d+', version)
+    while len(nums) < 4:
+        nums.append('0')
+    nums = nums[:4]
+    ver_tuple = ', '.join(nums)
+    content = f'''VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=({ver_tuple},),
+    prodvers=({ver_tuple},),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'CompanyName', u'PSV Sizing Suite'),
+         StringStruct(u'FileDescription', u'PSV Sizing Suite - Pressure Safety Valve Sizing'),
+         StringStruct(u'FileVersion', u'{version}'),
+         StringStruct(u'InternalName', u'PSV_Sizing_Suite'),
+         StringStruct(u'LegalCopyright', u'Copyright (c) 2026 PSV Sizing Suite'),
+         StringStruct(u'OriginalFilename', u'PSV_Sizing_Suite_{version}.exe'),
+         StringStruct(u'ProductName', u'PSV Sizing Suite'),
+         StringStruct(u'ProductVersion', u'{version}')])
+    ]),
+    VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
+  ]
+)
+'''
+    try:
+        fd, path = tempfile.mkstemp(prefix='psv_verinfo_', suffix='.txt')
+        with os.fdopen(fd, 'w') as f:
+            f.write(content)
+        _VERSION_INFO_PATH = path
+    except Exception:
+        _VERSION_INFO_PATH = None
+
+if sys.platform == 'win32':
+    _build_version_info(VERSION)
 
 hidden_imports = [
     # Core engine
@@ -81,10 +135,10 @@ exe = EXE(pyz,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=['vcruntime*.dll'],
+    upx=False,
     console=False,
-    icon=os.path.join(SPECPATH, '..', 'assets', 'icon.ico')
+    icon=os.path.join(SPECPATH, '..', 'assets', 'icon.ico'),
+    version=_VERSION_INFO_PATH,
 )
 
 coll = COLLECT(exe,
@@ -92,7 +146,6 @@ coll = COLLECT(exe,
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=True,
-    upx_exclude=['vcruntime*.dll'],
+    upx=False,
     name=f'PSV_Sizing_Suite_{VERSION}'
 )
