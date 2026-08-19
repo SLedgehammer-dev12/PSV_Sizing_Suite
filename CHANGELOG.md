@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.3.1 — Mühendislik Doğruluk Düzeltmeleri
+## v2.3.2 — Reaksiyon Kuvveti, Gürültü ve Bakım
 
 ### 🔧 Standart Uyum Düzeltmeleri (API 520/521)
 - Sıvı tahliye ön boyutlandırma Kd = 0.65 (önceden yanlışlıkla pilot Kd'si 0.80 kullanılıyordu → alan ~%19 eksik)

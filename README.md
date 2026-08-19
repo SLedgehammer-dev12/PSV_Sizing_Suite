@@ -1,4 +1,4 @@
-# PSV Sizing Suite v2.3.1
+# PSV Sizing Suite v2.3.2
 
 Pressure Safety Valve sizing hesaplama platformu — API Standard 520 (Part I) & API Standard 521 uyumlu.
 

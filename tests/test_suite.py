@@ -758,7 +758,7 @@ class TestUpdateCheck(unittest.TestCase):
         from desktop.app import parse_version
         self.assertTrue(parse_version("v2.4") > parse_version("v2.3.0"))
         self.assertTrue(parse_version("v3.0") > parse_version("v2.9"))
-        self.assertTrue(parse_version("v2.3.1") > parse_version("v2.3.0"))
+        self.assertTrue(parse_version("v2.3.2") > parse_version("v2.3.1"))
 
     def test_version_comparison_older(self):
         from desktop.app import parse_version
@@ -771,7 +771,7 @@ class TestUpdateCheck(unittest.TestCase):
 
     def test_app_version_constant_exists(self):
         from desktop.app import APP_VERSION
-        self.assertEqual(APP_VERSION, "v2.3.1")
+        self.assertEqual(APP_VERSION, "v2.3.2")
 
     def test_app_version_in_title(self):
         from desktop.app import APP_VERSION, PSVSizingApp
@@ -985,10 +985,10 @@ class TestV230Modules(unittest.TestCase):
         ok, msg = check_inlet_rule(4.0, 100)
         self.assertFalse(ok)
 
-    def test_core_version_is_v230(self):
+    def test_core_version_is_v232(self):
         from core import __version__, __version_tag__
-        self.assertEqual(__version__, "2.3.1")
-        self.assertEqual(__version_tag__, "v2.3.1")
+        self.assertEqual(__version__, "2.3.2")
+        self.assertEqual(__version_tag__, "v2.3.2")
 
     def test_liquid_relief_multivalve(self):
         from core.liquid_relief import calculate_liquid_relief_area

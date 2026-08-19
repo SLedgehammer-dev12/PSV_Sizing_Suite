@@ -5,7 +5,7 @@ Advanced engineering calculation platform for Pressure Safety Valve (PSV) sizing
 
 ## Repository
 - **GitHub**: https://github.com/SLedgehammer-dev12/PSV_Sizing_Suite
-- **Current version**: v2.3.1
+- **Current version**: v2.3.2
 
 ## Codebase Conventions
 
