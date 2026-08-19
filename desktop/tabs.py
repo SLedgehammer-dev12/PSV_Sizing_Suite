@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QGridLayout,
                               QLineEdit, QComboBox, QPushButton, QLabel,
-                              QMessageBox, QGroupBox,
+                              QMessageBox, QGroupBox, QCheckBox,
                               QTableWidget, QTableWidgetItem, QHeaderView)
 
 from core.unit_converter import (barg_to_psia, bara_to_psia, m3_h_to_gpm, kg_h_to_lb_h, c_to_rankine, m3_kg_to_ft3_lb,
@@ -60,6 +60,9 @@ class LiquidReliefTab(BaseCalcTab):
         grid.addWidget(QLabel("Valve Type:"), 3, 0)
         grid.addWidget(self.valve_type_combo, 3, 1)
 
+        self.kc_check = QCheckBox("Rupture Disk Upstream (Kc = 0.9)")
+        grid.addWidget(self.kc_check, 3, 2, 1, 2)
+
         input_group.setLayout(grid)
         self.main_layout.insertWidget(0, input_group)
 
@@ -105,7 +108,8 @@ class LiquidReliefTab(BaseCalcTab):
             if num_valves < 1:
                 num_valves = 1
 
-            inputs = {'q_gpm': flow, 'p1_psia': p1, 'p2_psia': p2, 'g': g, 'mu_cp': mu, 'num_valves': num_valves, 'valve_type': self.valve_type_combo.currentText(), 'overpressure_pct': 10.0}
+            inputs = {'q_gpm': flow, 'p1_psia': p1, 'p2_psia': p2, 'g': g, 'mu_cp': mu, 'num_valves': num_valves, 'valve_type': self.valve_type_combo.currentText(), 'overpressure_pct': 10.0,
+                      'kc': 0.9 if self.kc_check.isChecked() else 1.0}
             self.last_inputs = inputs
 
             self.calc_btn.setEnabled(False)
@@ -263,6 +267,9 @@ class GasReliefTab(BaseCalcTab):
         grid.addWidget(QLabel("Number of Parallel Valves:"), 6, 0)
         grid.addWidget(self.num_valves_input, 6, 1)
 
+        self.kc_check = QCheckBox("Rupture Disk Upstream (Kc = 0.9)")
+        grid.addWidget(self.kc_check, 6, 2, 1, 2)
+
         grid.addWidget(QLabel("Relieving P1 (auto-calc):"), 7, 0)
         grid.addWidget(self.p1_display, 7, 1)
         grid.addWidget(QLabel("BP Ratio % (P2/Pset):"), 7, 2)
@@ -287,8 +294,14 @@ class GasReliefTab(BaseCalcTab):
         layout.addWidget(QLabel("Flow Regime:"), 0, 0)
         layout.addWidget(self.res_flow_type, 0, 1, 1, 3)
 
+        self.res_note = QLabel("")
+        self.res_note.setWordWrap(True)
+        self.res_note.setStyleSheet("color: #e67e22; font-weight: bold;")
+        layout.addWidget(self.res_note, 1, 0, 1, 4)
+
     def _update_extra_results(self, res):
         self.res_flow_type.setText(res['Flow_Type'])
+        self.res_note.setText(res.get('Backpressure_Note', ""))
 
     def _get_export_results(self):
         base = super()._get_export_results()
@@ -423,6 +436,7 @@ class GasReliefTab(BaseCalcTab):
                 'set_pressure_psig': sp_psig,
                 'overpressure_pct': op_pct,
                 'atm_psia': atm_psia,
+                'kc': 0.9 if self.kc_check.isChecked() else 1.0,
             }
             self.last_inputs = inputs
 

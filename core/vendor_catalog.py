@@ -29,6 +29,23 @@ def _load_catalog():
         logger.error("Vendor catalog read error: %s", e)
         _catalog_cache = {"models": []}
 
+_DESIGN_CATEGORY_KEYWORDS = {
+    "conventional": ("conventional", "spring"),
+    "balanced_bellows": ("balanced", "bellows"),
+    "pilot": ("pilot",),
+}
+
+def _design_categories(design_type):
+    """Classify a vendor design_type string into one or more valve categories."""
+    text = (design_type or "").lower()
+    cats = set()
+    for cat, keywords in _DESIGN_CATEGORY_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            cats.add(cat)
+    if not cats and text:
+        cats.add("conventional")
+    return cats
+
 def get_vendor_valves(api_letter, valve_type=None):
     if not api_letter or api_letter == "-":
         return []
@@ -40,13 +57,7 @@ def get_vendor_valves(api_letter, valve_type=None):
     for model in _catalog_cache.get("models", []):
         if model.get("api526_equivalent") == api_letter or model.get("orifice_letter") == api_letter:
             if valve_type:
-                model_design = model.get("design_type", "").lower()
-                vt = valve_type.lower()
-                if vt == "conventional" and "conventional" not in model_design and "spring" not in model_design:
-                    continue
-                if vt == "balanced_bellows" and "balanced" not in model_design and "bellows" not in model_design:
-                    continue
-                if vt == "pilot" and "pilot" not in model_design:
+                if valve_type.lower() not in _design_categories(model.get("design_type", "")):
                     continue
             matching_valves.append(model)
 

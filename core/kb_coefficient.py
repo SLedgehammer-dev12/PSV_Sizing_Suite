@@ -1,5 +1,8 @@
 import math
+import logging
 from typing import Dict, List, Tuple
+
+logger = logging.getLogger(__name__)
 
 # API 520 Part I Fig. 11-4: Balanced Bellows Kb curves (10% overpressure)
 # Digitized points from published chart
@@ -30,6 +33,35 @@ KB_BALANCED_BELLOWS_25PCT: Dict[float, float] = {
 
 # Conventional valves have Kb = 1.0
 KB_CONVENTIONAL: Dict[float, float] = {}
+
+
+def get_backpressure_percent(back_pressure_psia, set_pressure_psig, atm_psia=14.6959):
+    """Back pressure as percentage of set (gauge) pressure."""
+    if set_pressure_psig <= 0:
+        return 0.0
+    bp_gauge = max(back_pressure_psia - atm_psia, 0.0)
+    return (bp_gauge / set_pressure_psig) * 100.0
+
+
+def check_backpressure_limit(bp_pct, valve_type="conventional"):
+    """
+    Check whether the back pressure is within the recommended operating
+    limit for the valve type (API 520 Part I).
+
+    Returns (passes: bool, message: str).
+    """
+    if valve_type == "balanced_bellows":
+        if bp_pct > 60.0:
+            return (False, f"Back pressure {bp_pct:.1f}% exceeds the ~60% limit for balanced bellows valves.")
+        if bp_pct > 50.0:
+            return (True, f"Back pressure {bp_pct:.1f}% is above the Kb chart range (50%) — Kb is clamped at 0.83; verify with the manufacturer.")
+    elif valve_type == "conventional":
+        if bp_pct > 50.0:
+            return (False, f"Back pressure {bp_pct:.1f}% exceeds the ~50% limit for conventional valves — capacity may degrade severely.")
+    elif valve_type == "pilot":
+        if bp_pct > 70.0:
+            return (False, f"Back pressure {bp_pct:.1f}% is high for a pilot-operated valve — verify with the manufacturer.")
+    return (True, "")
 
 
 def interpolate_kb(bp_pct: float, curve: Dict[float, float]) -> float:
@@ -91,10 +123,14 @@ def get_kb(
     if set_pressure_psig <= 0:
         return 1.0
 
-    bp_gauge = max(back_pressure_psia - atm_psia, 0.0)
-    bp_pct = (bp_gauge / set_pressure_psig) * 100.0
+    bp_pct = get_backpressure_percent(back_pressure_psia, set_pressure_psig, atm_psia)
 
     if valve_type in ("conventional", "pilot"):
+        if valve_type == "conventional" and bp_pct > 50.0:
+            logger.warning(
+                "Conventional valve back pressure %.1f%% exceeds ~50%% limit of set pressure.",
+                bp_pct,
+            )
         return 1.0
 
     if overpressure_pct <= 15:
@@ -102,6 +138,12 @@ def get_kb(
     else:
         curve = KB_BALANCED_BELLOWS_25PCT
 
+    if bp_pct > 50.0:
+        logger.warning(
+            "Balanced bellows back pressure %.1f%% is above the Kb chart range (50%%). "
+            "Kb is clamped to the curve endpoint — verify with the manufacturer.",
+            bp_pct,
+        )
     return interpolate_kb(bp_pct, curve)
 
 

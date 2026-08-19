@@ -1201,5 +1201,85 @@ class TestEngineeringFixes(unittest.TestCase):
             self.fail(f"api.main failed to import: {e}")
 
 
+class TestNewModules(unittest.TestCase):
+
+    def test_gas_reaction_force_sanity(self):
+        from core.reaction_force import calculate_gas_reaction_force
+        res = calculate_gas_reaction_force(50000, 1.3, 660, 21, 14.7, 12.3)
+        self.assertGreater(res['Total_Reaction_Force_lbf'], 1000)
+        self.assertGreater(res['Momentum_Term_lbf'], 0)
+
+    def test_gas_reaction_force_pressure_term(self):
+        from core.reaction_force import calculate_gas_reaction_force
+        res = calculate_gas_reaction_force(1000, 1.3, 660, 21, 30.0, 12.3, atmospheric_psia=14.7)
+        expected_pressure = (30.0 - 14.7) * 12.3
+        self.assertAlmostEqual(res['Pressure_Term_lbf'], expected_pressure, places=3)
+
+    def test_liquid_reaction_force(self):
+        from core.reaction_force import calculate_liquid_reaction_force
+        res = calculate_liquid_reaction_force(60, 62.4, 1.0)
+        self.assertGreater(res['Total_Reaction_Force_lbf'], 0)
+        self.assertGreater(res['Discharge_Velocity_fps'], 0)
+
+    def test_noise_level_sanity(self):
+        from core.noise import calculate_noise_level
+        res = calculate_noise_level(50000, 1.3, 21, 660, 100)
+        self.assertGreater(res['Sound_Pressure_Level_dB'], 90)
+        self.assertLess(res['Sound_Pressure_Level_dB'], 160)
+
+    def test_noise_sonic_velocity_matches_piping(self):
+        from core.noise import calculate_sonic_velocity_fps
+        from core.piping import calculate_sonic_velocity
+        self.assertAlmostEqual(calculate_sonic_velocity_fps(1.3, 21, 660),
+                               calculate_sonic_velocity(1.3, 21, 660), places=3)
+
+    def test_check_backpressure_limit(self):
+        from core.kb_coefficient import check_backpressure_limit
+        ok, _ = check_backpressure_limit(30, 'conventional')
+        self.assertTrue(ok)
+        ok, msg = check_backpressure_limit(55, 'conventional')
+        self.assertFalse(ok)
+        ok, _ = check_backpressure_limit(55, 'balanced_bellows')
+        self.assertTrue(ok)
+
+    def test_kb_clamped_above_chart_range(self):
+        from core.kb_coefficient import get_kb
+        kb = get_kb(74.7, 100, 'balanced_bellows', 10.0)
+        self.assertAlmostEqual(kb, 0.830, places=3)
+
+    def test_vendor_catalog_no_orphans(self):
+        import json, os
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            "vendor_data", "psv_vendor_catalog_official.json")
+        with open(path, "r", encoding="utf-8") as f:
+            catalog = json.load(f)
+        valid = set("DEFGHJKLMNPQRT")
+        for m in catalog["models"]:
+            api = str(m.get("api526_equivalent", "") or "")
+            orifice = str(m.get("orifice_letter", "") or "")
+            self.assertTrue(api in valid or orifice in valid,
+                            f"Orphan record without valid API orifice: {m.get('model_code')}")
+
+    def test_liquid_worker_kc(self):
+        from desktop.workers import LiquidCalcWorker
+        worker = LiquidCalcWorker({'q_gpm': 60, 'p1_psia': 100, 'p2_psia': 10,
+                                   'g': 1.0, 'mu_cp': 1.0, 'num_valves': 1,
+                                   'valve_type': 'conventional', 'kc': 0.9})
+        res = {}
+        worker.finished.connect(lambda r: res.update(r))
+        worker.run()
+        self.assertAlmostEqual(res['Kc'], 0.9)
+
+    def test_gas_worker_kc(self):
+        from desktop.workers import GasCalcWorker
+        worker = GasCalcWorker({'w_lb_h': 10000, 'p1_psia': 500, 'p2_psia': 14.7,
+                                't_rankine': 600, 'z': 0.9, 'mw': 28, 'k': 1.4,
+                                'num_valves': 1, 'valve_type': 'conventional', 'kc': 0.9})
+        res = {}
+        worker.finished.connect(lambda r: res.update(r))
+        worker.run()
+        self.assertAlmostEqual(res['Kc'], 0.9)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

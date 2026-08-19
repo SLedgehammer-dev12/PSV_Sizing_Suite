@@ -14,7 +14,7 @@ from core.fire_scenarios import calculate_fire_wetted_load, calculate_fire_unwet
 from core.thermal_expansion import calculate_thermal_expansion_load
 from core.valve_selection import select_orifice
 from core.valve_types import calculate_pilot_gas_area, calculate_pilot_liquid_area
-from core.kb_coefficient import get_kb
+from core.kb_coefficient import get_kb, get_backpressure_percent, check_backpressure_limit
 from core.constants import PRELIM_KD_GAS, PRELIM_KD_LIQUID, ATMOSPHERIC_PSIA
 
 
@@ -140,6 +140,7 @@ class LiquidCalcWorker(QThread):
                     g=self.inputs['g'],
                     mu_cp=self.inputs['mu_cp'],
                     kd=PRELIM_KD_LIQUID,
+                    kc=self.inputs.get('kc', 1.0),
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             self.finished.emit(res)
@@ -168,6 +169,7 @@ class GasCalcWorker(QThread):
                     z=self.inputs['z'],
                     mw=self.inputs['mw'],
                     k=self.inputs['k'],
+                    kc=self.inputs.get('kc', 1.0),
                     num_valves=self.inputs.get('num_valves', 1)
                 )
             else:
@@ -189,8 +191,13 @@ class GasCalcWorker(QThread):
                     k=self.inputs['k'],
                     kd=PRELIM_KD_GAS,
                     kb=kb,
+                    kc=self.inputs.get('kc', 1.0),
                     num_valves=self.inputs.get('num_valves', 1)
                 )
+                bp_pct = get_backpressure_percent(self.inputs['p2_psia'], set_psig, atm_psia)
+                bp_ok, bp_msg = check_backpressure_limit(bp_pct, valve_type)
+                if bp_msg:
+                    res['Backpressure_Note'] = bp_msg
             self.finished.emit(res)
         except Exception as e:
             self.error.emit(str(e))
