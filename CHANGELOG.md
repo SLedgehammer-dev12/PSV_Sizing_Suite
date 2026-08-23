@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.4 — Güncelleme Kontrolü SSL Sertifika Düzeltmesi
+
+### 🐛 Bug Fixes
+- "Güncelleme kontrolü"nde yanıltıcı "İnternet bağlantısı kontrol edilemedi." hatası düzeltildi
+  - Kök neden: macOS'ta Python'un default OpenSSL CA yolu boştu; `ssl.create_default_context()` `CERTIFICATE_VERIFY_FAILED` fırlatıyordu (ağ sorunu değil)
+  - `desktop/workers.py`: `_ssl_context()` helper'ı eklendi — `certifi` CA bundle'ını kullanıyor (kaynak ve PyInstaller bundle'ında çalışır)
+  - `_format_url_error()`: SSL sertifika hataları artık ayrı ve açıklayıcı mesaj gösteriyor
+- `requirements.txt`: `certifi` bağımlılığı eklendi
+- `config/psv_desktop.spec`: `certifi` hidden_imports'a eklendi (frozen build'de paketleme garantisi)
+
+### 🧪 Test
+- Test sayısı 185 (değişmedi), tümü geçiyor
+
 ## v2.3.3 — macOS Çökme Düzeltmesi (Grafik Menüsü)
 
 ### 🐛 Bug Fixes

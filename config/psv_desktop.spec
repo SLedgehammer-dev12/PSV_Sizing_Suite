@@ -16,7 +16,7 @@ block_cipher = None
 # Read version from core/__init__.py without importing
 # SPECPATH (spec file directory, e.g. PROJECT/config/) is injected by PyInstaller
 _ver_file = os.path.join(SPECPATH, '..', 'core', '__init__.py')
-VERSION = 'v2.3.3'
+VERSION = 'v2.3.4'
 if os.path.exists(_ver_file):
     for _line in open(_ver_file):
         if '__version__ ' in _line and '=' in _line:
@@ -94,6 +94,8 @@ hidden_imports = [
     'PyQt5.QtSvg',
     # Scientific
     'numpy', 'CoolProp', 'CoolProp.CoolProp',
+    # TLS CA bundle (update check / download)
+    'certifi',
     # Pydantic + dependencies (needed for core/models.py)
     'pydantic', 'email', 'email.mime.text', 'email.mime.multipart',
     'email.parser', 'email.header', 'email.utils', 'email.message',

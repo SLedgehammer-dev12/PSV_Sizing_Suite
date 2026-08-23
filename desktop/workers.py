@@ -18,6 +18,32 @@ from core.kb_coefficient import get_kb, get_backpressure_percent, check_backpres
 from core.constants import PRELIM_KD_GAS, PRELIM_KD_LIQUID, ATMOSPHERIC_PSIA
 
 
+def _ssl_context():
+    """Build an SSL context with a CA bundle that is guaranteed to exist.
+
+    On macOS the default OpenSSL verify path often points to a missing
+    cert.pem, which makes TLS fail with CERTIFICATE_VERIFY_FAILED even when
+    the network is fine. certifi ships a bundled cacert.pem that works both
+    from source and inside a PyInstaller bundle.
+    """
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
+
+
+def _format_url_error(e):
+    """Return a user-friendly message for a URLError, distinguishing TLS/SSL
+    failures (which are NOT network problems) from real connectivity issues."""
+    reason = e.reason
+    if isinstance(reason, ssl.SSLCertVerificationError):
+        return "SSL sertifika doğrulama hatası. Lütfen bilgisayarınızın tarih/saat ayarlarını kontrol edin veya güvenlik yazılımınızı geçici olarak devre dışı bırakın."
+    if isinstance(reason, ssl.SSLError):
+        return f"SSL hatası: {getattr(reason, 'strerror', reason)}"
+    return "İnternet bağlantısı kontrol edilemedi."
+
+
 class UpdateCheckWorker(QThread):
     finished = pyqtSignal(dict)
     error = pyqtSignal(str)
@@ -30,7 +56,7 @@ class UpdateCheckWorker(QThread):
 
     def run(self):
         try:
-            ctx = ssl.create_default_context()
+            ctx = _ssl_context()
             req = urllib.request.Request(self.url, headers=self.headers)
             with urllib.request.urlopen(req, timeout=self.timeout, context=ctx) as response:
                 data = json.loads(response.read().decode("utf-8"))
@@ -40,8 +66,8 @@ class UpdateCheckWorker(QThread):
                 self.error.emit("GitHub API rate limit aşıldı. Lütfen daha sonra tekrar deneyin.")
             else:
                 self.error.emit(f"GitHub API hatası: {e.code} {e.reason}")
-        except urllib.error.URLError:
-            self.error.emit("İnternet bağlantısı kontrol edilemedi.")
+        except urllib.error.URLError as e:
+            self.error.emit(_format_url_error(e))
         except json.JSONDecodeError:
             self.error.emit("GitHub API yanıtı okunamadı.")
         except Exception as e:
@@ -70,7 +96,7 @@ class UpdateDownloadWorker(QThread):
             os.makedirs(dest, exist_ok=True)
             tmp_path = os.path.join(dest, filename)
 
-            ctx = ssl.create_default_context()
+            ctx = _ssl_context()
             req = urllib.request.Request(self.url)
             with urllib.request.urlopen(req, timeout=60, context=ctx) as response:
                 total = int(response.headers.get('Content-Length', 0))
