@@ -7,6 +7,8 @@ import subprocess
 import shutil
 import time
 import webbrowser
+import traceback
+import logging
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -209,24 +211,28 @@ class PSVSizingApp(QMainWindow):
                     obj.setCurrentText(str(val))
 
     def save_state(self):
-        all_tabs_data = {}
-        tab_names = ["liquid", "gas", "twophase", "fire_wetted", "fire_unwetted", "thermal"]
-        tab_widgets = [self.tab_liquid, self.tab_gas, self.tab_twophase,
-                       self.tab_fire_wetted, self.tab_fire_unwetted, self.tab_thermal]
+        try:
+            all_tabs_data = {}
+            tab_names = ["liquid", "gas", "twophase", "fire_wetted", "fire_unwetted", "thermal"]
+            tab_widgets = [self.tab_liquid, self.tab_gas, self.tab_twophase,
+                           self.tab_fire_wetted, self.tab_fire_unwetted, self.tab_thermal]
 
-        for name, widget in zip(tab_names, tab_widgets):
-            inputs, _ = self.extract_tab_data(widget)
-            all_tabs_data[name] = inputs
+            for name, widget in zip(tab_names, tab_widgets):
+                inputs, _ = self.extract_tab_data(widget)
+                all_tabs_data[name] = inputs
 
-        all_tabs_data['__schema_version__'] = SCHEMA_VERSION
-        all_tabs_data['__current_tab__'] = self.tabs.tabText(self.tabs.currentIndex())
+            all_tabs_data['__schema_version__'] = SCHEMA_VERSION
+            all_tabs_data['__current_tab__'] = self.tabs.tabText(self.tabs.currentIndex())
 
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, "Projeyi Kaydet", "", "JSON Files (*.json);;All Files (*)", options=options)
-        if file_path:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(all_tabs_data, f, indent=4)
-            QMessageBox.information(self, "Başarılı", "Tüm girdi değerleri başarıyla kaydedildi!")
+            options = QFileDialog.Options()
+            file_path, _ = QFileDialog.getSaveFileName(self, "Projeyi Kaydet", "", "JSON Files (*.json);;All Files (*)", options=options)
+            if file_path:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(all_tabs_data, f, indent=4)
+                QMessageBox.information(self, "Başarılı", "Tüm girdi değerleri başarıyla kaydedildi!")
+        except Exception:
+            logging.error("save_state failed:\n%s", traceback.format_exc())
+            QMessageBox.critical(self, "Hata", "Proje kaydedilirken bir hata oluştu. Dosyanın yazılabileceği bir konum seçtiğinizden emin olun.")
 
     def load_state(self):
         options = QFileDialog.Options()
@@ -273,84 +279,105 @@ class PSVSizingApp(QMainWindow):
                 QMessageBox.critical(self, "Hata", f"Dosya okunamadı: {e}")
 
     def generate_report(self):
-        current_tab_name = self.tabs.tabText(self.tabs.currentIndex())
-        current_tab = self.tabs.currentWidget()
-        inputs, results = self.extract_tab_data(current_tab)
-        
-        # Check if calculated
-        has_results = any(v != "-" and v != "Error" and v != "Calculating..." for v in results.values())
-        if not has_results:
-            QMessageBox.warning(self, "Uyarı", "Lütfen rapor oluşturmadan önce HESAPLA butonuna basarak sonuçları elde edin.")
-            return
-            
         try:
-            generate_and_open_report(current_tab_name, inputs, results)
-        except Exception as e:
-            QMessageBox.critical(self, "Rapor Hatası", f"Rapor oluşturulurken hata oluştu: {e}")
+            current_tab_name = self.tabs.tabText(self.tabs.currentIndex())
+            current_tab = self.tabs.currentWidget()
+            inputs, results = self.extract_tab_data(current_tab)
+            
+            # Check if calculated
+            has_results = any(v != "-" and v != "Error" and v != "Calculating..." for v in results.values())
+            if not has_results:
+                QMessageBox.warning(self, "Uyarı", "Lütfen rapor oluşturmadan önce HESAPLA butonuna basarak sonuçları elde edin.")
+                return
+                
+            try:
+                generate_and_open_report(current_tab_name, inputs, results)
+            except Exception as e:
+                QMessageBox.critical(self, "Rapor Hatası", f"Rapor oluşturulurken hata oluştu: {e}")
+        except Exception:
+            logging.error("generate_report failed:\n%s", traceback.format_exc())
+            QMessageBox.critical(self, "Hata", "Rapor oluşturulurken beklenmeyen bir hata oluştu.")
 
     def show_graph(self):
-        current_tab_name = self.tabs.tabText(self.tabs.currentIndex())
-        current_tab = self.tabs.currentWidget()
-        
-        if not hasattr(current_tab, 'last_inputs'):
-            QMessageBox.warning(self, "Uyarı", "Lütfen grafik oluşturmadan önce HESAPLA butonuna basarak sonuçları elde edin.")
-            return
+        try:
+            current_tab_name = self.tabs.tabText(self.tabs.currentIndex())
+            current_tab = self.tabs.currentWidget()
             
-        _, results = self.extract_tab_data(current_tab)
-        
-        has_results = any(v != "-" and v != "Error" and v != "Calculating..." for v in results.values())
-        if not has_results:
-            QMessageBox.warning(self, "Uyarı", "Lütfen grafik oluşturmadan önce HESAPLA butonuna basarak sonuçları elde edin.")
-            return
+            if not hasattr(current_tab, 'last_inputs'):
+                QMessageBox.warning(self, "Uyarı", "Lütfen grafik oluşturmadan önce HESAPLA butonuna basarak sonuçları elde edin.")
+                return
+                
+            _, results = self.extract_tab_data(current_tab)
+            
+            has_results = any(v != "-" and v != "Error" and v != "Calculating..." for v in results.values())
+            if not has_results:
+                QMessageBox.warning(self, "Uyarı", "Lütfen grafik oluşturmadan önce HESAPLA butonuna basarak sonuçları elde edin.")
+                return
 
-        from desktop.graph_window import PlotWindow
-        self.plot_win = PlotWindow(self, current_tab_name, current_tab.last_inputs, results)
-        self.plot_win.exec_()
+            from desktop.graph_window import PlotWindow
+            graph_results = current_tab._get_graph_results()
+            self.plot_win = PlotWindow(self, current_tab_name, current_tab.last_inputs, graph_results)
+            self.plot_win.exec_()
+        except Exception:
+            logging.error("show_graph failed:\n%s", traceback.format_exc())
+            QMessageBox.critical(self, "Hata", "Grafik oluşturulurken beklenmeyen bir hata oluştu.")
 
     def check_update(self):
-        self.calc_btn_update = self.sender()
-        if self.calc_btn_update:
-            self.calc_btn_update.setEnabled(False)
-        self._update_status = QLabel("Güncelleme kontrol ediliyor...", self)
-        self._update_status.setStyleSheet("color: #7f8c8d; font-style: italic;")
-        self.statusBar().addWidget(self._update_status)
+        try:
+            self.calc_btn_update = self.sender()
+            if self.calc_btn_update:
+                self.calc_btn_update.setEnabled(False)
+            self._update_status = QLabel("Güncelleme kontrol ediliyor...", self)
+            self._update_status.setStyleSheet("color: #7f8c8d; font-style: italic;")
+            self.statusBar().addWidget(self._update_status)
 
-        self.update_worker = UpdateCheckWorker(GITHUB_RELEASES_URL)
-        self.update_worker.finished.connect(self._on_update_check_success)
-        self.update_worker.error.connect(self._on_update_check_error)
-        self.update_worker.start()
+            self.update_worker = UpdateCheckWorker(GITHUB_RELEASES_URL)
+            self.update_worker.finished.connect(self._on_update_check_success)
+            self.update_worker.error.connect(self._on_update_check_error)
+            self.update_worker.start()
+        except Exception:
+            logging.error("check_update failed:\n%s", traceback.format_exc())
+            self._show_update_error("Güncelleme kontrolü başlatılamadı.")
 
     def _on_update_check_success(self, data):
-        if hasattr(self, '_update_status'):
-            self.statusBar().removeWidget(self._update_status)
-            del self._update_status
-        if self.calc_btn_update:
-            self.calc_btn_update.setEnabled(True)
+        try:
+            if hasattr(self, '_update_status'):
+                self.statusBar().removeWidget(self._update_status)
+                del self._update_status
+            if self.calc_btn_update:
+                self.calc_btn_update.setEnabled(True)
 
-        latest_tag = data.get("tag_name", "")
-        release_notes = data.get("body", "")
-        html_url = data.get("html_url", GITHUB_RELEASES_PAGE)
-        assets = data.get("assets", [])
+            latest_tag = data.get("tag_name", "")
+            release_notes = data.get("body", "")
+            html_url = data.get("html_url", GITHUB_RELEASES_PAGE)
+            assets = data.get("assets", [])
 
-        if not latest_tag:
-            self._show_update_error("Sürüm bilgisi alınamadı.")
-            return
+            if not latest_tag:
+                self._show_update_error("Sürüm bilgisi alınamadı.")
+                return
 
-        current = parse_version(APP_VERSION)
-        latest = parse_version(latest_tag)
+            current = parse_version(APP_VERSION)
+            latest = parse_version(latest_tag)
 
-        if latest > current:
-            self._show_update_available(latest_tag, release_notes, html_url, assets)
-        else:
-            QMessageBox.information(self, "Güncelleme", f"PSV Sizing Suite ({APP_VERSION})\n\nProgramınız güncel.")
+            if latest > current:
+                self._show_update_available(latest_tag, release_notes, html_url, assets)
+            else:
+                QMessageBox.information(self, "Güncelleme", f"PSV Sizing Suite ({APP_VERSION})\n\nProgramınız güncel.")
+        except Exception:
+            logging.error("_on_update_check_success failed:\n%s", traceback.format_exc())
+            self._show_update_error("Güncelleme kontrolü sonucu işlenemedi.")
 
     def _on_update_check_error(self, err_msg):
-        if hasattr(self, '_update_status'):
-            self.statusBar().removeWidget(self._update_status)
-            del self._update_status
-        if self.calc_btn_update:
-            self.calc_btn_update.setEnabled(True)
-        self._show_update_error(err_msg)
+        try:
+            if hasattr(self, '_update_status'):
+                self.statusBar().removeWidget(self._update_status)
+                del self._update_status
+            if self.calc_btn_update:
+                self.calc_btn_update.setEnabled(True)
+            self._show_update_error(err_msg)
+        except Exception:
+            logging.error("_on_update_check_error failed:\n%s", traceback.format_exc())
+            self._show_update_error(err_msg)
 
     def _show_update_available(self, tag, notes, url, assets):
         notes_preview = (notes[:300] + "...") if len(notes) > 300 else notes
@@ -498,56 +525,64 @@ rm -rf "{dmg_path}" "$(dirname "{dmg_path}")"
         )
 
     def show_about(self):
-        from PyQt5.QtCore import QSize
-        about_text = (
-            f"<h2>PSV Sizing Suite {APP_VERSION}</h2>"
-            f"<p><b>Advanced Engineering Calculation Platform</b><br>"
-            f"Pressure Safety Valve (PSV) sizing based on API 520 Part I and API 521.</p>"
-            f"<hr>"
-            f"<h3>Standards Compliance — API 2020 Edition</h3>"
-            f"<table>"
-            f"<tr><td><b>API 520 Part I</b></td><td>10th Ed. (October 2020)</td></tr>"
-            f"<tr><td>§5.6</td><td>Gas/Vapor Sizing (C=520, F2=735, Eq.12-16)</td></tr>"
-            f"<tr><td>§5.7</td><td>Steam Sizing — Napier (51.5, Kn, Ksh, Tables 12-13)</td></tr>"
-            f"<tr><td>§5.8</td><td>Liquid Sizing (38, Re=2800, Eq.32-35)</td></tr>"
-            f"<tr><td>§5.8.1.3</td><td>Viscosity Correction Kv = (0.9935 + 2.878/Re^0.5 + 342.75/Re^1.5)^-1, Eq.34</td></tr>"
-            f"<tr><td>§5.3</td><td>Backpressure Kb — Fig.31/32/37, Fig.C.3</td></tr>"
-            f"<tr><td>§4.2 / §5.2</td><td>Prelim Kd: Gas=0.975, Liquid=0.65; Pilot Kd: Gas=0.99, Liquid=0.80, 2-Phase=0.85</td></tr>"
-            f"<tr><td>Annex C</td><td>Two-Phase Omega Method (ηc Eq.C.15, G=68.09, A=W/(25·G·Kd))</td></tr>"
-            f"<tr><td>Annex C §C.2.3</td><td>Subcooled Flashing Two-Phase</td></tr>"
-            f"<tr><td><b>API 520 Part II</b></td><td>7th Ed. (October 2020)</td></tr>"
-            f"<tr><td>§4.2.1</td><td>Inlet ΔP ≤ 3% Set (Darcy-Weisbach + Colebrook-White)</td></tr>"
-            f"<tr><td>§5.3</td><td>Outlet Built-up BP ≤ 10% Set</td></tr>"
-            f"<tr><td><b>API 521</b></td><td>7th Ed. (June 2020)</td></tr>"
-            f"<tr><td>§4.4.13 Eq.7-8</td><td>Fire Wetted: Q = 21000·F·A^0.82, W = Q/hfg</td></tr>"
-            f"<tr><td>§4.4.13.2.4.3 Eq.10</td><td>Fire Unwetted: F' = 0.1406...(Tw-Tg)^1.25/Tg^0.6506</td></tr>"
-            f"<tr><td>§4.4.12 Eq.3</td><td>Thermal Expansion: Q = β·H/(500·G·Cp)</td></tr>"
-            f"<tr><td><b>API 526</b></td><td>2023 Ed. — Orifices D(0.110) through T(26.0) sq.in</td></tr>"
-            f"</table>"
-            f"<hr>"
-            f"<p><b>Test Suite:</b> 185 tests passed<br>"
-            f"<b>Version:</b> {APP_VERSION}<br>"
-            f"<b>GitHub:</b> github.com/SLedgehammer-dev12/PSV_Sizing_Suite</p>"
-        )
-        msg = QMessageBox(self)
-        msg.setWindowTitle("Hakkinda — PSV Sizing Suite")
-        msg.setTextFormat(1)  # RichText
-        msg.setText(about_text)
-        msg.setIcon(QMessageBox.Information)
-        msg.setStyleSheet("QLabel{min-width: 600px;}")
-        msg.exec_()
+        try:
+            from PyQt5.QtCore import QSize
+            about_text = (
+                f"<h2>PSV Sizing Suite {APP_VERSION}</h2>"
+                f"<p><b>Advanced Engineering Calculation Platform</b><br>"
+                f"Pressure Safety Valve (PSV) sizing based on API 520 Part I and API 521.</p>"
+                f"<hr>"
+                f"<h3>Standards Compliance — API 2020 Edition</h3>"
+                f"<table>"
+                f"<tr><td><b>API 520 Part I</b></td><td>10th Ed. (October 2020)</td></tr>"
+                f"<tr><td>§5.6</td><td>Gas/Vapor Sizing (C=520, F2=735, Eq.12-16)</td></tr>"
+                f"<tr><td>§5.7</td><td>Steam Sizing — Napier (51.5, Kn, Ksh, Tables 12-13)</td></tr>"
+                f"<tr><td>§5.8</td><td>Liquid Sizing (38, Re=2800, Eq.32-35)</td></tr>"
+                f"<tr><td>§5.8.1.3</td><td>Viscosity Correction Kv = (0.9935 + 2.878/Re^0.5 + 342.75/Re^1.5)^-1, Eq.34</td></tr>"
+                f"<tr><td>§5.3</td><td>Backpressure Kb — Fig.31/32/37, Fig.C.3</td></tr>"
+                f"<tr><td>§4.2 / §5.2</td><td>Prelim Kd: Gas=0.975, Liquid=0.65; Pilot Kd: Gas=0.99, Liquid=0.80, 2-Phase=0.85</td></tr>"
+                f"<tr><td>Annex C</td><td>Two-Phase Omega Method (ηc Eq.C.15, G=68.09, A=W/(25·G·Kd))</td></tr>"
+                f"<tr><td>Annex C §C.2.3</td><td>Subcooled Flashing Two-Phase</td></tr>"
+                f"<tr><td><b>API 520 Part II</b></td><td>7th Ed. (October 2020)</td></tr>"
+                f"<tr><td>§4.2.1</td><td>Inlet ΔP ≤ 3% Set (Darcy-Weisbach + Colebrook-White)</td></tr>"
+                f"<tr><td>§5.3</td><td>Outlet Built-up BP ≤ 10% Set</td></tr>"
+                f"<tr><td><b>API 521</b></td><td>7th Ed. (June 2020)</td></tr>"
+                f"<tr><td>§4.4.13 Eq.7-8</td><td>Fire Wetted: Q = 21000·F·A^0.82, W = Q/hfg</td></tr>"
+                f"<tr><td>§4.4.13.2.4.3 Eq.10</td><td>Fire Unwetted: F' = 0.1406...(Tw-Tg)^1.25/Tg^0.6506</td></tr>"
+                f"<tr><td>§4.4.12 Eq.3</td><td>Thermal Expansion: Q = β·H/(500·G·Cp)</td></tr>"
+                f"<tr><td><b>API 526</b></td><td>2023 Ed. — Orifices D(0.110) through T(26.0) sq.in</td></tr>"
+                f"</table>"
+                f"<hr>"
+                f"<p><b>Test Suite:</b> 185 tests passed<br>"
+                f"<b>Version:</b> {APP_VERSION}<br>"
+                f"<b>GitHub:</b> github.com/SLedgehammer-dev12/PSV_Sizing_Suite</p>"
+            )
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Hakkinda — PSV Sizing Suite")
+            msg.setTextFormat(1)  # RichText
+            msg.setText(about_text)
+            msg.setIcon(QMessageBox.Information)
+            msg.setStyleSheet("QLabel{min-width: 600px;}")
+            msg.exec_()
+        except Exception:
+            logging.error("show_about failed:\n%s", traceback.format_exc())
+            QMessageBox.critical(self, "Hata", "Hakkinda penceresi gösterilemedi.")
 
     def change_user_pw(self):
-        admin_pw, ok = QInputDialog.getText(self, "Admin Dogrulama", "Admin sifrenizi tekrar girin:", QLineEdit.Password)
-        if not ok or not check_login("admin", admin_pw):
-            QMessageBox.warning(self, "Hata", "Admin sifresi dogrulanamadi!")
-            return
-        new_pw, ok = QInputDialog.getText(self, "Sifre Degistir", "Yeni Kullanici Sifresini Girin (en az 8 karakter):", QLineEdit.Password)
-        if ok and new_pw and len(new_pw) >= 8:
-            change_password("user", new_pw)
-            QMessageBox.information(self, "Basarili", "Kullanici sifresi basariyla degistirildi!")
-        elif ok:
-            QMessageBox.warning(self, "Hata", "Sifre en az 8 karakter olmalidir.")
+        try:
+            admin_pw, ok = QInputDialog.getText(self, "Admin Dogrulama", "Admin sifrenizi tekrar girin:", QLineEdit.Password)
+            if not ok or not check_login("admin", admin_pw):
+                QMessageBox.warning(self, "Hata", "Admin sifresi dogrulanamadi!")
+                return
+            new_pw, ok = QInputDialog.getText(self, "Sifre Degistir", "Yeni Kullanici Sifresini Girin (en az 8 karakter):", QLineEdit.Password)
+            if ok and new_pw and len(new_pw) >= 8:
+                change_password("user", new_pw)
+                QMessageBox.information(self, "Basarili", "Kullanici sifresi basariyla degistirildi!")
+            elif ok:
+                QMessageBox.warning(self, "Hata", "Sifre en az 8 karakter olmalidir.")
+        except Exception:
+            logging.error("change_user_pw failed:\n%s", traceback.format_exc())
+            QMessageBox.critical(self, "Hata", "Sifre degistirilirken bir hata oluştu.")
 
 class LoginDialog(QDialog):
     def __init__(self):

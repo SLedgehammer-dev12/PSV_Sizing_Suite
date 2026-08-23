@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.3.3 — macOS Çökme Düzeltmesi (Grafik Menüsü)
+
+### 🐛 Bug Fixes
+- macOS'ta "Grafik Göster" menüsünden kaynaklanan SIGABRT çökmesi düzeltildi
+  - Kök neden: menü slot'unda yakalanmayan Python exception'ı PyQt5'in `qFatal()` → `abort()` çağrısını tetikliyordu
+  - `main.py`'ye global `sys.excepthook` eklendi; PyQt5 artık çökmek yerine hatayı log dosyasına yazıp kullanıcıya gösteriyor
+- `desktop/app.py`: `show_graph`, `save_state`, `generate_report`, `check_update`, `show_about`, `change_user_pw` slotları try/except + log ile korundu
+- `desktop/graph_window.py`: matplotlib import'u ve render hataları log'a yazılıyor; seçili orifis alanı/çalışma noktası artık doğru kaynaktan (`_get_graph_results`) çiziliyor
+
+### 🧪 Test
+- Test sayısı 185 (değişmedi), tümü geçiyor
+
 ## v2.3.2 — Reaksiyon Kuvveti, Gürültü ve Bakım
 
 ### 🔧 Standart Uyum Düzeltmeleri (API 520/521)

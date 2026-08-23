@@ -1,8 +1,17 @@
+import traceback
+import logging
+
 import numpy as np
 import matplotlib
-matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+
+try:
+    matplotlib.use('Qt5Agg')
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.figure import Figure
+except Exception:
+    logging.error("matplotlib Qt5Agg import failed:\n%s", traceback.format_exc())
+    raise
+
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QMessageBox, QLabel
 from PyQt5.QtCore import Qt
 
@@ -70,9 +79,11 @@ class PlotWindow(QDialog):
             self.canvas.draw()
 
         except Exception as e:
+            logging.error("Graph render failed:\n%s", traceback.format_exc())
             QMessageBox.warning(self, "Grafik Cizim Hatasi", f"Egri olusturulurken bir hata meydana geldi:\n{str(e)}")
             self.close()
 
     def on_calc_error(self, err_msg):
+        logging.error("Graph calc error: %s", err_msg)
         QMessageBox.warning(self, "Grafik Hatasi", f"Hesaplama sirasinda hata:\n{err_msg}")
         self.close()

@@ -20,8 +20,34 @@ logging.basicConfig(
     ]
 )
 
-from PyQt5.QtWidgets import QApplication, QDialog
+import traceback
+
+from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox
 from desktop.app import PSVSizingApp, LoginDialog
+
+
+def global_excepthook(exc_type, exc_value, exc_tb):
+    """Handle unhandled exceptions without letting PyQt5 call qFatal/abort.
+
+    PyQt5 aborts the process (SIGABRT) when an unhandled Python exception
+    escapes a slot and sys.excepthook is left at its default. Installing a
+    custom hook makes PyQt5 route the error here instead, so we can log the
+    full traceback and inform the user without crashing.
+    """
+    tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    logging.critical("Unhandled exception:\n%s", tb_text)
+    try:
+        QMessageBox.critical(
+            None,
+            "Beklenmeyen Hata",
+            f"Beklenmeyen bir hata oluştu:\n\n{tb_text}\n\n"
+            f"Detaylar log dosyasına yazıldı.",
+        )
+    except Exception:
+        pass
+
+
+sys.excepthook = global_excepthook
 
 if __name__ == "__main__":
     logging.info("PSV Sizing Suite starting up")
