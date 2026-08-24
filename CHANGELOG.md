@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.3.5 — macOS Grafik Düzeltmesi (PyQt5.QtSvg Build)
+
+### 🐛 Bug Fixes
+- macOS'ta "Grafik Göster" açılırken `ImportError: cannot import name 'QtSvg' from 'PyQt5'` düzeltildi
+  - Kök neden: `release.yml` macOS build'i `--exclude-module PyQt5.QtSvg` ile PyQt5 QtSvg Python binding'ini paket dışı bırakıyordu; matplotlib Qt5Agg backend'i (`qt_compat._setup_pyqt5plus`) QtSvg'yi import ediyor
+  - `.github/workflows/release.yml`: `PyQt5.QtSvg` exclude kaldırıldı, `--hidden-import PyQt5.QtSvg` eklendi (`scripts/build_mac.sh` ile tutarlı)
+  - Bu, v2.3.2'deki ilk SIGABRT çökmesinin de asıl kök nedeniydi; v2.3.3'teki global excepthook çökmeyi önleyip gerçek hatayı görünür kıldı
+
+### 🧪 Test
+- Test sayısı 185 (değişmedi), tümü geçiyor
+
 ## v2.3.4 — Güncelleme Kontrolü SSL Sertifika Düzeltmesi
 
 ### 🐛 Bug Fixes
