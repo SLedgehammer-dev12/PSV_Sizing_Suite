@@ -1,6 +1,6 @@
 import math
 from .constants import (
-    KD_MIN, KD_MAX, KW_MIN, KW_MAX, Z_MIN, Z_MAX, K_MIN, K_MAX, F_FACTOR_MIN, F_FACTOR_MAX,
+    KD_MIN, KD_MAX, KW_MIN, KW_MAX, KP_MIN, KP_MAX, Z_MIN, Z_MAX, K_MIN, K_MAX, F_FACTOR_MIN, F_FACTOR_MAX,
 )
 
 class ValidationError(Exception):
@@ -21,7 +21,7 @@ def validate_range(value, name, min_val, max_val):
         raise ValidationError(f"{name} must be between {min_val} and {max_val} (got {value})")
     return value
 
-def validate_liquid_inputs(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=1.0):
+def validate_liquid_inputs(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=1.0, kp=1.0):
     validate_positive(q_gpm, "Flow Rate (Q)")
     validate_positive(p1_psia, "Relieving Pressure (P1)")
     validate_positive(p2_psia, "Back Pressure (P2)")
@@ -29,8 +29,10 @@ def validate_liquid_inputs(q_gpm, p1_psia, p2_psia, g, mu_cp, kd=0.65, kw=1.0):
     validate_positive(mu_cp, "Viscosity")
     validate_range(kd, "Discharge Coefficient (Kd)", KD_MIN, KD_MAX)
     validate_range(kw, "Back Pressure Factor (Kw)", KW_MIN, KW_MAX)
+    validate_range(kp, "Overpressure Factor (Kp)", KP_MIN, KP_MAX)
     if p2_psia >= p1_psia:
         raise ValidationError(f"Back Pressure (P2={p2_psia:.2f}) must be less than Relieving Pressure (P1={p1_psia:.2f})")
+
 
 def validate_gas_inputs(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k, kd=0.975):
     validate_positive(w_lb_h, "Mass Flow Rate (W)")

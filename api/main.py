@@ -108,9 +108,12 @@ async def liquid_relief(req: LiquidReliefRequest):
             kw=req.kw,
             kc=req.kc,
             num_valves=req.num_valves,
+            overpressure_pct=req.overpressure_pct,
+            valve_type=req.valve_type,
         )
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 
 @app.post("/api/v1/gas-relief")
@@ -231,8 +234,9 @@ async def thermal_expansion(req: ThermalExpansionRequest):
         )
         res['Relief_Load_gpm'] = q_gpm
         return res
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 
 @app.post("/api/v1/piping-check")

@@ -167,7 +167,9 @@ class LiquidCalcWorker(QThread):
                     mu_cp=self.inputs['mu_cp'],
                     kd=PRELIM_KD_LIQUID,
                     kc=self.inputs.get('kc', 1.0),
-                    num_valves=self.inputs.get('num_valves', 1)
+                    num_valves=self.inputs.get('num_valves', 1),
+                    valve_type=valve_type,
+                    overpressure_pct=self.inputs.get('overpressure_pct', 10.0),
                 )
             self.finished.emit(res)
         except Exception as e:
@@ -284,7 +286,7 @@ class FireWettedWorker(QThread):
             else:
                 atm_psia = self.inputs.get('atm_psia', ATMOSPHERIC_PSIA)
                 p2_psia = self.inputs.get('p2_psia', ATMOSPHERIC_PSIA)
-                overpressure_pct = self.inputs.get('overpressure_pct', 10.0)
+                overpressure_pct = self.inputs.get('overpressure_pct', 21.0)
                 set_psig = self.inputs.get('set_pressure_psig')
                 if not set_psig or set_psig <= 0:
                     p1_gauge = max(self.inputs['p1_psia'] - atm_psia, 0.0)
@@ -394,8 +396,14 @@ class GraphCalcWorker(QThread):
                 self.error.emit("No pressure value found.")
                 return
 
-            p_vals = np.linspace(base_p1 * 0.5, base_p1 * 1.5, 40)
+            p_back = self.inputs.get('p2_psia') or self.inputs.get('p_back_psia') or 0.0
+            p_min = max(base_p1 * 0.5, p_back * 1.05 + 0.1)
+            if p_min >= base_p1:
+                p_min = (base_p1 + p_back) / 2.0 if base_p1 > p_back else base_p1 * 0.95
+            p_max = base_p1 * 1.5
+            p_vals = np.linspace(p_min, p_max, 40)
             a_vals = []
+
 
             for p in p_vals:
                 temp_inputs = self.inputs.copy()

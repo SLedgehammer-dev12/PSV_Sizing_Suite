@@ -13,7 +13,9 @@ from core.unit_converter import (
     sqft_to_m2, m2_to_sqft, kw_to_btu_h, kcal_h_to_btu_h,
     kcal_kg_to_btu_lb
 )
+from core import __version_tag__
 from desktop.auth import check_login
+
 
 
 def render_vendor_table(valves):
@@ -104,13 +106,13 @@ def display_results(res, area_key='Required_Area_Final_sqin'):
     return letter
 
 
-st.set_page_config(page_title="PSV Sizing Suite v2.3.0", layout="wide")
+st.set_page_config(page_title=f"PSV Sizing Suite {__version_tag__}", layout="wide")
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.title("PSV Sizing Suite v2.3.0 - Giris")
+    st.title(f"PSV Sizing Suite {__version_tag__} - Giris")
     col1, col2 = st.columns([1, 2])
     with col1:
         username = st.text_input("Kullanici Adi")
@@ -125,7 +127,8 @@ if not st.session_state.authenticated:
     st.stop()
 
 st.sidebar.title("PSV Sizing Suite")
-st.sidebar.markdown("Muhendislik Hesaplama Platformu (v2.3.0)")
+st.sidebar.markdown(f"Muhendislik Hesaplama Platformu ({__version_tag__})")
+
 
 page = st.sidebar.radio("Modül Seçimi", [
     "1. Liquid Relief (Sıvı Tahliye)",

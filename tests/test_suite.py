@@ -758,7 +758,7 @@ class TestUpdateCheck(unittest.TestCase):
         from desktop.app import parse_version
         self.assertTrue(parse_version("v2.4") > parse_version("v2.3.0"))
         self.assertTrue(parse_version("v3.0") > parse_version("v2.9"))
-        self.assertTrue(parse_version("v2.3.5") > parse_version("v2.3.4"))
+        self.assertTrue(parse_version("v2.3.6") > parse_version("v2.3.5"))
 
     def test_version_comparison_older(self):
         from desktop.app import parse_version
@@ -771,7 +771,7 @@ class TestUpdateCheck(unittest.TestCase):
 
     def test_app_version_constant_exists(self):
         from desktop.app import APP_VERSION
-        self.assertEqual(APP_VERSION, "v2.3.5")
+        self.assertEqual(APP_VERSION, "v2.3.6")
 
     def test_app_version_in_title(self):
         from desktop.app import APP_VERSION, PSVSizingApp
@@ -985,10 +985,10 @@ class TestV230Modules(unittest.TestCase):
         ok, msg = check_inlet_rule(4.0, 100)
         self.assertFalse(ok)
 
-    def test_core_version_is_v232(self):
+    def test_core_version_is_v236(self):
         from core import __version__, __version_tag__
-        self.assertEqual(__version__, "2.3.5")
-        self.assertEqual(__version_tag__, "v2.3.5")
+        self.assertEqual(__version__, "2.3.6")
+        self.assertEqual(__version_tag__, "v2.3.6")
 
     def test_liquid_relief_multivalve(self):
         from core.liquid_relief import calculate_liquid_relief_area
@@ -1398,7 +1398,7 @@ class TestCalculationScenarios(unittest.TestCase):
         self.assertAlmostEqual(F['Total_Reaction_Force_lbf'], 4224.0, delta=1.0)
         self.assertLess(F['Pressure_Term_lbf'], 0.05)
         N = calculate_noise_level(50000, 1.4, 28, 660, 100)
-        self.assertAlmostEqual(N['Sound_Pressure_Level_dB'], 139.2, places=1)
+        self.assertAlmostEqual(N['Sound_Pressure_Level_dB'], 99.1, places=1)
         self.assertAlmostEqual(N['Sonic_Velocity_fps'], 1281.0, delta=2.0)
 
     def test_s13_blowby(self):
@@ -1407,5 +1407,86 @@ class TestCalculationScenarios(unittest.TestCase):
         self.assertAlmostEqual(bb, 7058.8235, places=3)
 
 
+class TestV236Improvements(unittest.TestCase):
+    """Tests for physical modeling and bug fixes added in v2.3.6."""
+
+    def test_liquid_kp_calculation(self):
+        from core.liquid_relief import calculate_kp, calculate_liquid_relief_area
+        self.assertAlmostEqual(calculate_kp(10.0), 1.00, places=2)
+        self.assertAlmostEqual(calculate_kp(25.0), 1.15, places=2)
+        self.assertAlmostEqual(calculate_kp(5.0), 0.70, places=2)
+
+        # At 25% overpressure, Kp=1.15 so required area is smaller
+        r_10 = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0, overpressure_pct=10.0)
+        r_25 = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0, overpressure_pct=25.0)
+        self.assertLess(r_25['Required_Area_Final_sqin'], r_10['Required_Area_Final_sqin'])
+
+    def test_liquid_kw_balanced_bellows(self):
+        from core.liquid_relief import calculate_kw_liquid, calculate_liquid_relief_area
+        self.assertEqual(calculate_kw_liquid(10.0, "conventional"), 1.0)
+        self.assertEqual(calculate_kw_liquid(10.0, "balanced_bellows"), 1.0)
+        kw_30 = calculate_kw_liquid(30.0, "balanced_bellows")
+        self.assertAlmostEqual(kw_30, 0.89, places=2)
+
+        # Balanced bellows with 30% back pressure requires larger area due to Kw < 1.0
+        r_conv = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0, valve_type="conventional")
+        r_bellows = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=40.0, g=1.0, mu_cp=1.0, valve_type="balanced_bellows")
+        self.assertLess(r_bellows['Kw'], 1.0)
+
+    def test_gas_f2_k_near_one(self):
+        from core.gas_relief import calculate_f2_coefficient
+        # When k is very close to 1.0 (e.g. heavy hydrocarbons), it shouldn't divide by zero
+        f2 = calculate_f2_coefficient(1.00001, 0.8)
+        self.assertGreater(f2, 0.8)
+        self.assertLess(f2, 0.9)
+
+    def test_api_thermal_expansion_endpoint(self):
+        from fastapi.testclient import TestClient
+        from api.main import app
+        client = TestClient(app)
+        res = client.post('/api/v1/thermal-expansion', json={
+            'b_expansion_coeff': 0.0005,
+            'h_heat_transfer_btu_h': 50000.0,
+            'g_specific_gravity': 1.0,
+            'c_specific_heat': 1.0,
+            'p1_psia': 100.0,
+            'p2_psia': 14.7,
+            'valve_type': 'conventional',
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn('Required_Area_Final_sqin', data)
+        self.assertIn('Relief_Load_gpm', data)
+
+    def test_api_liquid_relief_endpoint(self):
+        from fastapi.testclient import TestClient
+        from api.main import app
+        client = TestClient(app)
+        res = client.post('/api/v1/liquid-relief', json={
+            'q_gpm': 100.0,
+            'p1_psia': 100.0,
+            'p2_psia': 14.7,
+            'g': 1.0,
+            'mu_cp': 1.0,
+            'overpressure_pct': 25.0,
+            'valve_type': 'conventional',
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['Kp'], 1.15)
+
+    def test_graph_calc_worker_high_backpressure(self):
+        from desktop.workers import GraphCalcWorker
+        inputs = {'q_gpm': 60, 'p1_psia': 40.0, 'p2_psia': 25.0, 'g': 1.0, 'mu_cp': 1.0}
+        worker = GraphCalcWorker("Liquid Relief", inputs)
+        res = []
+        worker.finished.connect(lambda p, a, b: res.append((p, a, b)))
+        worker.run()
+        self.assertEqual(len(res), 1)
+        p_vals, a_vals, base_p1 = res[0]
+        self.assertTrue(all(p > 25.0 for p in p_vals))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

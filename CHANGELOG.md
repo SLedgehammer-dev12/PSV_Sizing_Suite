@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.3.6 — API 520/521 Standart Uyumu ve Hesaplama Motoru Düzeltmeleri
+
+### 🔧 Standart Uyum ve Fiziksel Modelleme
+- **API 520 Part I Sıvı Düzeltme Faktörleri ($K_p$ ve $K_w$):**
+  - API 520 Eq. 30 uyarınca %10'dan farklı aşırı basınçlar için zorunlu $K_p$ kapasite düzeltme faktörü (`calculate_kp`) API 520 Şekil 38 eğrisine göre eklendi.
+  - Dengelenmiş körüklü vanalarda sıvı karşı basıncı için $K_w$ katsayısı (`calculate_kw_liquid`) API 520 Şekil 37 eğrisiyle modellendi.
+  - `calculate_liquid_relief_area` fonksiyonu geriye dönük uyumluluk korunarak `kp`, `overpressure_pct` ve `valve_type` parametrelerini alacak şekilde güncellendi.
+- **API 521 §5.8.10 Akustik Gürültü Verimi ($\eta_a$):**
+  - Mekanik kinetik enerjinin %100'ünün sese dönüştüğü varsayımı düzeltildi; API 521 ve Lighthill türbülanslı jet teorisine uygun $\eta_a$ akustik verim modeli entegre edildi.
+  - Akustik güç ($W$) ve verim ($\eta_a$) çıktı parametrelerine eklendi, ses seviyesi (SPL) fiziksel standart değer olan 99.1 dB'e getirildi.
+- **Gaz/Buhar Subkritik Akışında Asimptotik Limit ($k \to 1.0$):**
+  - İzoentropik üs $k \to 1.0$ limitine yaklaştığında $(k - 1)$ paydası kaynaklı sıfıra bölme ve `NaN` hatası analitik limit ($\lim_{k \to 1} \frac{k}{k-1}[1 - r^{(k-1)/k}] = -\ln r$) ile giderildi.
+- **Termodinamik Karışım Faz Güvenliği (CoolProp):**
+  - Bileşen eşleştirmede `"Water (Steam)"` girdisi `"Water"` olarak normalize edildi.
+  - Kay kuralı ile buhar karışımı özelliklerinde, sıcaklığın saf bileşenin kaynama noktasının altında kalması durumunda sıvı $C_p$'sinin buhar karışımını bozması engellendi.
+
+### 🐛 Bug Fixes & Stabiliteler
+- **FastAPI Endpoint Hatası:** `/api/v1/thermal-expansion` ve `/api/v1/liquid-relief` endpoint'lerinde `valve_type` aktarımından kaynaklanan 500 Internal Server Error (`TypeError`) düzeltildi.
+- **Masaüstü Grafik Çökmesi:** Yüksek karşı basınç durumlarında ($P_{back} > 0.8 P_{set}$) grafiğin eksi basınca inip GUI'yi çökertmesi $P_{min} > P_{back}$ alt sınır korumasıyla engellendi.
+- **Yangın Senaryosu:** `FireWettedWorker` varsayılan aşırı basınç oranı API 521'e uygun olarak %21'e ayarlandı.
+- **Kod Temizliği:** `core/unit_converter.py` içindeki mükerrer `sqft_to_m2` kaldırıldı; `core/constants.py` içine `PSIA_PER_KPA` sabit eklendi.
+
+### 🧪 Test
+- 6 yeni mühendislik ve uçtan uca test (`TestV236Improvements`) eklendi. Toplam test sayısı 185'ten **191**'e yükseltildi, tümü geçiyor.
+
 ## v2.3.5 — macOS Grafik Düzeltmesi (PyQt5.QtSvg Build)
 
 ### 🐛 Bug Fixes

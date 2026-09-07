@@ -1,8 +1,8 @@
 # PSV Sizing Suite - Core Engine
 # This package contains all the API 520 and 521 engineering calculations.
 
-__version__ = "2.3.5"
-__version_tag__ = "v2.3.5"
+__version__ = "2.3.6"
+__version_tag__ = "v2.3.6"
 
 from .valve_selection import select_orifice, API_ORIFICE_AREAS
 from .liquid_relief import calculate_liquid_relief_area

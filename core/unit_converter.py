@@ -143,6 +143,3 @@ def sqin_to_mm2(a_sqin):
 def rankine_to_f(t_rankine):
     return t_rankine - 459.67
 
-
-def sqft_to_m2(a_sqft):
-    return a_sqft / SQFT_PER_M2

@@ -461,7 +461,7 @@ title PSV Sizing Suite - Guncelleme
 echo Guncelleme uygulaniyor, lutfen bekleyin...
 timeout /t 3 /nobreak >nul
 powershell -Command "Expand-Archive -Path '{zip_path}' -DestinationPath '%~dp0' -Force"
-start "" "%~dp0PSV_Sizing_Suite_v2.3.0.exe"
+start "" "%~dp0PSV_Sizing_Suite_{APP_VERSION}.exe"
 del "%~f0"
 """
         try:
@@ -474,8 +474,9 @@ del "%~f0"
             QMessageBox.critical(self, "Hata", f"Guncelleme baslatilamadi: {e}")
 
     def _install_macos(self, dmg_path):
-        app_name = "PSV_Sizing_Suite_v2.3.0"
+        app_name = f"PSV_Sizing_Suite_{APP_VERSION}"
         script = f"""#!/bin/bash
+
 sleep 3
 hdiutil attach "{dmg_path}" -nobrowse -quiet
 cp -R "/Volumes/{app_name}/{app_name}.app" /Applications/ 2>/dev/null

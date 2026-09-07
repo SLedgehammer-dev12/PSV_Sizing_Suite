@@ -43,6 +43,12 @@ def calculate_mixture_properties(composition_dict, t_rankine, p_psia, fraction_t
     t_k = t_rankine * 5.0 / 9.0
     p_pa = p_psia * 6894.757
 
+    clean_comp = {}
+    for f, v in composition_dict.items():
+        name = "Water" if f == "Water (Steam)" else f
+        clean_comp[name] = clean_comp.get(name, 0.0) + v
+    composition_dict = clean_comp
+
     total_input = sum(composition_dict.values())
     if abs(total_input - 1.0) > 1e-3:
         raise ValueError(f"Sum of fractions must be 1.0 (or 100%). Current sum: {total_input*100:.2f}%")
@@ -97,11 +103,19 @@ def calculate_ideal_mixture_properties(mole_fractions, t_k, p_pa):
     cv_mix = 0.0
 
     for fluid, y in mole_fractions.items():
+        clean_fluid = "Water" if fluid == "Water (Steam)" else fluid
         try:
-            z_i = CP.PropsSI('Z', 'T', t_k, 'P', p_pa, fluid)
-            mw_i = CP.PropsSI('molar_mass', 'T', t_k, 'P', p_pa, fluid) * 1000.0
-            cp_i = CP.PropsSI('Cpmolar', 'T', t_k, 'P', p_pa, fluid)
-            cv_i = CP.PropsSI('Cvmolar', 'T', t_k, 'P', p_pa, fluid)
+            mw_i = CP.PropsSI('molar_mass', 'T', t_k, 'P', p_pa, clean_fluid) * 1000.0
+            phase = CP.PhaseSI('T', t_k, 'P', p_pa, clean_fluid)
+            if 'liquid' in phase.lower():
+                # Component is liquid at mixture P, use low-P vapor properties for gas mixture
+                cp_i = CP.PropsSI('Cpmolar', 'T', t_k, 'P', 101325, clean_fluid)
+                cv_i = CP.PropsSI('Cvmolar', 'T', t_k, 'P', 101325, clean_fluid)
+                z_i = 1.0
+            else:
+                z_i = CP.PropsSI('Z', 'T', t_k, 'P', p_pa, clean_fluid)
+                cp_i = CP.PropsSI('Cpmolar', 'T', t_k, 'P', p_pa, clean_fluid)
+                cv_i = CP.PropsSI('Cvmolar', 'T', t_k, 'P', p_pa, clean_fluid)
 
             z_mix += y * z_i
             mw_mix += y * mw_i
@@ -110,8 +124,9 @@ def calculate_ideal_mixture_properties(mole_fractions, t_k, p_pa):
         except Exception as pure_err:
             raise ValueError(f"Could not calculate pure properties for {fluid} at this state: {pure_err}")
 
-    k_mix = cp_mix / cv_mix
+    k_mix = cp_mix / cv_mix if cv_mix > 0 else COOLPROP_FALLBACK_DEFAULTS['k']
     return z_mix, mw_mix, k_mix
+
 
 def get_coolprop_fluids():
     """Return a sorted list of all available CoolProp pure fluids."""

@@ -20,14 +20,19 @@ def calculate_f2_coefficient(k, r):
     Calculate F2 coefficient for subcritical gas flow.
     r = P2 / P1 (Back pressure / Relieving pressure)
     """
-    if r >= 1.0:
+    if r >= 1.0 or r <= 0.0:
         return 0.0
+
+    if abs(k - 1.0) < K_NEAR_ONE_THRESHOLD:
+        inner = (- (r ** 2.0) * math.log(r)) / (1.0 - r)
+        return math.sqrt(max(inner, 0.0))
 
     term1 = k / (k - 1.0)
     term2 = r ** (2.0 / k)
     term3 = (1.0 - (r ** ((k - 1.0) / k))) / (1.0 - r)
 
-    return math.sqrt(term1 * term2 * term3)
+    return math.sqrt(max(term1 * term2 * term3, 0.0))
+
 
 
 def calculate_gas_relief_area(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k, kd=0.975, kb=1.0, kc=1.0, num_valves=1):
