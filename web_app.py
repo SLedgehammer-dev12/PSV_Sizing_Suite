@@ -14,12 +14,19 @@ from core.unit_converter import (
     kcal_kg_to_btu_lb
 )
 from core import __version_tag__
-from desktop.auth import check_login
+from desktop.auth import check_login, must_change_password, change_password
 
 
 
 def render_vendor_table(valves):
     """Render vendor rows with browser-side confirmation before opening links."""
+    screening = sum(1 for v in valves if v.get("verification_status") == "screening")
+    if screening:
+        st.warning(
+            f"{screening} kayit tarama amacli (screening) placeholder'dir. "
+            "Nihai vana secimi icin uretici sertifikali kapasite, malzeme ve "
+            "basinc sinifi dogrulanmalidir."
+        )
     columns = [
         ("manufacturer", "Üretici"),
         ("series", "Seri"),
@@ -27,6 +34,7 @@ def render_vendor_table(valves):
         ("design_type", "Dizayn"),
         ("inlet_outlet_size_in", "Giriş/Çıkış Çapı"),
         ("actual_area_mm2", "Gerçek Alan (mm²)"),
+        ("verification_status", "Kaynak Durumu"),
     ]
 
     rows = []
@@ -121,10 +129,33 @@ if not st.session_state.authenticated:
             if check_login(username, password):
                 st.session_state.authenticated = True
                 st.session_state.role = username
+                st.session_state.force_change = must_change_password(username)
                 st.rerun()
             else:
                 st.error("Hatali kullanici adi veya sifre!")
     st.stop()
+
+if st.session_state.get("force_change", False):
+    st.warning("Varsayilan parola ile giris yapildi. Devam etmek icin parolanizi degistirin.")
+    new_pw = st.text_input("Yeni Sifre (en az 8 karakter)", type="password")
+    new_pw2 = st.text_input("Yeni Sifre Tekrar", type="password")
+    if st.button("Parolayi Degistir", type="primary"):
+        if len(new_pw) < 8:
+            st.error("Parola en az 8 karakter olmalidir.")
+        elif new_pw != new_pw2:
+            st.error("Parolalar eslesmiyor.")
+        else:
+            change_password(st.session_state.role, new_pw)
+            st.session_state.force_change = False
+            st.success("Parola degistirildi.")
+            st.rerun()
+    st.stop()
+
+if st.sidebar.button("Cikis Yap"):
+    st.session_state.authenticated = False
+    st.session_state.pop("role", None)
+    st.session_state.pop("force_change", None)
+    st.rerun()
 
 st.sidebar.title("PSV Sizing Suite")
 st.sidebar.markdown(f"Muhendislik Hesaplama Platformu ({__version_tag__})")
@@ -319,6 +350,12 @@ elif page == "4. Fire Wetted (Yangın Islak Yüzey)":
 
         f_factor = st.number_input("Environment Factor (F)", value=1.0, format="%.2f", min_value=0.1, max_value=1.0)
 
+        adequate_drainage = st.checkbox(
+            "Yeterli drenaj ve itfaiye mudahalesi (API 521 4.4.13.2.4.2)", value=False,
+            help="Isaretlenmezse 34,500 katsayisi (drenaj/itfaiye kredisi yok), "
+                 "isaretlenirse 21,000 katsayisi kullanilir.",
+        )
+
     with col2:
         p1_unit = st.selectbox("P1 Unit", ["psia", "barg"], key="fw_p1")
         if p1_unit == "barg":
@@ -341,7 +378,8 @@ elif page == "4. Fire Wetted (Yangın Islak Yüzey)":
 
     if st.button("HESAPLA", type="primary"):
         try:
-            w_lb_h, q_btu_h = calculate_fire_wetted_load(area, f_factor, hvap)
+            w_lb_h, q_btu_h = calculate_fire_wetted_load(area, f_factor, hvap,
+                                                         adequate_drainage=adequate_drainage)
             res = calculate_gas_relief_area(w_lb_h, p1_psia, p2_psia, t_rankine, z, mw, k)
             letter = display_results(res, 'Required_Area_sqin')
             st.metric("Heat Absorption (Btu/h)", f"{q_btu_h:.2f}")
@@ -451,6 +489,7 @@ elif page == "6. Thermal Expansion (Termal Genleşme)":
 
 else:
     st.markdown("### Hakkında")
-    st.write("PSV Sizing Suite - Gelişmiş Web Tabanlı Mühendislik Platformu v2.3.0")
-    st.write("Hesaplamalar API 520 Bölüm 1 ve API 521 yönergelerine göre yapılmaktadır.")
+    st.write(f"PSV Sizing Suite - Gelismis Web Tabanli Muhendislik Platformu {__version_tag__}")
+    st.write("Hesaplamalar API 520 Part I 10. baskı + Errata 1, API 520 Part II 7. baskı ve API 521 7. baskı esas alınarak yapılmaktadır.")
     st.write("6 modül: Liquid Relief, Gas/Vapor Relief, Two-Phase Flashing, Fire Wetted, Fire Unwetted, Thermal Expansion")
+    st.info("Sonuçlar ön boyutlandırma içindir. Nihai vana seçimi için üretici sertifikalı kapasite verisi doğrulanmalıdır.")

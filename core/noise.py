@@ -14,6 +14,12 @@ where
     eta_a  acoustic efficiency factor (typically ~10^-4 for turbulent jets)
     r      distance from the vent [m]
     I_ref  reference sound intensity 10^-12 W/m^2
+
+Distance correction per API 521 (spherical spreading):
+    Lp(r) = L30 - 20 * log10(r / 30)  [r in meters]
+
+For multiple valves, acoustic powers add (not SPL):
+    P_ac_total = num_valves * P_ac_per_valve
 """
 import math
 
@@ -37,7 +43,7 @@ def calculate_sonic_velocity_fps(k, mw, t_rankine):
 def calculate_noise_level(w_lb_h, k, mw, t_rankine, distance_ft, num_valves=1, acoustic_efficiency=None):
     """
     Estimate the sound pressure level [dB] at `distance_ft` from an
-    atmospheric relief valve vent per API 521.
+    atmospheric relief valve vent per API 521 §5.8.10.
 
     Parameters
     ----------
@@ -49,6 +55,16 @@ def calculate_noise_level(w_lb_h, k, mw, t_rankine, distance_ft, num_valves=1, a
     num_valves : Number of parallel valves sharing the flow
     acoustic_efficiency : Optional acoustic conversion efficiency factor eta_a.
                           If None, calculated via API 521 / Lighthill correlation.
+
+    Returns
+    -------
+    dict with keys:
+        Sound_Pressure_Level_dB
+        Sonic_Velocity_fps
+        Distance_ft
+        Flow_per_Valve_lb_h
+        Acoustic_Power_Watts
+        Acoustic_Efficiency
     """
     if w_lb_h <= 0:
         raise ValueError("Mass flow rate must be positive.")
@@ -56,6 +72,8 @@ def calculate_noise_level(w_lb_h, k, mw, t_rankine, distance_ft, num_valves=1, a
         raise ValueError("Distance must be positive.")
     if k <= 0 or mw <= 0 or t_rankine <= 0:
         raise ValueError("k, MW and temperature must be positive.")
+    if num_valves <= 0:
+        raise ValueError("Number of valves must be positive.")
 
     a_ft_s = calculate_sonic_velocity_fps(k, mw, t_rankine)
     a_m_s = a_ft_s * FT_TO_M
@@ -76,17 +94,20 @@ def calculate_noise_level(w_lb_h, k, mw, t_rankine, distance_ft, num_valves=1, a
 
     p_acoustic_watts = eta_a * p_mech_watts
 
+    # Total acoustic power for all valves (powers add, not SPL)
+    p_acoustic_total = p_acoustic_watts * max(num_valves, 1)
+
     r_m = distance_ft * FT_TO_M
-    intensity = p_acoustic_watts / (4.0 * math.pi * r_m ** 2)
+    intensity = p_acoustic_total / (4.0 * math.pi * r_m ** 2)
     if intensity <= 0:
         raise ValueError("Computed sound intensity is not positive.")
 
     spl_db = 10.0 * math.log10(intensity / I_REF)
     return {
-        'Sound_Pressure_Level_dB': spl_db,
-        'Sonic_Velocity_fps': a_ft_s,
+        'Sound_Pressure_Level_dB': round(spl_db, 1),
+        'Sonic_Velocity_fps': round(a_ft_s, 1),
         'Distance_ft': distance_ft,
-        'Flow_per_Valve_lb_h': (w_lb_h / max(num_valves, 1)),
-        'Acoustic_Power_Watts': p_acoustic_watts,
-        'Acoustic_Efficiency': eta_a,
+        'Flow_per_Valve_lb_h': round(w_lb_h / max(num_valves, 1), 2),
+        'Acoustic_Power_Watts': round(p_acoustic_total, 1),
+        'Acoustic_Efficiency': round(eta_a, 6),
     }

@@ -262,7 +262,7 @@ class GasReliefTab(BaseCalcTab):
         grid.addWidget(QLabel("Valve Type:"), 5, 2)
         self.valve_type_combo = QComboBox()
         self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
-        grid.addWidget(self.valve_type_combo, 4, 3)
+        grid.addWidget(self.valve_type_combo, 5, 3)
 
         grid.addWidget(QLabel("Number of Parallel Valves:"), 6, 0)
         grid.addWidget(self.num_valves_input, 6, 1)
@@ -388,6 +388,11 @@ class GasReliefTab(BaseCalcTab):
                                     f"OP={op_pct:.1f}%, Atm={atm_raw:.4f} {atm_unit})")
 
             p2 = barg_to_psia(p2_raw, atm_psia) if self.p2_unit.currentText() == "barg" else p2_raw
+            sup_bp = barg_to_psia(sup_bp_raw, atm_psia) if self.sup_bp_unit.currentText() == "barg" else sup_bp_raw
+            if sup_bp > p2 + 1e-6:
+                QMessageBox.warning(self, "Back Pressure Inconsistent",
+                    f"Superimposed back pressure ({sup_bp:.2f} psia) exceeds the total "
+                    f"back pressure P2 ({p2:.2f} psia). Please verify the inputs.")
 
             bp_ratio = max((p2 - atm_psia), 0.0) / max(set_psig, 0.001) * 100.0
             self.bp_ratio_display.setText(f"{bp_ratio:.1f}% (P2={p2:.2f} psia)")
@@ -436,6 +441,7 @@ class GasReliefTab(BaseCalcTab):
                 'set_pressure_psig': sp_psig,
                 'overpressure_pct': op_pct,
                 'atm_psia': atm_psia,
+                'superimposed_backpressure_psia': sup_bp,
                 'kc': 0.9 if self.kc_check.isChecked() else 1.0,
             }
             self.last_inputs = inputs

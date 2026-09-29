@@ -1,4 +1,3 @@
-from .gas_relief import calculate_c_coefficient
 from .validation import validate_fire_wetted_inputs, validate_fire_unwetted_inputs
 from .constants import (
     FIRE_WETTED_HEAT_CONSTANT, FIRE_WETTED_AREA_EXPONENT,
@@ -29,7 +28,7 @@ def get_env_factor(name):
     return ENV_FACTORS.get(name, 1.0)
 
 
-def calculate_heat_absorption(a_wetted_sqft, f_factor=1.0, adequate_drainage=True):
+def calculate_heat_absorption(a_wetted_sqft, f_factor=1.0, adequate_drainage=False):
     """API 521 — Fire heat absorption rate Q [Btu/h] for a wetted vessel."""
     coefficient = (
         FIRE_WETTED_HEAT_CONSTANT if adequate_drainage
@@ -38,8 +37,8 @@ def calculate_heat_absorption(a_wetted_sqft, f_factor=1.0, adequate_drainage=Tru
     return coefficient * f_factor * (a_wetted_sqft ** FIRE_WETTED_AREA_EXPONENT)
 
 
-def calculate_fire_wetted_load(a_wetted_sqft, f_factor, heat_of_vap_btu_lb, adequate_drainage=True):
-    """API 521 Section 4.4.13 — Fire wetted relief load (eq. 17-18)."""
+def calculate_fire_wetted_load(a_wetted_sqft, f_factor, heat_of_vap_btu_lb, adequate_drainage=False):
+    """API 521 Section 4.4.13 — Fire wetted relief load (eq. 7/8)."""
     validate_fire_wetted_inputs(a_wetted_sqft, f_factor, heat_of_vap_btu_lb)
 
     q_btu_h = calculate_heat_absorption(a_wetted_sqft, f_factor, adequate_drainage)
@@ -49,12 +48,19 @@ def calculate_fire_wetted_load(a_wetted_sqft, f_factor, heat_of_vap_btu_lb, adeq
 
 
 def calculate_fire_unwetted_area(a_exposed_sqft, p1_psia, t_gas_rankine, t_wall_rankine, k, kd=0.975):
+    """
+    API 521 Equation (10) — required relief area for vessels containing only
+    gases, vapors, or supercritical fluids exposed to an open fire.
+
+    F' = (C9 / Kd) * ((Tw - T1) ** 1.25) / (T1 ** 0.6506)
+    A  = F' * A_exposed / sqrt(P1)
+
+    C9 = 0.1406 in USC units. C9 is NOT the gas sizing coefficient C.
+    """
     validate_fire_unwetted_inputs(a_exposed_sqft, p1_psia, t_gas_rankine, t_wall_rankine, k)
 
-    c = calculate_c_coefficient(k)
-
     temp_term = ((t_wall_rankine - t_gas_rankine) ** FIRE_UNWETTED_WALL_EXPONENT) / (t_gas_rankine ** FIRE_UNWETTED_GAS_EXPONENT)
-    f_prime = (FIRE_UNWETTED_COEFF / (c * kd)) * temp_term
+    f_prime = (FIRE_UNWETTED_COEFF / kd) * temp_term
 
     a_req = (f_prime * a_exposed_sqft) / math.sqrt(p1_psia)
 

@@ -4,35 +4,62 @@ from typing import Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 
-# API 520 Part I Fig. 11-4: Balanced Bellows Kb curves (10% overpressure)
-# Digitized points from published chart
-# key: back_pressure_pct, value: Kb
+# API 520 Part I 10th ed. Figure 31 — Backpressure correction factor Kb for
+# balanced spring-loaded PRVs (vapors and gases). Separate curves are given
+# for 10 %, 16 %, and 21 % allowable overpressure (see 5.3.3.2.2).
+# Curves digitized from Figure 31 (PDF page 59). For 21 % overpressure,
+# NOTE 3 states Kb = 1.0 up to P_B/P_S = 50 %.
+# Values are valid for set pressures >= 50 psig and subcritical backpressure
+# below the critical flow pressure; consult the manufacturer otherwise.
 KB_BALANCED_BELLOWS_10PCT: Dict[float, float] = {
     0.0: 1.000,
-    5.0: 0.995,
-    10.0: 0.990,
-    15.0: 0.985,
-    20.0: 0.975,
-    25.0: 0.965,
-    30.0: 0.950,
-    35.0: 0.930,
-    40.0: 0.900,
-    45.0: 0.870,
-    50.0: 0.830,
+    30.0: 1.000,
+    32.0: 0.990,
+    33.0: 0.978,
+    34.0: 0.964,
+    35.0: 0.950,
+    36.0: 0.937,
+    37.0: 0.921,
+    38.0: 0.903,
+    39.0: 0.888,
+    40.0: 0.871,
+    42.0: 0.836,
+    44.0: 0.800,
+    46.0: 0.763,
+    48.0: 0.723,
+    50.0: 0.685,
 }
 
-# API 520 Part I Fig. 11-5: Balanced Bellows Kb (25% overpressure)
-KB_BALANCED_BELLOWS_25PCT: Dict[float, float] = {
+KB_BALANCED_BELLOWS_16PCT: Dict[float, float] = {
     0.0: 1.000,
-    10.0: 0.995,
-    20.0: 0.985,
-    30.0: 0.965,
-    40.0: 0.940,
-    50.0: 0.890,
+    36.0: 1.000,
+    37.0: 0.990,
+    38.0: 0.980,
+    40.0: 0.963,
+    42.5: 0.945,
+    45.0: 0.930,
+    47.5: 0.918,
+    50.0: 0.908,
 }
 
-# Conventional valves have Kb = 1.0
+# For 21 % overpressure Kb = 1.0 up to 50 % backpressure (Figure 31, NOTE 3).
+KB_BALANCED_BELLOWS_21PCT: Dict[float, float] = {
+    0.0: 1.000,
+    50.0: 1.000,
+}
+
+# Conventional valves have Kb = 1.0 (see Figure 37 for the alternate
+# critical-flow procedure).
 KB_CONVENTIONAL: Dict[float, float] = {}
+
+
+def select_kb_curve(overpressure_pct: float) -> Tuple[Dict[float, float], str]:
+    """Return the Figure 31 curve applicable to the overpressure scenario."""
+    if overpressure_pct <= 13.0:
+        return KB_BALANCED_BELLOWS_10PCT, "10%"
+    if overpressure_pct <= 18.5:
+        return KB_BALANCED_BELLOWS_16PCT, "16%"
+    return KB_BALANCED_BELLOWS_21PCT, "21%"
 
 
 def get_backpressure_percent(back_pressure_psia, set_pressure_psig, atm_psia=14.6959):
@@ -46,21 +73,19 @@ def get_backpressure_percent(back_pressure_psia, set_pressure_psig, atm_psia=14.
 def check_backpressure_limit(bp_pct, valve_type="conventional"):
     """
     Check whether the back pressure is within the recommended operating
-    limit for the valve type (API 520 Part I).
+    limit for the valve type (API 520 Part I 5.3.3.2).
 
     Returns (passes: bool, message: str).
     """
     if valve_type == "balanced_bellows":
-        if bp_pct > 60.0:
-            return (False, f"Back pressure {bp_pct:.1f}% exceeds the ~60% limit for balanced bellows valves.")
         if bp_pct > 50.0:
-            return (True, f"Back pressure {bp_pct:.1f}% is above the Kb chart range (50%) — Kb is clamped at 0.83; verify with the manufacturer.")
+            return (False, f"Back pressure {bp_pct:.1f}% exceeds the 50% limit for balanced bellows valves (API 520 Part I 5.3.3.2.3). Consult the manufacturer.")
     elif valve_type == "conventional":
         if bp_pct > 50.0:
-            return (False, f"Back pressure {bp_pct:.1f}% exceeds the ~50% limit for conventional valves — capacity may degrade severely.")
+            return (False, f"Back pressure {bp_pct:.1f}% exceeds the ~50% limit for conventional valves — flow becomes subcritical; consult the manufacturer (API 520 Part I 5.3.3.2.4).")
     elif valve_type == "pilot":
-        if bp_pct > 70.0:
-            return (False, f"Back pressure {bp_pct:.1f}% is high for a pilot-operated valve — verify with the manufacturer.")
+        if bp_pct > 50.0:
+            return (True, f"Back pressure {bp_pct:.1f}% is high for a pilot-operated valve — verify the pilot and outlet piping with the manufacturer (API 520 Part I 5.3.4.3).")
     return (True, "")
 
 
@@ -106,14 +131,18 @@ def get_kb(
     atm_psia: float = 14.6959,
 ) -> float:
     """
-    Calculate back pressure correction factor Kb per API 520 Part I Figure 31.
+    Calculate back pressure correction factor Kb per API 520 Part I 10th ed.
+    Figure 31 for balanced bellows valves (10 %, 16 %, 21 % overpressure).
+
+    Conventional and pilot-operated valves use Kb = 1.0 (see 5.3.3.2.1
+    and 5.3.4.3).
 
     Parameters
     ----------
     back_pressure_psia : Total back pressure at relieving conditions (psia)
     set_pressure_psig : Set pressure (psig)
     valve_type : "conventional", "balanced_bellows", or "pilot"
-    overpressure_pct : Percent overpressure (10 or 25)
+    overpressure_pct : Percent overpressure (10, 16 or 21)
     atm_psia : Site atmospheric pressure (default sea level 14.6959 psia)
 
     Returns
@@ -128,20 +157,23 @@ def get_kb(
     if valve_type in ("conventional", "pilot"):
         if valve_type == "conventional" and bp_pct > 50.0:
             logger.warning(
-                "Conventional valve back pressure %.1f%% exceeds ~50%% limit of set pressure.",
+                "Conventional valve back pressure %.1f%% exceeds the ~50%% limit of set pressure.",
                 bp_pct,
             )
         return 1.0
 
-    if overpressure_pct <= 15:
-        curve = KB_BALANCED_BELLOWS_10PCT
-    else:
-        curve = KB_BALANCED_BELLOWS_25PCT
-
+    curve, basis = select_kb_curve(overpressure_pct)
+    if overpressure_pct > 21.5:
+        logger.warning(
+            "Backpressure correction for %.1f%% overpressure is outside Figure 31 "
+            "(10/16/21%%); the 21%% curve (Kb = 1.0) is used only up to 50%% — "
+            "consult the manufacturer.",
+            overpressure_pct,
+        )
     if bp_pct > 50.0:
         logger.warning(
-            "Balanced bellows back pressure %.1f%% is above the Kb chart range (50%%). "
-            "Kb is clamped to the curve endpoint — verify with the manufacturer.",
+            "Balanced bellows back pressure %.1f%% is above the Figure 31 range (50%%). "
+            "Kb is clamped to the curve endpoint — consult the manufacturer.",
             bp_pct,
         )
     return interpolate_kb(bp_pct, curve)

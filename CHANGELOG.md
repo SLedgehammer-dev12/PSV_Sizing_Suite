@@ -1,5 +1,39 @@
 # Changelog
 
+## v2.4.0 — Standart Doğrulama Turu, Birleşik Motor ve Güvenlik Sertleştirmesi
+
+### 🔴 Kritik hesap düzeltmeleri (kontrollü standart metinleriyle doğrulandı)
+- **Yangın (unwetted) alanı:** `calculate_fire_unwetted_area` içindeki fazladan `/C` (gaz C katsayısı) bölmesi kaldırıldı. Hata, gereken alanı ~347× küçük hesaplıyordu. API 521 Eq (10) golden testi eklendi (F'=5.3116, A=67.19 in²).
+- **Reaksiyon kuvveti:** `W/68·√(kT/M)` yerine API 520 Part II §5.8.2.1 Eq (1): `F = W/366·√(kT/((k−1)M)) + A·P`. İki faz açık tahliye Eq (2) eklendi.
+- **Sıvı Kp:** Kp yalnızca sertifikasız yöntemde (§5.9, Eq 42) ve Figure 39 eğrisi ile uygulanır (Kp=0.6 @10%, 1.0 @25%). Sertifikalı yöntemde (§5.8, Eq 32) Kp kullanılmaz; Kd=0.65 (sertifikalı) / 0.62 (sertifikasız) ayrımı yapıldı.
+- **Kv (viskozite):** API 520 10. baskı Eq (34) `Kv = (1 + 170/Re)^−0.5`; μ ≤ 100 cP için Kv=1.0. Standart örneği Re=4525 → Kv=0.982 doğrulandı.
+- **Kb:** Figure 31'in 10%/16%/21% eğrileri kullanılır (eski 10%/25% yönlendirmesi kaldırıldı); 21% için Kb=1.0 (NOTE 3). 50% üzeri karşı basınçta kırpma yerine uyarı üretilir.
+- **Kw:** Figure 32 eğrisi sayısallaştırıldı (20% BP → 0.971; standart örneği 0.97).
+
+### ✅ Doğrulanan ve korunanlar
+- Gaz C/F2, subkritik 735, buhar Napier 51.5 ve KN denklemleri, iki faz Annex C (ω, ηc C.15, 68.09, 0.04), yangın ıslak 21,000/34,500 ve A^0.82, termal genleşme 500 — standart metinleriyle uyumlu.
+
+### 🧩 Birleşik hesap motoru
+- `core/engine.py` (`ReliefCase`, `size_relief_case`): servis × vana tipi × sertifikasyon × senaryo yönlendirmesi tek noktada; sonuçlarda `Result_Meta` (standart baskısı, yöntem, faktör kaynağı, uyarılar) ve `Verification_Status`.
+- API: yeni `POST /api/v1/size`; gaz/sıvı uç noktaları pilot ve buhar yollarını motora yönlendirir.
+
+### 🛡️ Güvenlik ve test altyapısı
+- `TestAuth.tearDown` artık yalnızca geçici dosyayı/dizini temizler; gerçek `auth.json` korunur + sentinel testi.
+- `desktop/auth.py`: `PSV_AUTH_FILE` ortam değişkeni, migrasyon özyinelemesi giderildi, bozuk JSON karantinaya alınır.
+- `ValidationError` artık `ValueError` türevi; API'de merkezi 422 handler; piping `except Exception` daraltıldı.
+- Model/çekirdek limitleri tek kaynaktan; `p2=0` ve `p2≥p1` gibi durumlar 4xx döner.
+- Streamlit: varsayılan parola ile girişte parola değişimi zorunlu, çıkış ve oturum akışı eklendi.
+- FastAPI: `PSV_CORS_ORIGINS` izin listesi, varsayılan `127.0.0.1` bağlantısı.
+
+### 🏭 Katalog
+- `verification_status` alanı: üretici kaynaklı ("sourced") ve tarama amaçlı ("screening") kayıtlar ayrıştırılır; arayüzlerde uyarı gösterilir.
+- README'deki "2000+ model" ifadesi gerçek envanterle (434) düzeltildi.
+
+### 🧪 Test ve CI
+- 200 test (10 golden örnek: §5.8.2, §5.6.3.2, §5.6.4.2, §5.7.2, Annex C.2.2.2, API 521 Eq 7/10, Part II Eq 1/2).
+- Yeni `.github/workflows/ci.yml`: Python testleri, React build, Docker build; release workflow'u test job'ına bağımlı.
+- `Dockerfile` eklendi; `requirements.txt` API/test bağımlılıklarını kapsayacak şekilde güncellendi.
+
 ## v2.3.6 — API 520/521 Standart Uyumu ve Hesaplama Motoru Düzeltmeleri
 
 ### 🔧 Standart Uyum ve Fiziksel Modelleme

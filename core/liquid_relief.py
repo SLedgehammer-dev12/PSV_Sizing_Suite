@@ -3,33 +3,57 @@ from .valve_selection import select_orifice
 from .validation import validate_liquid_inputs
 from .constants import (
     LIQUID_FORMULA_CONSTANT, REYNOLDS_CONSTANT,
-    KV_A, KV_B, KV_C, ATMOSPHERIC_PSIA,
+    KV_CONSTANT, KV_EXPONENT, KV_REYNOLDS_MIN, KV_VISCOSITY_LIMIT_CP,
+    PRELIM_KD_LIQUID, NONCERTIFIED_KD_LIQUID,
+    ATMOSPHERIC_PSIA,
 )
 
-# API 520 Part I Figure 38 — Capacity correction factor due to overpressure Kp
-KP_CURVE = [
-    (0.0, 0.60),
-    (2.5, 0.62),
-    (5.0, 0.70),
-    (7.5, 0.85),
-    (10.0, 1.00),
-    (15.0, 1.06),
-    (20.0, 1.11),
-    (25.0, 1.15),
+# API 520 Part I 10th ed. Figure 39 — Capacity correction factor Kp due to
+# overpressure for NONCERTIFIED pressure-relief valves in liquid service.
+# Reference points: Kp = 0.6 at 10 % overpressure, Kp = 1.0 at 25 %.
+# Curve digitized from Figure 39 (10th ed., PDF page 95). Values above 25 %
+# reflect the "overpressure only" region of the curve.
+KP_FIGURE_39 = [
+    (10.0, 0.60),
+    (12.5, 0.70),
+    (15.0, 0.79),
+    (17.5, 0.86),
+    (20.0, 0.91),
+    (22.5, 0.96),
+    (25.0, 1.00),
+    (30.0, 1.015),
+    (35.0, 1.035),
+    (40.0, 1.055),
+    (45.0, 1.074),
+    (50.0, 1.092),
 ]
 
-# API 520 Part I Figure 37 — Capacity correction factor due to back pressure Kw (balanced bellows)
+# API 520 Part I 10th ed. Figure 32 — Capacity correction factor Kw due to
+# backpressure on balanced spring-loaded PRVs in liquid service. Applicable
+# for all overpressures; curve digitized from Figure 32 (PDF page 60).
 KW_BALANCED_BELLOWS_LIQUID = [
-    (0.0, 1.00),
-    (15.0, 1.00),
-    (20.0, 0.97),
-    (25.0, 0.94),
-    (30.0, 0.89),
-    (35.0, 0.84),
-    (40.0, 0.78),
-    (45.0, 0.72),
-    (50.0, 0.65),
+    (0.0, 1.000),
+    (15.0, 1.000),
+    (17.0, 0.993),
+    (18.0, 0.988),
+    (19.0, 0.980),
+    (20.0, 0.971),
+    (22.0, 0.950),
+    (25.0, 0.917),
+    (27.5, 0.891),
+    (30.0, 0.866),
+    (32.5, 0.841),
+    (35.0, 0.816),
+    (37.5, 0.792),
+    (40.0, 0.767),
+    (42.5, 0.742),
+    (45.0, 0.717),
+    (47.5, 0.692),
+    (50.0, 0.667),
 ]
+
+# Certified liquid service (§5.8 Eq 32) does not use Kp.
+KP_CURVE = KP_FIGURE_39
 
 
 def _interpolate_points(val: float, points: list) -> float:
@@ -48,19 +72,25 @@ def _interpolate_points(val: float, points: list) -> float:
 
 def calculate_kp(overpressure_pct: float) -> float:
     """
-    API 520 Part I Figure 38 — Capacity correction factor for overpressure Kp.
-    Kp = 1.0 at 10% overpressure (certified rating point).
+    API 520 Part I 10th ed. Figure 39 — Capacity correction factor Kp due to
+    overpressure for NONCERTIFIED pressure-relief valves in liquid service.
+
+    Kp = 0.6 at 10 % overpressure (chatter region below 10 % shall be
+    avoided) and Kp = 1.0 at the 25 % reference point of §5.9.
     """
     if overpressure_pct is None:
         return 1.0
-    return _interpolate_points(max(overpressure_pct, 0.0), KP_CURVE)
+    return _interpolate_points(max(overpressure_pct, 10.0), KP_FIGURE_39)
 
 
 def calculate_kw_liquid(back_pressure_pct: float, valve_type: str = "conventional") -> float:
     """
-    API 520 Part I Figure 37 — Back pressure correction factor Kw for liquids.
-    For conventional and pilot valves, Kw = 1.0.
-    For balanced bellows valves, Kw is 1.0 up to 15% BP, then decreases.
+    API 520 Part I 10th ed. Figure 32 — Capacity correction factor Kw due to
+    backpressure on balanced spring-loaded PRVs in liquid service.
+
+    Applicable for all overpressures. For conventional and pilot valves
+    Kw = 1.0; for balanced bellows valves Kw is 1.0 up to ~15 % BP and then
+    decreases (digitized Figure 32 values).
     """
     if valve_type != "balanced_bellows":
         return 1.0
@@ -74,11 +104,26 @@ def calculate_reynolds(q_gpm, g, mu_cp, area_sq_in):
 
 
 def calculate_kv(re):
-    """API 520 Part I (9th/10th ed.) Eq. (34): Kv = (0.9935 + 2.878/Re^0.5 + 342.75/Re^1.5)^-1."""
+    """
+    API 520 Part I 10th ed. Eq. (34): Kv = (1 + 170/Re)^-0.5.
+
+    The equation is applicable for Re >= 80; values below that are still
+    returned (and are conservative) but should be reviewed.
+    """
     if re <= 0 or math.isinf(re):
         return 1.0
-    kv = 1.0 / (KV_A + KV_B / re ** 0.5 + KV_C / re ** 1.5)
+    kv = (1.0 + KV_CONSTANT / re) ** KV_EXPONENT
     return min(kv, 1.0)
+
+
+def viscosity_correction_factor(re, mu_cp):
+    """
+    Return (Kv, basis). API 520 Part I 5.8.1.3 allows Kv = 1.0 when the
+    liquid viscosity is 100 cP or less; otherwise Figure 38 / Eq. (34).
+    """
+    if mu_cp <= KV_VISCOSITY_LIMIT_CP:
+        return 1.0, "Kv = 1.0 (viscosity <= 100 cP per 5.8.1.3)"
+    return calculate_kv(re), "Fig 38 / Eq 34"
 
 
 def calculate_liquid_relief_area(
@@ -87,7 +132,7 @@ def calculate_liquid_relief_area(
     p2_psia,
     g,
     mu_cp,
-    kd=0.65,
+    kd=None,
     kw=None,
     kc=1.0,
     num_valves=1,
@@ -96,16 +141,45 @@ def calculate_liquid_relief_area(
     valve_type="conventional",
     set_pressure_psig=None,
     atm_psia=ATMOSPHERIC_PSIA,
+    capacity_certified=True,
 ):
     """
-    API 520 Part I Section 5.8 — Liquid relief valve sizing.
+    API 520 Part I 10th ed. liquid relief valve sizing.
 
-    Uses Reynolds-number-dependent iterative sizing with Kv viscosity
-    correction factor and Kp overpressure correction factor.
-    Returns required area, selected orifice, Re, Kv, Kp, and Kw.
+    capacity_certified=True  -> 5.8, Eq (32):
+        A = Q / (38 Kd Kw Kc Kv) * sqrt(G / (P1 - P2))
+        preliminary Kd = 0.65; Kp does NOT apply.
+
+    capacity_certified=False -> 5.9, Eq (42):
+        A = Q / (38 Kd Kw Kc Kv Kp) * sqrt(G / (1.25 Ps - P2))
+        Kd shall be 0.62; Kp from Figure 39 (1.0 at 25 % overpressure).
+
+    Uses Reynolds-number-dependent iterative sizing with the 10th edition
+    Kv viscosity correction factor (Kv = 1.0 when mu <= 100 cP).
     """
-    if kp is None:
-        kp = calculate_kp(overpressure_pct)
+    method = "certified" if capacity_certified else "noncertified"
+
+    if capacity_certified:
+        if kd is None:
+            kd = PRELIM_KD_LIQUID
+        kp = 1.0
+        kp_basis = "Not used in certified liquid service (5.8, Eq 32)"
+        delta_p = p1_psia - p2_psia
+    else:
+        kd = NONCERTIFIED_KD_LIQUID
+        if set_pressure_psig is not None and set_pressure_psig > 0:
+            ps_psig = set_pressure_psig
+        else:
+            ps_psig = (p1_psia - atm_psia) / (1.0 + overpressure_pct / 100.0)
+        delta_p = 1.25 * ps_psig - (p2_psia - atm_psia)
+        if delta_p <= 0:
+            raise ValueError(
+                "Noncertified method requires 1.25 x set pressure to exceed the "
+                f"total back pressure (got {delta_p:.2f} psi)."
+            )
+        if kp is None:
+            kp = calculate_kp(overpressure_pct)
+        kp_basis = "Figure 39 (noncertified, 25 % reference)"
 
     if kw is None:
         if valve_type == "balanced_bellows":
@@ -124,15 +198,13 @@ def calculate_liquid_relief_area(
     if num_valves < 1:
         raise ValueError("num_valves must be >= 1")
 
-    delta_p = p1_psia - p2_psia
-
     a_req_no_visc = (q_gpm / (LIQUID_FORMULA_CONSTANT * kd * kw * kc * kp)) * math.sqrt(g / delta_p)
     a_req_no_visc_per_valve = a_req_no_visc / num_valves
 
     letter, selected_area = select_orifice(a_req_no_visc_per_valve)
 
     re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, selected_area)
-    kv = calculate_kv(re)
+    kv, kv_basis = viscosity_correction_factor(re, mu_cp)
     a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * kd * kw * kc * kv * kp)) * math.sqrt(g / delta_p)
     a_req_final_per_valve = a_req_final / num_valves
     final_letter, final_selected_area = select_orifice(a_req_final_per_valve)
@@ -140,7 +212,7 @@ def calculate_liquid_relief_area(
     prev_letter = final_letter
     for iteration in range(10):
         re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, final_selected_area)
-        kv = calculate_kv(re)
+        kv, kv_basis = viscosity_correction_factor(re, mu_cp)
         a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * kd * kw * kc * kv * kp)) * math.sqrt(g / delta_p)
         a_req_final_per_valve = a_req_final / num_valves
         new_letter, new_selected_area = select_orifice(a_req_final_per_valve)
@@ -168,5 +240,10 @@ def calculate_liquid_relief_area(
         'Kc': kc,
         'Num_Valves': num_valves,
         'Valve_Type': valve_type,
+        'Kv_Basis': kv_basis,
+        'Re_Below_80': re < KV_REYNOLDS_MIN,
+        'Method': method,
+        'Kd_Basis': 'API 520 5.9 (0.62)' if not capacity_certified else 'API 520 5.8 preliminary (0.65)',
+        'Kp_Basis': kp_basis,
     }
 

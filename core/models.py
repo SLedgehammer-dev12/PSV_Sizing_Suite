@@ -1,5 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Dict, List, Any, Literal
+
+from .constants import (
+    KD_MIN, KD_MAX, KW_MIN, KW_MAX, KP_MIN, KP_MAX,
+    Z_MIN, Z_MAX, K_MIN, K_MAX, F_FACTOR_MIN, F_FACTOR_MAX,
+)
 
 
 # =============================================================================
@@ -9,15 +14,23 @@ from typing import Optional, Dict, List, Any, Literal
 class LiquidReliefInput(BaseModel):
     q_gpm: float = Field(gt=0, description="Flow rate (US GPM)")
     p1_psia: float = Field(gt=0, description="Relieving pressure (psia)")
-    p2_psia: float = Field(ge=0, description="Back pressure (psia)")
+    p2_psia: float = Field(gt=0, description="Total back pressure (psia)")
     g: float = Field(gt=0, description="Specific gravity")
     mu_cp: float = Field(default=1.0, gt=0, description="Viscosity (cP)")
-    kd: float = Field(default=0.65, ge=0.1, le=1.0, description="Discharge coefficient")
-    kw: float = Field(default=1.0, ge=0.1, le=1.0, description="Back pressure capacity correction")
+    kd: Optional[float] = Field(default=None, ge=KD_MIN, le=KD_MAX, description="Discharge coefficient (0.65 certified / 0.62 noncertified if None)")
+    kw: Optional[float] = Field(default=None, ge=KW_MIN, le=KW_MAX, description="Back pressure capacity correction (auto if None)")
     kc: float = Field(default=1.0, ge=0.1, le=1.0, description="Combination correction factor (rupture disk)")
     num_valves: int = Field(default=1, ge=1, le=100, description="Number of parallel valves")
     valve_type: Literal["conventional", "balanced_bellows", "pilot"] = Field(default="conventional", description="Valve type")
     overpressure_pct: float = Field(default=10.0, ge=1.0, le=50.0, description="Percent overpressure")
+    capacity_certified: bool = Field(default=True, description="Capacity certified for liquid service per API 520 Part I 5.8")
+    set_pressure_psig: Optional[float] = Field(default=None, gt=0, description="Set pressure for Kw/Kp reference")
+
+    @model_validator(mode="after")
+    def _check_relations(self):
+        if self.p2_psia >= self.p1_psia:
+            raise ValueError("p2_psia must be less than p1_psia")
+        return self
 
 
 class GasReliefInput(BaseModel):
@@ -25,18 +38,26 @@ class GasReliefInput(BaseModel):
     p1_psia: float = Field(gt=0, description="Relieving pressure (psia)")
     p2_psia: float = Field(ge=0, description="Back pressure (psia)")
     t_rankine: float = Field(gt=0, description="Relieving temperature (Rankine)")
-    z: float = Field(default=1.0, gt=0, le=3.0, description="Compressibility factor")
+    z: float = Field(default=1.0, ge=Z_MIN, le=Z_MAX, description="Compressibility factor")
     mw: float = Field(gt=0, description="Molecular weight")
-    k: float = Field(gt=1.0, le=2.0, description="Specific heat ratio (Cp/Cv)")
-    kd: float = Field(default=0.975, ge=0.1, le=1.0, description="Discharge coefficient")
+    k: float = Field(ge=K_MIN, le=K_MAX, description="Specific heat ratio (Cp/Cv)")
+    kd: float = Field(default=0.975, ge=KD_MIN, le=KD_MAX, description="Discharge coefficient")
     kb: Optional[float] = Field(None, description="Back pressure correction (auto if None)")
     kc: float = Field(default=1.0, ge=0.1, le=1.0, description="Combination correction factor")
     num_valves: int = Field(default=1, ge=1, le=100, description="Number of parallel valves")
     valve_type: Literal["conventional", "balanced_bellows", "pilot"] = Field(default="conventional")
-    set_pressure_psig: Optional[float] = Field(None, description="Set pressure for Kb calculation")
+    set_pressure_psig: Optional[float] = Field(None, gt=0, description="Set pressure for Kb calculation")
     overpressure_pct: float = Field(default=10.0, ge=1.0, le=50.0, description="Percent overpressure")
     is_steam: bool = Field(default=False, description="Use Napier steam formula")
     use_napier: bool = Field(default=False, description="Use Napier as primary sizing method")
+
+    @model_validator(mode="after")
+    def _check_relations(self):
+        if self.p2_psia >= self.p1_psia:
+            raise ValueError("p2_psia must be less than p1_psia")
+        if self.use_napier and not self.is_steam:
+            raise ValueError("use_napier requires is_steam=True")
+        return self
 
 
 class TwoPhaseInput(BaseModel):
@@ -44,27 +65,42 @@ class TwoPhaseInput(BaseModel):
     p0_psia: float = Field(gt=0, description="Stagnation relieving pressure (psia)")
     p_back_psia: float = Field(ge=0, description="Back pressure (psia)")
     v0_ft3_lb: float = Field(gt=0, description="Specific volume at inlet (ft3/lb)")
-    v9_ft3_lb: Optional[float] = Field(None, description="Specific vol at 90% P0 (ft3/lb)")
+    v9_ft3_lb: Optional[float] = Field(None, gt=0, description="Specific vol at 90% P0 (ft3/lb), from an isentropic flash")
     omega: Optional[float] = Field(None, ge=0.01, description="Omega parameter (calc from v0/v9 if None)")
-    kd: float = Field(default=0.85, ge=0.1, le=1.0, description="Discharge coefficient")
+    kd: float = Field(default=0.85, ge=KD_MIN, le=KD_MAX, description="Discharge coefficient")
+    kb: Optional[float] = Field(None, ge=KW_MIN, le=KW_MAX, description="Back pressure correction (balanced bellows)")
+    kc: float = Field(default=1.0, ge=0.1, le=1.0, description="Combination correction factor")
     num_valves: int = Field(default=1, ge=1, le=100)
     valve_type: Literal["conventional", "balanced_bellows", "pilot"] = Field(default="conventional")
-    set_pressure_psig: Optional[float] = Field(None)
+    set_pressure_psig: Optional[float] = Field(None, gt=0)
     overpressure_pct: float = Field(default=10.0, ge=1.0, le=50.0)
+
+    @model_validator(mode="after")
+    def _check_relations(self):
+        if self.p_back_psia >= self.p0_psia:
+            raise ValueError("p_back_psia must be less than p0_psia")
+        if self.omega is None and self.v9_ft3_lb is None:
+            raise ValueError("Either omega or v9_ft3_lb must be provided")
+        return self
 
 
 class FireWettedInput(BaseModel):
     a_wetted_sqft: float = Field(gt=0, description="Wetted surface area (sqft)")
-    f_factor: float = Field(default=1.0, gt=0, le=1.0, description="Environment factor")
+    f_factor: float = Field(default=1.0, ge=F_FACTOR_MIN, le=F_FACTOR_MAX, description="Environment factor")
     heat_of_vap_btu_lb: float = Field(gt=0, description="Latent heat of vaporization (Btu/lb)")
     p1_psia: float = Field(gt=0, description="Relieving pressure (psia)")
     p2_psia: float = Field(default=14.6959, ge=0, description="Back pressure (psia)")
     t_rankine: float = Field(gt=0, description="Gas temperature (Rankine)")
-    z: float = Field(default=0.9, gt=0, le=3.0, description="Compressibility")
+    z: float = Field(default=0.9, ge=Z_MIN, le=Z_MAX, description="Compressibility")
     mw: float = Field(gt=0, description="Molecular weight")
-    k: float = Field(gt=1.0, le=2.0, description="Specific heat ratio")
-    adequate_drainage: bool = Field(default=True, description="Adequate drainage and firefighting")
-    wetted_area_cap: Optional[float] = Field(default=2800.0, description="Max wetted area cap (sqft)")
+    k: float = Field(ge=K_MIN, le=K_MAX, description="Specific heat ratio")
+    adequate_drainage: bool = Field(default=False, description="Prompt firefighting and adequate drainage per API 521 4.4.13.2.4.2")
+
+    @model_validator(mode="after")
+    def _check_relations(self):
+        if self.p2_psia >= self.p1_psia:
+            raise ValueError("p2_psia must be less than p1_psia")
+        return self
 
 
 class FireUnwettedInput(BaseModel):
@@ -72,9 +108,14 @@ class FireUnwettedInput(BaseModel):
     p1_psia: float = Field(gt=0, description="Relieving pressure (psia)")
     t_gas_rankine: float = Field(gt=0, description="Gas temperature (Rankine)")
     t_wall_rankine: float = Field(gt=0, description="Wall temperature (Rankine)")
-    k: float = Field(gt=1.0, le=2.0, description="Specific heat ratio")
-    kd: float = Field(default=0.975, ge=0.1, le=1.0, description="Discharge coefficient")
-    alpha: float = Field(default=0.5, ge=0.1, le=1.0, description="Radiation absorptivity")
+    k: float = Field(ge=K_MIN, le=K_MAX, description="Specific heat ratio")
+    kd: float = Field(default=0.975, ge=KD_MIN, le=KD_MAX, description="Discharge coefficient")
+
+    @model_validator(mode="after")
+    def _check_relations(self):
+        if self.t_wall_rankine <= self.t_gas_rankine:
+            raise ValueError("t_wall_rankine must be greater than t_gas_rankine")
+        return self
 
 
 class ThermalExpansionInput(BaseModel):
@@ -84,9 +125,16 @@ class ThermalExpansionInput(BaseModel):
     c_specific_heat: float = Field(gt=0, description="Specific heat (BTU/lb°F)")
     mu_cp: float = Field(default=1.0, gt=0, description="Viscosity (cP)")
     p1_psia: float = Field(gt=0, description="Relieving pressure (psia)")
-    p2_psia: float = Field(ge=0, description="Back pressure (psia)")
+    p2_psia: float = Field(gt=0, description="Back pressure (psia)")
     num_valves: int = Field(default=1, ge=1, le=100, description="Number of parallel valves")
     valve_type: Literal["conventional", "balanced_bellows", "pilot"] = Field(default="conventional", description="Valve type")
+    capacity_certified: bool = Field(default=True, description="Capacity certified for liquid service per API 520 Part I 5.8")
+
+    @model_validator(mode="after")
+    def _check_relations(self):
+        if self.p2_psia >= self.p1_psia:
+            raise ValueError("p2_psia must be less than p1_psia")
+        return self
 
 
 class PipingInletInput(BaseModel):
@@ -103,6 +151,12 @@ class PipingInletInput(BaseModel):
     roughness_in: float = Field(default=0.00015, ge=0, description="Pipe roughness (inches)")
     valve_type: Literal["conventional", "pilot"] = Field(default="conventional")
     remote_sensing: bool = Field(default=False, description="Remote sensing line for pilot valve")
+
+    @model_validator(mode="after")
+    def _check_relations(self):
+        if (self.flow_gpm is None or self.flow_gpm <= 0) and (self.flow_rate_lb_h is None or self.flow_rate_lb_h <= 0):
+            raise ValueError("Either flow_gpm or flow_rate_lb_h must be provided")
+        return self
 
 
 class ConvertInput(BaseModel):
@@ -128,6 +182,7 @@ class LiquidReliefOutput(ReliefOutput):
     Kv: float
     Kp: float
     Overpressure_Pct: float
+    Method: str = "certified"
 
 
 class GasReliefOutput(ReliefOutput):

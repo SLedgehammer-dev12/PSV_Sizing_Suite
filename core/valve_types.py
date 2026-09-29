@@ -93,7 +93,7 @@ def calculate_pilot_liquid_area(
     
     Uses Kd = 0.80 per API 520 Section 7.
     """
-    from .liquid_relief import calculate_reynolds, calculate_kv, select_orifice as _select
+    from .liquid_relief import calculate_reynolds, viscosity_correction_factor, select_orifice as _select
 
     delta_p = p1_psia - p2_psia
     if delta_p <= 0:
@@ -106,7 +106,7 @@ def calculate_pilot_liquid_area(
 
     if isinstance(selected_area, float):
         re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, selected_area)
-        kv = calculate_kv(re)
+        kv, _ = viscosity_correction_factor(re, mu_cp)
         a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * KD_LIQUID * kw * kv)) * math.sqrt(g / delta_p)
         a_req_final_per_valve = a_req_final / num_valves
         final_letter, final_selected_area = _select(a_req_final_per_valve)
@@ -114,7 +114,7 @@ def calculate_pilot_liquid_area(
         for _ in range(3):
             if isinstance(final_selected_area, float):
                 re = calculate_reynolds(q_gpm / num_valves, g, mu_cp, final_selected_area)
-                kv = calculate_kv(re)
+                kv, _ = viscosity_correction_factor(re, mu_cp)
                 a_req_final = (q_gpm / (LIQUID_FORMULA_CONSTANT * KD_LIQUID * kw * kv)) * math.sqrt(g / delta_p)
                 a_req_final_per_valve = a_req_final / num_valves
                 new_letter, new_selected_area = _select(a_req_final_per_valve)

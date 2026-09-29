@@ -150,6 +150,66 @@ def check_mach_limit(mach: float, limit: float = 0.7) -> Tuple[bool, float, str]
     return (True, mach, f"Adequate (Ma={mach:.3f})")
 
 
+INLET_LIMIT_PCT = 3.0
+
+
+def evaluate_inlet_rule(
+    delta_p_psi: float,
+    set_pressure_psig: float,
+    valve_type: str = "conventional",
+    remote_sensing: bool = False,
+    thermal_relief: bool = False,
+) -> Dict[str, object]:
+    """
+    Evaluate the inlet pressure drop against API 520 Part II 7.3.4.
+
+    The 3 % nonrecoverable loss criterion applies to the protected equipment
+    to PRV inlet. Thermal relief valves (7.3.8) and remotely sensed
+    pilot-operated PRVs (7.3.9) are exceptions but still require the capacity
+    reduction to be accounted for; they are therefore never auto-passed.
+
+    Returns a dict: passes, delta_p_pct, limit_pct, exempt, status, message.
+    """
+    pct = (delta_p_psi / set_pressure_psig) * 100.0 if set_pressure_psig > 0 else 0.0
+    exempt = bool(thermal_relief or (valve_type == "pilot" and remote_sensing))
+    if pct <= INLET_LIMIT_PCT:
+        return {
+            "passes": True,
+            "delta_p_pct": pct,
+            "limit_pct": INLET_LIMIT_PCT,
+            "exempt": exempt,
+            "status": "pass",
+            "message": "",
+        }
+    if thermal_relief:
+        message = (
+            "Inlet loss exceeds 3 %; thermal relief inlet piping is exempt per API 520 Part II 7.3.8 "
+            "only when rated capacity is >10x the required relief rate. Engineering review required."
+        )
+        status = "exempt_requires_analysis"
+    elif valve_type == "pilot" and remote_sensing:
+        message = (
+            "Inlet loss exceeds 3 %; remote sensing is exempt per API 520 Part II 7.3.9, but the "
+            "capacity reduction due to inlet loss shall be accounted for and the sensing line loss "
+            "limited to 3 %. Engineering review required."
+        )
+        status = "exempt_requires_analysis"
+    else:
+        message = (
+            "Inlet loss exceeds 3 % of set pressure (API 520 Part II 7.3.4). Perform an engineering "
+            "analysis per 7.3.6 or reduce the loss."
+        )
+        status = "exceeds_limit"
+    return {
+        "passes": False,
+        "delta_p_pct": pct,
+        "limit_pct": INLET_LIMIT_PCT,
+        "exempt": exempt,
+        "status": status,
+        "message": message,
+    }
+
+
 def check_inlet_rule(
     delta_p_psi: float,
     set_pressure_psig: float,
@@ -157,18 +217,14 @@ def check_inlet_rule(
     remote_sensing: bool = False,
 ) -> Tuple[bool, float]:
     """
-    Check if inlet pressure drop is within API 520 Part II limits.
-    
+    Backward-compatible wrapper for evaluate_inlet_rule.
+
     Returns
     -------
     (passes: bool, delta_p_pct: float)
     """
-    if valve_type == "pilot" and remote_sensing:
-        limit_pct = 100.0  # essentially exempt
-    else:
-        limit_pct = 3.0
-    delta_p_pct = (delta_p_psi / set_pressure_psig) * 100.0 if set_pressure_psig > 0 else 0
-    return delta_p_pct <= limit_pct, delta_p_pct
+    result = evaluate_inlet_rule(delta_p_psi, set_pressure_psig, valve_type, remote_sensing)
+    return bool(result["passes"]), float(result["delta_p_pct"])
 
 
 def check_outlet_rule(
@@ -191,6 +247,8 @@ def check_outlet_rule(
 __all__ = [
     "calculate_inlet_pressure_drop",
     "check_inlet_rule",
+    "evaluate_inlet_rule",
     "check_outlet_rule",
     "darcy_friction_factor",
+    "INLET_LIMIT_PCT",
 ]

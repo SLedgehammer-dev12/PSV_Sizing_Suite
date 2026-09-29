@@ -4,12 +4,13 @@
 # --- API 520 Liquid Relief ---
 LIQUID_FORMULA_CONSTANT = 38.0
 REYNOLDS_CONSTANT = 2800.0
-# API 520 Part I (9th/10th ed.) viscosity correction factor:
-#   Kv = (KV_A + KV_B/Re^0.5 + KV_C/Re^1.5)^-1
-KV_A = 0.9935
-KV_B = 2.878
-KV_C = 342.75
-KV_REYNOLDS_MIN = 40.0
+# API 520 Part I 10th ed. Eq (34) viscosity correction factor:
+#   Kv = (1 + 170 / Re)^-0.5, applicable for Re >= 80.
+# For liquids with viscosity <= 100 cP the standard allows Kv = 1.0.
+KV_CONSTANT = 170.0
+KV_EXPONENT = -0.5
+KV_REYNOLDS_MIN = 80.0
+KV_VISCOSITY_LIMIT_CP = 100.0
 
 # --- API 520 Gas Relief ---
 GAS_FORMULA_CONSTANT = 520.0
@@ -21,6 +22,8 @@ K_NEAR_ONE_THRESHOLD = 0.001
 # Used for preliminary sizing of spring-loaded (conventional/balanced) PRVs.
 PRELIM_KD_GAS = 0.975
 PRELIM_KD_LIQUID = 0.65
+# API 520 Part I 5.9: noncertified liquid sizing shall use Kd = 0.62.
+NONCERTIFIED_KD_LIQUID = 0.62
 PRELIM_KD_TWO_PHASE = 0.85
 
 # --- API 520 Two-Phase ---

@@ -269,7 +269,8 @@ class FireWettedWorker(QThread):
             w_lb_h, q_btu_h = calculate_fire_wetted_load(
                 a_wetted_sqft=self.inputs['a_wetted'],
                 f_factor=self.inputs['f_factor'],
-                heat_of_vap_btu_lb=self.inputs['h_vap']
+                heat_of_vap_btu_lb=self.inputs['h_vap'],
+                adequate_drainage=self.inputs.get('adequate_drainage', False),
             )
             valve_type = self.inputs.get('valve_type', 'conventional')
             if valve_type == 'pilot':
@@ -371,7 +372,9 @@ class ThermalWorker(QThread):
                     p2_psia=self.inputs['p2_psia'],
                     g=self.inputs['g'],
                     mu_cp=self.inputs['mu_cp'],
-                    kd=PRELIM_KD_LIQUID
+                    valve_type=valve_type,
+                    num_valves=self.inputs.get('num_valves', 1),
+                    overpressure_pct=self.inputs.get('overpressure_pct', 10.0),
                 )
             res['Relief_Load_gpm'] = q_gpm
             self.finished.emit(res)

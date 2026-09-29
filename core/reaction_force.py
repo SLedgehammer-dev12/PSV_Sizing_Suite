@@ -1,30 +1,42 @@
 """
 Reaction force estimation for pressure relief devices.
 
-API 520 Part II provides the standard method for estimating the reaction
-force on a relief valve discharging gas/vapor to atmosphere (or into a
-line). The simplified USCS form is:
+API 520 Part II (7th ed.) Section 5.8.2 — Determining Reaction Forces in an
+Open Discharge System.
 
-    F = (W / 68) * sqrt(k * T / M) + (P2 - Pa) * Ae
+Vapor discharge (5.8.2.1, Equation 1, USC units):
+
+    F = (W / 366) * sqrt( k * T / ((k - 1) * M) ) + A * P
 
 where
-    F   reaction force [lbf]
-    W   mass flow rate [lb/h]
-    k   specific heat ratio at relieving conditions [-]
-    T   relieving temperature [degR]
-    M   molecular weight [lb/lbmol]
-    P2  pressure at valve outlet [psia]
-    Pa  atmospheric (or downstream) pressure [psia]
-    Ae  effective outlet flow area [in2]
+    F   reaction force at the point of discharge [lbf]
+    W   flow of gas or vapor [lbm/h]
+    k   ratio of specific heats (Cp/Cv) at outlet conditions [-]
+    T   stagnation temperature at the pipe outlet [degR]
+        (relieving temperature is a conservative approximation)
+    M   molecular weight of the process fluid
+    A   area of the outlet at the point of discharge [in2]
+    P   static pressure within the outlet pipe immediately before terminal
+        expansion to atmosphere [psig]
 
-For liquid service the momentum term is small and usually neglected; the
-force is dominated by the pressure term only.
+Two-phase discharge (5.8.2.2, Equation 2, USC units):
+
+    F = (W^2 / (2.898e6 * A)) * ( x / rho_g + (1 - x) / rho_l ) + A * P
+
+where x is the weight fraction vapor and rho_g / rho_l are the vapor and
+liquid densities at exit conditions.
+
+Note: the gas equation gives the force at the point of discharge when the
+vent discharges through an elbow and a vertical pipe. API 520 Part II cautions
+that it is not a substitute for a piping flexibility/stress analysis.
 """
 import math
 from .constants import ATMOSPHERIC_PSIA
 
-# API 520 Part II momentum constant (USCS).
-REACTION_MOMENTUM_CONSTANT = 68.0
+# API 520 Part II Eq (1) momentum constant (USC).
+REACTION_MOMENTUM_CONSTANT = 366.0
+# API 520 Part II Eq (2) two-phase momentum constant (USC).
+REACTION_TWO_PHASE_CONSTANT = 2.898e6
 
 
 def calculate_gas_reaction_force(
@@ -38,26 +50,33 @@ def calculate_gas_reaction_force(
 ):
     """
     Estimate the reaction force [lbf] for a gas/vapor relief valve venting
-    to atmosphere, per API 520 Part II.
+    to atmosphere per API 520 Part II 5.8.2.1, Equation (1).
 
     Parameters
     ----------
     w_lb_h : Mass flow rate (lb/h)
-    k : Specific heat ratio (Cp/Cv)
-    t_rankine : Relieving temperature (degR)
+    k : Specific heat ratio (Cp/Cv) at outlet conditions
+    t_rankine : Stagnation temperature at the pipe outlet (degR)
     mw : Molecular weight (lb/lbmol)
-    outlet_pressure_psia : Pressure at the valve outlet (psia)
-    outlet_area_sqin : Effective outlet area (in2)
-    atmospheric_psia : Downstream/atmospheric pressure (psia)
+    outlet_pressure_psia : Static pressure within the outlet pipe immediately
+        before terminal expansion to atmosphere (psia)
+    outlet_area_sqin : Area of the outlet at the point of discharge (in2)
+    atmospheric_psia : Atmospheric pressure (psia)
     """
     if w_lb_h <= 0:
         raise ValueError("Mass flow rate must be positive.")
-    if k <= 0 or mw <= 0:
-        raise ValueError("k and MW must be positive.")
+    if k <= 1.0:
+        raise ValueError("Specific heat ratio k must be greater than 1.0 for the reaction force equation.")
+    if mw <= 0:
+        raise ValueError("MW must be positive.")
     if t_rankine <= 0:
         raise ValueError("Temperature must be positive.")
+    if outlet_area_sqin <= 0:
+        raise ValueError("Outlet area must be positive.")
 
-    momentum_term = (w_lb_h / REACTION_MOMENTUM_CONSTANT) * math.sqrt(k * t_rankine / mw)
+    momentum_term = (w_lb_h / REACTION_MOMENTUM_CONSTANT) * math.sqrt(
+        k * t_rankine / ((k - 1.0) * mw)
+    )
     pressure_term = (outlet_pressure_psia - atmospheric_psia) * outlet_area_sqin
     if pressure_term < 0:
         pressure_term = 0.0
@@ -67,6 +86,60 @@ def calculate_gas_reaction_force(
         'Total_Reaction_Force_lbf': total_force,
         'Momentum_Term_lbf': momentum_term,
         'Pressure_Term_lbf': pressure_term,
+    }
+
+
+def calculate_two_phase_reaction_force(
+    w_lb_h,
+    vapor_mass_fraction,
+    vapor_density_lb_ft3,
+    liquid_density_lb_ft3,
+    outlet_pressure_psia,
+    outlet_area_sqin,
+    atmospheric_psia=ATMOSPHERIC_PSIA,
+):
+    """
+    Estimate the reaction force [lbf] for a homogeneous (no-slip) two-phase
+    discharge to atmosphere per API 520 Part II 5.8.2.2, Equation (2).
+
+    Parameters
+    ----------
+    w_lb_h : Mass flow rate (lb/h)
+    vapor_mass_fraction : Weight fraction vapor at exit conditions [-]
+    vapor_density_lb_ft3 : Vapor density at exit conditions (lb/ft3)
+    liquid_density_lb_ft3 : Liquid density at exit conditions (lb/ft3)
+    outlet_pressure_psia : Static pressure at the outlet (psia)
+    outlet_area_sqin : Outlet area at the point of discharge (in2)
+    """
+    if w_lb_h <= 0:
+        raise ValueError("Mass flow rate must be positive.")
+    if not 0.0 <= vapor_mass_fraction <= 1.0:
+        raise ValueError("Vapor mass fraction must be between 0 and 1.")
+    if outlet_area_sqin <= 0:
+        raise ValueError("Outlet area must be positive.")
+
+    x = vapor_mass_fraction
+    specific_volume_mix = 0.0
+    if x > 0:
+        if vapor_density_lb_ft3 <= 0:
+            raise ValueError("Vapor density must be positive when vapor is present.")
+        specific_volume_mix += x / vapor_density_lb_ft3
+    if x < 1:
+        if liquid_density_lb_ft3 <= 0:
+            raise ValueError("Liquid density must be positive when liquid is present.")
+        specific_volume_mix += (1.0 - x) / liquid_density_lb_ft3
+
+    momentum_term = (
+        w_lb_h ** 2 * specific_volume_mix
+        / (REACTION_TWO_PHASE_CONSTANT * outlet_area_sqin)
+    )
+    pressure_term = max(outlet_pressure_psia - atmospheric_psia, 0.0) * outlet_area_sqin
+
+    return {
+        'Total_Reaction_Force_lbf': momentum_term + pressure_term,
+        'Momentum_Term_lbf': momentum_term,
+        'Pressure_Term_lbf': pressure_term,
+        'Mixture_Specific_Volume_ft3_lb': specific_volume_mix,
     }
 
 

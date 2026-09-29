@@ -3,15 +3,15 @@ FastAPI application for PSV Sizing Suite.
 
 Provides REST endpoints for all core engineering calculations.
 """
-import sys
 import os
-from typing import Dict, List, Optional, Union
+import sys
+from typing import Dict, List, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
+from fastapi.responses import JSONResponse
 
 from core import __version__
 from core.models import (
@@ -35,11 +35,16 @@ from core.fire_scenarios import (
 from core.thermal_expansion import calculate_thermal_expansion_load
 from core.blowby import calculate_blowby_flowrate
 from core.valve_selection import select_orifice, API_ORIFICE_AREAS
-from core.vendor_catalog import get_vendor_valves
-from core.kb_coefficient import get_kb, KB_BALANCED_BELLOWS_10PCT, KB_BALANCED_BELLOWS_25PCT
-from core.piping import calculate_inlet_pressure_drop, check_inlet_rule, check_outlet_rule
+from core.vendor_catalog import get_vendor_valves, get_family_data, catalog_quality_summary
+from core.kb_coefficient import (
+    get_kb, select_kb_curve,
+    KB_BALANCED_BELLOWS_10PCT, KB_BALANCED_BELLOWS_16PCT, KB_BALANCED_BELLOWS_21PCT,
+)
+from core.piping import calculate_inlet_pressure_drop, evaluate_inlet_rule, check_outlet_rule
 from core.valve_types import calculate_pilot_gas_area, calculate_pilot_liquid_area
 from core.units import convert, HAS_PINT
+from core.validation import ValidationError
+from core.engine import ReliefCase, size_relief_case, STANDARD_EDITION
 
 app = FastAPI(
     title="PSV Sizing Suite API",
@@ -47,13 +52,38 @@ app = FastAPI(
     version=__version__,
 )
 
+_cors_origins = os.environ.get(
+    "PSV_CORS_ORIGINS",
+    "http://localhost:3000,http://localhost:8501,http://127.0.0.1:3000,http://127.0.0.1:8501",
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=[o.strip() for o in _cors_origins.split(",") if o.strip()],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(ValidationError)
+async def validation_error_handler(request: Request, exc: ValidationError):
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
+_api_key = os.environ.get("PSV_API_KEY")
+
+
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    """Optional API-key protection.
+
+    When PSV_API_KEY is set, all endpoints except /health and / require the
+    matching X-API-Key header. When unset (default), behaviour is unchanged.
+    """
+    if _api_key and request.url.path not in ("/health", "/"):
+        if request.headers.get("X-API-Key") != _api_key:
+            return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+    return await call_next(request)
 
 
 # All request/response models are imported from core.models.
@@ -95,9 +125,30 @@ async def root():
     }
 
 
+@app.post("/api/v1/size")
+async def size_relief(case: ReliefCase):
+    """Unified sizing endpoint: routes by service, valve type and
+    certification and returns full method provenance."""
+    try:
+        return size_relief_case(case)
+    except ValidationError:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/api/v1/liquid-relief")
 async def liquid_relief(req: LiquidReliefRequest):
     try:
+        if req.valve_type == "pilot":
+            case = ReliefCase(
+                service="liquid", q_gpm=req.q_gpm, g=req.g, p1_psia=req.p1_psia,
+                p2_psia=req.p2_psia, mu_cp=req.mu_cp, num_valves=req.num_valves,
+                valve_type="pilot", capacity_certified=req.capacity_certified,
+                overpressure_pct=req.overpressure_pct,
+                set_pressure_psig=req.set_pressure_psig,
+            )
+            return size_relief_case(case)
         return calculate_liquid_relief_area(
             q_gpm=req.q_gpm,
             p1_psia=req.p1_psia,
@@ -110,15 +161,38 @@ async def liquid_relief(req: LiquidReliefRequest):
             num_valves=req.num_valves,
             overpressure_pct=req.overpressure_pct,
             valve_type=req.valve_type,
+            set_pressure_psig=req.set_pressure_psig,
+            capacity_certified=req.capacity_certified,
         )
+    except ValidationError:
+        raise
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 
 
 @app.post("/api/v1/gas-relief")
 async def gas_relief(req: GasReliefRequest):
     try:
+        if req.use_napier or req.is_steam:
+            case = ReliefCase(
+                service="steam", w_lb_h=req.w_lb_h, p1_psia=req.p1_psia,
+                p2_psia=req.p2_psia, t_rankine=req.t_rankine,
+                num_valves=req.num_valves, valve_type=req.valve_type,
+                kc=req.kc, kd=req.kd, kb=req.kb,
+                set_pressure_psig=req.set_pressure_psig,
+                overpressure_pct=req.overpressure_pct,
+            )
+            return size_relief_case(case)
+        if req.valve_type == "pilot":
+            case = ReliefCase(
+                service="gas", w_lb_h=req.w_lb_h, p1_psia=req.p1_psia,
+                p2_psia=req.p2_psia, t_rankine=req.t_rankine, z=req.z,
+                mw=req.mw, k=req.k, kc=req.kc, kd=req.kd, kb=req.kb,
+                num_valves=req.num_valves, valve_type="pilot",
+                set_pressure_psig=req.set_pressure_psig,
+                overpressure_pct=req.overpressure_pct,
+            )
+            return size_relief_case(case)
         kb = req.kb
         if kb is None and req.set_pressure_psig:
             kb = get_kb(req.p2_psia, req.set_pressure_psig, req.valve_type, req.overpressure_pct)
@@ -137,6 +211,8 @@ async def gas_relief(req: GasReliefRequest):
             kc=req.kc,
             num_valves=req.num_valves,
         )
+    except ValidationError:
+        raise
     except (ValueError, ZeroDivisionError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -145,11 +221,17 @@ async def gas_relief(req: GasReliefRequest):
 async def two_phase(req: TwoPhaseRequest):
     try:
         if req.omega is None:
-            if req.v9_ft3_lb is None:
-                raise HTTPException(status_code=400, detail="Either omega or v9 must be provided")
             omega = calculate_omega_flashing(req.v0_ft3_lb, req.v9_ft3_lb)
         else:
             omega = req.omega
+
+        kb = req.kb
+        if kb is None:
+            if req.valve_type == "balanced_bellows" and req.set_pressure_psig:
+                kb = get_kb(req.p_back_psia, req.set_pressure_psig,
+                            "balanced_bellows", req.overpressure_pct)
+            else:
+                kb = 1.0
 
         return calculate_two_phase_area(
             w_lb_h=req.w_lb_h,
@@ -158,8 +240,12 @@ async def two_phase(req: TwoPhaseRequest):
             v0_ft3_lb=req.v0_ft3_lb,
             omega=omega,
             kd=req.kd,
+            kb=kb,
+            kc=req.kc,
             num_valves=req.num_valves,
         )
+    except ValidationError:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -187,6 +273,8 @@ async def fire_wetted(req: FireWettedRequest):
         gas_res['Relief_Load_lb_h'] = w_lb_h
         gas_res['Heat_Absorption_Btu_h'] = q_btu_h
         return gas_res
+    except ValidationError:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -202,14 +290,15 @@ async def fire_unwetted(req: FireUnwettedRequest):
             k=req.k,
             kd=req.kd,
         )
-        from core.valve_selection import select_orifice as _select
-        letter, selected_area = _select(a_req)
+        letter, selected_area = select_orifice(a_req)
         return {
             'F_Prime': f_prime,
             'Required_Area_sqin': a_req,
             'Selected_Orifice_Letter': letter,
             'Selected_Orifice_Area_sqin': selected_area,
         }
+    except ValidationError:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -231,12 +320,14 @@ async def thermal_expansion(req: ThermalExpansionRequest):
             mu_cp=req.mu_cp,
             num_valves=req.num_valves,
             valve_type=req.valve_type,
+            capacity_certified=req.capacity_certified,
         )
         res['Relief_Load_gpm'] = q_gpm
         return res
+    except ValidationError:
+        raise
     except (ValueError, TypeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 
 
 @app.post("/api/v1/piping-check")
@@ -252,15 +343,25 @@ async def piping_check(req: PipingCheckRequest):
             fittings_90deg=req.fittings_90deg,
             fittings_45deg=req.fittings_45deg,
             gate_valves=req.gate_valves,
+            roughness_in=req.roughness_in,
         )
-        passes, pct = check_inlet_rule(inlet["delta_p_psi"], req.set_pressure_psig, req.valve_type)
+        rule = evaluate_inlet_rule(
+            inlet["delta_p_psi"],
+            req.set_pressure_psig,
+            req.valve_type,
+            remote_sensing=req.remote_sensing,
+        )
         return {
             **inlet,
-            "api_520_rule_pass": passes,
-            "delta_p_pct_of_set": pct,
-            "limit_pct": 1.5 if req.valve_type == "pilot" else 3.0,
+            "api_520_rule_pass": rule["passes"],
+            "delta_p_pct_of_set": rule["delta_p_pct"],
+            "limit_pct": rule["limit_pct"],
+            "inlet_status": rule["status"],
+            "inlet_note": rule["message"],
         }
-    except Exception as e:
+    except ValidationError:
+        raise
+    except (ValueError, TypeError, ZeroDivisionError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -274,18 +375,30 @@ async def list_orifices():
 
 @app.get("/api/v1/valves/{api_letter}")
 async def get_valves(api_letter: str):
-    valves = get_vendor_valves(api_letter.upper())
+    letter = api_letter.upper()
+    valves = get_vendor_valves(letter)
     if not valves:
         raise HTTPException(status_code=404, detail=f"No valves found for orifice {api_letter}")
-    return {"api_letter": api_letter.upper(), "count": len(valves), "valves": valves}
+    return {
+        "api_letter": letter,
+        "count": len(valves),
+        "quality_summary": catalog_quality_summary(),
+        "manufacturer_sourced": get_family_data(letter),
+        "valves": valves,
+    }
 
 
 @app.get("/api/v1/kb-curve")
 async def kb_curve(valve_type: str = "balanced_bellows", overpressure: float = 10.0):
     if valve_type == "conventional":
         return {"valve_type": "conventional", "kb": 1.0}
-    curve = KB_BALANCED_BELLOWS_10PCT if overpressure <= 15 else KB_BALANCED_BELLOWS_25PCT
-    return {"valve_type": valve_type, "overpressure_pct": overpressure, "curve": curve}
+    curve, basis = select_kb_curve(overpressure)
+    return {
+        "valve_type": valve_type,
+        "overpressure_pct": overpressure,
+        "overpressure_basis_pct": basis,
+        "curve": curve,
+    }
 
 
 @app.post("/api/v1/convert")
@@ -293,13 +406,14 @@ async def unit_convert(req: ConvertRequest):
     try:
         result = convert(req.value, req.from_unit, req.to_unit)
         return {"value": req.value, "from": req.from_unit, "to": req.to_unit, "result": result}
+    except ValidationError:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/api/v1/env-factors")
 async def env_factors():
-    from core.fire_scenarios import ENV_FACTORS
     return ENV_FACTORS
 
 
@@ -310,4 +424,6 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host = os.environ.get("PSV_API_HOST", "127.0.0.1")
+    port = int(os.environ.get("PSV_API_PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)

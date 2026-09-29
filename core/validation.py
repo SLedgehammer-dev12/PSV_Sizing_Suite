@@ -3,20 +3,39 @@ from .constants import (
     KD_MIN, KD_MAX, KW_MIN, KW_MAX, KP_MIN, KP_MAX, Z_MIN, Z_MAX, K_MIN, K_MAX, F_FACTOR_MIN, F_FACTOR_MAX,
 )
 
-class ValidationError(Exception):
+class ValidationError(ValueError):
+    """Invalid engineering input.
+
+    Subclasses ValueError so API layers that translate ValueError into a
+    4xx response automatically handle core validation failures too.
+    """
     pass
 
+def validate_finite(value, name):
+    if value is None:
+        raise ValidationError(f"{name} is required")
+    try:
+        finite = math.isfinite(value)
+    except TypeError:
+        raise ValidationError(f"{name} must be a real number (got {value!r})")
+    if not finite:
+        raise ValidationError(f"{name} must be finite (got {value})")
+    return value
+
 def validate_positive(value, name):
+    validate_finite(value, name)
     if value <= 0:
         raise ValidationError(f"{name} must be positive (got {value})")
     return value
 
 def validate_non_negative(value, name):
+    validate_finite(value, name)
     if value < 0:
         raise ValidationError(f"{name} must be non-negative (got {value})")
     return value
 
 def validate_range(value, name, min_val, max_val):
+    validate_finite(value, name)
     if value < min_val or value > max_val:
         raise ValidationError(f"{name} must be between {min_val} and {max_val} (got {value})")
     return value

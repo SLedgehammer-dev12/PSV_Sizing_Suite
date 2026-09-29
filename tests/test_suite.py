@@ -221,16 +221,16 @@ class TestEdgeCases(unittest.TestCase):
 
     def test_kv_at_low_reynolds(self):
         kv = calculate_kv(40)
-        self.assertAlmostEqual(kv, 0.357, places=3)
+        self.assertAlmostEqual(kv, 0.4364, places=3)
 
     def test_kv_at_medium_reynolds(self):
         kv = calculate_kv(1000)
-        self.assertAlmostEqual(kv, 0.913, places=3)
+        self.assertAlmostEqual(kv, 0.9245, places=3)
 
     def test_kv_api520_standard_values(self):
-        # API 520 Part I Eq.34 spot checks
-        self.assertAlmostEqual(calculate_kv(100), 0.6157, places=3)
-        self.assertAlmostEqual(calculate_kv(10000), 0.9779, places=3)
+        # API 520 Part I 10th ed. Eq (34) spot checks
+        self.assertAlmostEqual(calculate_kv(100), 0.6086, places=3)
+        self.assertAlmostEqual(calculate_kv(10000), 0.9916, places=3)
         self.assertEqual(calculate_kv(float('inf')), 1.0)
         self.assertEqual(calculate_kv(0), 1.0)
 
@@ -557,7 +557,7 @@ class TestVersionConsistency(unittest.TestCase):
     def test_web_app_version_is_v22(self):
         with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'web_app.py'), 'r', encoding='utf-8') as f:
             content = f.read()
-        self.assertIn('v2.3.0', content)
+        self.assertIn('__version_tag__', content)
         self.assertNotIn('v2.1', content)
 
     def test_report_generator_version_is_v22(self):
@@ -771,7 +771,7 @@ class TestUpdateCheck(unittest.TestCase):
 
     def test_app_version_constant_exists(self):
         from desktop.app import APP_VERSION
-        self.assertEqual(APP_VERSION, "v2.3.6")
+        self.assertEqual(APP_VERSION, "v2.4.0")
 
     def test_app_version_in_title(self):
         from desktop.app import APP_VERSION, PSVSizingApp
@@ -923,8 +923,9 @@ class TestV230Modules(unittest.TestCase):
         self.assertEqual(kb, 1.0)
 
     def test_kb_balanced_bellows_interpolated(self):
-        kb = get_kb(44.7, 200, "balanced_bellows", 10)
-        self.assertLess(kb, 1.0)
+        # 47.35% back pressure on the 10% overpressure curve (Figure 31)
+        kb = get_kb(94.7, 200, "balanced_bellows", 10)
+        self.assertLessEqual(kb, 1.0)
         self.assertGreater(kb, 0.8)
 
     def test_kb_balanced_bellows_25pct(self):
@@ -932,13 +933,14 @@ class TestV230Modules(unittest.TestCase):
         self.assertLessEqual(kb, 1.0)
 
     def test_interpolate_kb_exact_point(self):
-        kb = interpolate_kb(10.0, KB_BALANCED_BELLOWS_10PCT)
-        self.assertAlmostEqual(kb, 0.990, places=3)
+        kb = interpolate_kb(35.0, KB_BALANCED_BELLOWS_10PCT)
+        self.assertAlmostEqual(kb, 0.950, places=3)
 
     def test_interpolate_kb_between_points(self):
-        kb = interpolate_kb(7.5, KB_BALANCED_BELLOWS_10PCT)
-        self.assertGreater(kb, 0.985)
-        self.assertLess(kb, 0.995)
+        kb = interpolate_kb(37.5, KB_BALANCED_BELLOWS_10PCT)
+        self.assertGreater(kb, 0.90)
+        self.assertLess(kb, 0.92)
+        self.assertAlmostEqual(kb, 0.912, places=3)
 
     def test_interpolate_kb_empty_curve(self):
         kb = interpolate_kb(50, {})
@@ -987,8 +989,8 @@ class TestV230Modules(unittest.TestCase):
 
     def test_core_version_is_v236(self):
         from core import __version__, __version_tag__
-        self.assertEqual(__version__, "2.3.6")
-        self.assertEqual(__version_tag__, "v2.3.6")
+        self.assertEqual(__version__, "2.4.0")
+        self.assertEqual(__version_tag__, "v2.4.0")
 
     def test_liquid_relief_multivalve(self):
         from core.liquid_relief import calculate_liquid_relief_area
@@ -1239,13 +1241,15 @@ class TestNewModules(unittest.TestCase):
         self.assertTrue(ok)
         ok, msg = check_backpressure_limit(55, 'conventional')
         self.assertFalse(ok)
-        ok, _ = check_backpressure_limit(55, 'balanced_bellows')
-        self.assertTrue(ok)
+        ok, msg = check_backpressure_limit(55, 'balanced_bellows')
+        self.assertFalse(ok)
+        self.assertIn("50%", msg)
 
     def test_kb_clamped_above_chart_range(self):
+        # 60% back pressure clamps to the 50% curve endpoint (Figure 31)
         from core.kb_coefficient import get_kb
         kb = get_kb(74.7, 100, 'balanced_bellows', 10.0)
-        self.assertAlmostEqual(kb, 0.830, places=3)
+        self.assertAlmostEqual(kb, 0.685, places=3)
 
     def test_vendor_catalog_no_orphans(self):
         import json, os
@@ -1298,10 +1302,10 @@ class TestCalculationScenarios(unittest.TestCase):
     def test_s02_liquid_viscous_kv(self):
         res = calculate_liquid_relief_area(q_gpm=200, p1_psia=300, p2_psia=14.7,
                                            g=0.9, mu_cp=500.0, kd=0.65, num_valves=1)
-        self.assertAlmostEqual(res['Kv'], 0.9292, places=3)
-        self.assertAlmostEqual(res['Required_Area_Final_sqin'], 0.4895, places=3)
+        self.assertAlmostEqual(res['Kv'], 0.9451, places=3)
+        self.assertAlmostEqual(res['Required_Area_Final_sqin'], 0.4812, places=3)
         self.assertEqual(res['Selected_Orifice_Letter'], 'G')
-        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 97.307, places=2)
+        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 95.67, places=2)
 
     def test_s03_gas_critical_n2(self):
         c = calculate_c_coefficient(1.4)
@@ -1334,17 +1338,19 @@ class TestCalculationScenarios(unittest.TestCase):
                                r_with_kb['Required_Area_sqin'], places=9)
 
     def test_s05_balanced_bellows_kb(self):
+        # 50.8% back pressure on the Figure 31 10% curve (digitized values)
+        # 500 psia / (985 psig + 14.6959 psia) = 500 / 999.6959 = 50.0% bp
         from core.kb_coefficient import get_kb
         kb = get_kb(back_pressure_psia=500, set_pressure_psig=985,
                     valve_type="balanced_bellows", overpressure_pct=10)
-        self.assertAlmostEqual(kb, 0.8358, places=3)
+        self.assertAlmostEqual(kb, 0.699, places=3)
         res = calculate_gas_relief_area(w_lb_h=30000, p1_psia=1100, p2_psia=500,
                                         t_rankine=620, z=0.9, mw=29, k=1.3,
                                         kd=0.975, kb=kb, kc=1.0, num_valves=1)
         self.assertEqual(res['Flow_Type'], 'CRITICAL')
-        self.assertAlmostEqual(res['Required_Area_sqin'], 0.4231, places=3)
-        self.assertEqual(res['Selected_Orifice_Letter'], 'G')
-        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 84.110, places=2)
+        self.assertAlmostEqual(res['Required_Area_sqin'], 0.5060, places=3)
+        self.assertEqual(res['Selected_Orifice_Letter'], 'H')
+        self.assertAlmostEqual(res['Orifice_Loading_Pct'], 64.457, places=2)
 
     def test_s06_two_phase_critical(self):
         res = calculate_two_phase_area(w_lb_h=20000, p0_psia=300, p_back_psia=14.7,
@@ -1375,8 +1381,10 @@ class TestCalculationScenarios(unittest.TestCase):
 
     def test_s09_fire_unwetted_gas(self):
         a_req, fprime = calculate_fire_unwetted_area(200, 250, 600, 1100, 1.3)
-        self.assertAlmostEqual(fprime, 0.0153, places=4)
-        self.assertAlmostEqual(a_req, 0.1936, places=3)
+        # API 521 Eq (10): F' = (0.1406/Kd) * (Tw-T1)^1.25 / T1^0.6506
+        # F' = 5.31, Area = 67.2 in^2
+        self.assertAlmostEqual(fprime, 5.3116, places=3)
+        self.assertAlmostEqual(a_req, 67.19, places=2)
 
     def test_s10_thermal_expansion(self):
         q = calculate_thermal_expansion_load(0.0008, 10000, 0.6, 0.5)
@@ -1394,8 +1402,9 @@ class TestCalculationScenarios(unittest.TestCase):
     def test_s12_reaction_force_and_noise(self):
         from core.reaction_force import calculate_gas_reaction_force
         from core.noise import calculate_noise_level
+        # API 520 Part II Eq (1): F = W/366 * sqrt(kT/((k-1)M)) + A*P
         F = calculate_gas_reaction_force(50000, 1.4, 660, 28, 14.7, 1.838)
-        self.assertAlmostEqual(F['Total_Reaction_Force_lbf'], 4224.0, delta=1.0)
+        self.assertAlmostEqual(F['Total_Reaction_Force_lbf'], 1240.8, delta=1.0)
         self.assertLess(F['Pressure_Term_lbf'], 0.05)
         N = calculate_noise_level(50000, 1.4, 28, 660, 100)
         self.assertAlmostEqual(N['Sound_Pressure_Level_dB'], 99.1, places=1)
@@ -1411,22 +1420,32 @@ class TestV236Improvements(unittest.TestCase):
     """Tests for physical modeling and bug fixes added in v2.3.6."""
 
     def test_liquid_kp_calculation(self):
+        # API 520 Part I 10th ed. Figure 39 -- noncertified liquid valves
         from core.liquid_relief import calculate_kp, calculate_liquid_relief_area
-        self.assertAlmostEqual(calculate_kp(10.0), 1.00, places=2)
-        self.assertAlmostEqual(calculate_kp(25.0), 1.15, places=2)
-        self.assertAlmostEqual(calculate_kp(5.0), 0.70, places=2)
+        self.assertAlmostEqual(calculate_kp(10.0), 0.60, places=2)
+        self.assertAlmostEqual(calculate_kp(25.0), 1.00, places=2)
+        self.assertAlmostEqual(calculate_kp(20.0), 0.91, places=2)
 
-        # At 25% overpressure, Kp=1.15 so required area is smaller
-        r_10 = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0, overpressure_pct=10.0)
-        r_25 = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0, overpressure_pct=25.0)
-        self.assertLess(r_25['Required_Area_Final_sqin'], r_10['Required_Area_Final_sqin'])
+        # Certified path (default) does not use Kp: Kp == 1.0
+        r_cert = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0)
+        self.assertEqual(r_cert['Kp'], 1.0)
+        self.assertEqual(r_cert['Method'], 'certified')
+        self.assertEqual(r_cert['Kd'], 0.65)
+
+        # Noncertified path uses Kd = 0.62 and Kp = 0.6 at 10% -> larger area
+        r_non = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0,
+                                             capacity_certified=False, overpressure_pct=10.0)
+        self.assertEqual(r_non['Method'], 'noncertified')
+        self.assertEqual(r_non['Kd'], 0.62)
+        self.assertAlmostEqual(r_non['Kp'], 0.60, places=2)
+        self.assertGreater(r_non['Required_Area_Final_sqin'], r_cert['Required_Area_Final_sqin'])
 
     def test_liquid_kw_balanced_bellows(self):
         from core.liquid_relief import calculate_kw_liquid, calculate_liquid_relief_area
         self.assertEqual(calculate_kw_liquid(10.0, "conventional"), 1.0)
         self.assertEqual(calculate_kw_liquid(10.0, "balanced_bellows"), 1.0)
         kw_30 = calculate_kw_liquid(30.0, "balanced_bellows")
-        self.assertAlmostEqual(kw_30, 0.89, places=2)
+        self.assertAlmostEqual(kw_30, 0.866, places=2)
 
         # Balanced bellows with 30% back pressure requires larger area due to Kw < 1.0
         r_conv = calculate_liquid_relief_area(q_gpm=100, p1_psia=100, p2_psia=14.7, g=1.0, mu_cp=1.0, valve_type="conventional")
@@ -1473,7 +1492,9 @@ class TestV236Improvements(unittest.TestCase):
         })
         self.assertEqual(res.status_code, 200)
         data = res.json()
-        self.assertEqual(data['Kp'], 1.15)
+        # Certified method (default): no Kp correction
+        self.assertEqual(data['Kp'], 1.0)
+        self.assertEqual(data['Method'], 'certified')
 
     def test_graph_calc_worker_high_backpressure(self):
         from desktop.workers import GraphCalcWorker
@@ -1485,6 +1506,135 @@ class TestV236Improvements(unittest.TestCase):
         self.assertEqual(len(res), 1)
         p_vals, a_vals, base_p1 = res[0]
         self.assertTrue(all(p > 25.0 for p in p_vals))
+
+
+class TestUnifiedEngine(unittest.TestCase):
+    """Faz 2: unified engine routing and provenance."""
+
+    def test_engine_gas_conventional(self):
+        from core.engine import ReliefCase, size_relief_case
+        r = size_relief_case(ReliefCase(
+            service='gas', w_lb_h=50000, p1_psia=100, p2_psia=14.7,
+            t_rankine=660, z=0.9, mw=28, k=1.4,
+        ))
+        self.assertIn('Selected_Orifice_Letter', r)
+        self.assertIn('Result_Meta', r)
+        self.assertEqual(r['Result_Meta']['Service'], 'gas')
+
+    def test_engine_routes_pilot_gas(self):
+        from core.engine import ReliefCase, size_relief_case
+        r = size_relief_case(ReliefCase(
+            service='gas', w_lb_h=50000, p1_psia=100, p2_psia=14.7,
+            t_rankine=660, z=0.9, mw=28, k=1.4, valve_type='pilot',
+        ))
+        self.assertIn('Pilot-operated', r['Result_Meta']['Method'])
+
+    def test_engine_routes_steam_napier(self):
+        from core.engine import ReliefCase, size_relief_case
+        r = size_relief_case(ReliefCase(
+            service='steam', w_lb_h=50000, p1_psia=500, p2_psia=14.7, t_rankine=800,
+        ))
+        self.assertIn('Napier', r['Result_Meta']['Method'])
+
+    def test_engine_liquid_certified_no_kp(self):
+        from core.engine import ReliefCase, size_relief_case
+        r = size_relief_case(ReliefCase(
+            service='liquid', q_gpm=100, g=1.0, p1_psia=100, p2_psia=14.7, mu_cp=1.0,
+        ))
+        self.assertEqual(r['Kp'], 1.0)
+        self.assertEqual(r['Kd'], 0.65)
+
+    def test_engine_liquid_noncertified_kd_062(self):
+        from core.engine import ReliefCase, size_relief_case
+        r = size_relief_case(ReliefCase(
+            service='liquid', q_gpm=100, g=1.0, p1_psia=100, p2_psia=14.7,
+            mu_cp=1.0, capacity_certified=False,
+        ))
+        self.assertEqual(r['Kd'], 0.62)
+        self.assertEqual(r['Verification_Status'], 'review-required')
+
+    def test_engine_two_phase_kb_wired(self):
+        from core.engine import ReliefCase, size_relief_case
+        r = size_relief_case(ReliefCase(
+            service='two_phase', w_lb_h=20000, p1_psia=300, p2_psia=14.7,
+            v0_ft3_lb=0.05, omega=5.0, valve_type='balanced_bellows',
+            set_pressure_psig=250,
+        ))
+        self.assertIn('Kb_Basis', r['Result_Meta'])
+
+    def test_engine_requires_inputs(self):
+        from core.engine import ReliefCase, size_relief_case
+        with self.assertRaises(ValueError):
+            size_relief_case(ReliefCase(service='gas'))
+
+    def test_api_size_endpoint(self):
+        from fastapi.testclient import TestClient
+        from api.main import app
+        client = TestClient(app, raise_server_exceptions=False)
+        r = client.post('/api/v1/size', json={
+            'service': 'liquid', 'q_gpm': 100.0, 'g': 1.0,
+            'p1_psia': 100.0, 'p2_psia': 14.7, 'mu_cp': 1.0,
+            'capacity_certified': False,
+        })
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data['Kd'], 0.62)
+        self.assertIn('Result_Meta', data)
+
+    def test_api_gas_pilot_routes(self):
+        from fastapi.testclient import TestClient
+        from api.main import app
+        client = TestClient(app, raise_server_exceptions=False)
+        r = client.post('/api/v1/gas-relief', json={
+            'w_lb_h': 50000.0, 'p1_psia': 100.0, 'p2_psia': 14.7,
+            't_rankine': 660.0, 'z': 0.9, 'mw': 28.0, 'k': 1.4,
+            'valve_type': 'pilot',
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('Pilot-operated', r.json()['Result_Meta']['Method'])
+
+
+class TestV240CatalogAndSecurity(unittest.TestCase):
+    """Faz 3: catalog provenance and optional API-key protection."""
+
+    def test_family_data_exposed(self):
+        from core.vendor_catalog import get_family_data
+        rows = get_family_data('D')
+        self.assertGreater(len(rows), 0)
+        self.assertEqual(rows[0]['verification_status'], 'sourced')
+        self.assertIsNotNone(rows[0]['actual_area_mm2'])
+
+    def test_catalog_quality_summary(self):
+        from core.vendor_catalog import catalog_quality_summary
+        s = catalog_quality_summary()
+        self.assertIn('sourced', s)
+        self.assertIn('screening', s)
+        self.assertGreater(s['screening'], 0)
+
+    def test_vendor_endpoint_includes_provenance(self):
+        from fastapi.testclient import TestClient
+        from api.main import app
+        client = TestClient(app, raise_server_exceptions=False)
+        r = client.get('/api/v1/valves/D')
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertIn('quality_summary', data)
+        self.assertIn('manufacturer_sourced', data)
+
+    def test_api_key_middleware_off_by_default(self):
+        from fastapi.testclient import TestClient
+        from api.main import app
+        client = TestClient(app, raise_server_exceptions=False)
+        r = client.get('/api/v1/orifices')
+        self.assertEqual(r.status_code, 200)
+
+    def test_engine_result_meta_service(self):
+        from core.engine import ReliefCase, size_relief_case
+        r = size_relief_case(ReliefCase(
+            service='liquid', q_gpm=100, g=1.0, p1_psia=100, p2_psia=14.7, mu_cp=1.0,
+        ))
+        self.assertIn('Standard', r['Result_Meta'])
+        self.assertIn('Method', r['Result_Meta'])
 
 
 if __name__ == "__main__":

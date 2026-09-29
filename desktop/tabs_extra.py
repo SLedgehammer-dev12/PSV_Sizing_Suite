@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QHBoxLayout, QFormLayout,
                               QLineEdit, QComboBox, QPushButton, QLabel,
-                              QMessageBox, QGroupBox, QGridLayout)
+                              QMessageBox, QGroupBox, QGridLayout, QCheckBox)
 
 from core.unit_converter import (barg_to_psia, m2_to_sqft,
                                  c_to_rankine, kcal_kg_to_btu_lb, kw_to_btu_h, kcal_h_to_btu_h)
@@ -66,6 +66,14 @@ class FireWettedTab(BaseCalcTab):
         self.valve_type_combo.addItems(["conventional", "balanced_bellows", "pilot"])
         form_layout.addRow("Valve Type:", self.valve_type_combo)
 
+        self.drainage_check = QCheckBox("Adequate drainage & prompt firefighting (API 521 4.4.13.2.4.2)")
+        self.drainage_check.setChecked(False)
+        self.drainage_check.setToolTip(
+            "Unchecked uses the 34,500 coefficient (no credit for drainage/firefighting); "
+            "checked uses 21,000."
+        )
+        form_layout.addRow("", self.drainage_check)
+
         input_group.setLayout(form_layout)
         self.main_layout.insertWidget(0, input_group)
 
@@ -116,7 +124,8 @@ class FireWettedTab(BaseCalcTab):
             inputs = {
                 'a_wetted': area, 'h_vap': hvap, 'p1_psia': p1, 'p2_psia': p2,
                 't_rankine': t, 'z': z, 'mw': mw, 'k': k, 'f_factor': f,
-                'valve_type': self.valve_type_combo.currentText()
+                'valve_type': self.valve_type_combo.currentText(),
+                'adequate_drainage': self.drainage_check.isChecked(),
             }
             self.last_inputs = inputs
 

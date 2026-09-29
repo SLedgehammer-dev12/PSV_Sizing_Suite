@@ -19,7 +19,7 @@ class VendorTableWidget(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.table = QTableWidget(0, 6)
+        self.table = QTableWidget(0, 7)
         self.table.setHorizontalHeaderLabels([
             "Üretici (Manufacturer)",
             "Seri (Series)",
@@ -27,10 +27,11 @@ class VendorTableWidget(QWidget):
             "Dizayn (Design)",
             "Giriş/Çıkış Çapı",
             "Gerçek Alan (mm2)",
+            "Kaynak Durumu",
         ])
 
         header = self.table.horizontalHeader()
-        for i in range(6):
+        for i in range(7):
             header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.Stretch)
 
@@ -77,3 +78,20 @@ class VendorTableWidget(QWidget):
             area_item = QTableWidgetItem(str(v.get("actual_area_mm2", "")))
             area_item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 5, area_item)
+
+            status = v.get("verification_status", "screening")
+            status_item = QTableWidgetItem(
+                "Doğrulanmamış (screening)" if status == "screening" else "Kaynaklı"
+            )
+            status_item.setTextAlignment(Qt.AlignCenter)
+            if status == "screening":
+                status_item.setForeground(Qt.darkYellow)
+            self.table.setItem(row, 6, status_item)
+
+        screening = sum(1 for v in self.current_valves
+                        if v.get("verification_status") == "screening")
+        if screening:
+            self.table.setToolTip(
+                f"{screening} kayıt tarama amaçlı placeholder'dır. Nihai seçim için "
+                "üretici sertifikalı kapasite ve malzeme verisi doğrulanmalıdır."
+            )
