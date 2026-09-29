@@ -5,6 +5,9 @@ import json
 import tempfile
 from unittest.mock import patch, MagicMock
 
+# Headless CI: Qt widgets must run on the offscreen platform.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.thermo_props import calculate_mixture_properties, get_coolprop_fluids, COOLPROP_AVAILABLE

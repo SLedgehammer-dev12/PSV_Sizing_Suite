@@ -30,6 +30,7 @@ jobs:
       - name: Run test suite (isolated auth store)
         env:
           PSV_AUTH_FILE: ${{ runner.temp }}/psv_auth.json
+          QT_QPA_PLATFORM: offscreen
         run: python -m pytest tests/test_suite.py -q
 
   frontend:
